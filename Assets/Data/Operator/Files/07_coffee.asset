@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 07_coffee
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: coffee_machine.log
+  fileNamePt: maquina_cafe.log
+  titleEn: 'Maintenance: coffee machine'
+  titlePt: "Manuten\xE7\xE3o: m\xE1quina de caf\xE9"
+  bodyEn: 'MAINTENANCE LOG - COFFEE MACHINE (ROOM 07)
+
+
+    Cups served to operator
+    07: 5.
+
+    Cups served to operator 06: 212.
+
+    Operator 06 didn''t sleep either.
+
+    Refill
+    scheduled: never.'
+  bodyPt: "REGISTRO DE MANUTEN\xC7\xC3O - M\xC1QUINA DE CAF\xC9 (SALA 07)\n\nCopos
+    servidos ao operador 07: 5.\nCopos servidos ao operador 06: 212.\nO operador
+    06 tamb\xE9m n\xE3o dormia.\nReabastecimento agendado: nunca."
+  requiredFlag: coffee_5
+  order: 60

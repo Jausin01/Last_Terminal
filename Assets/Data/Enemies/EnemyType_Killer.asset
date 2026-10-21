@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57818de5193c5ad45aa96ec0d5bcb39a, type: 3}
+  m_Name: EnemyType_Killer
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyType
+  displayName: Killer
+  commandKey: killer
+  maxHealth: 160
+  walkSpeed: 1.25
+  walkClipSpeed: 1.75
+  runs: 0
+  runSpeed: 2.6
+  runClipSpeed: 2.9
+  turnSpeed: 240
+  stepInTime: 0.3
+  sightRange: 12
+  sightAngle: 150
+  hearRange: 4
+  feedingHearRange: 2
+  screamsOnAlert: 0
+  loseTime: 10
+  attacks:
+  - slot: 0
+    weight: 1
+    range: 1.1
+    hitTime: 0.4
+    exitTime: 0.68
+    damage: 12
+    cooldown: 1.2
+  - slot: 1
+    weight: 1
+    range: 1
+    hitTime: 0.335
+    exitTime: 0.46
+    damage: 15
+    cooldown: 1.6
+  attackSpeed: 1.1
+  staggerDamage: 45
+  staggerTime: 0.5
+  wanderPause: 5

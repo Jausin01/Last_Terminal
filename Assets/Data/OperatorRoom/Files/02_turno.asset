@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 02_turno
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: shift_07.log
+  fileNamePt: turno_07.log
+  titleEn: System log
+  titlePt: Registro do sistema
+  bodyEn: '[19:58] Terminal 07 powered on remotely.
+
+    [20:12] Vehicle arrived.
+    Back entrance.
+
+    [20:31] Operator placed in room 07. Sedated.
+
+    [20:32]
+    Door 07: LOCKED.
+
+    [20:33] Camera grid: waiting for the field link.
+
+    [03:12]
+    Operator awake.'
+  bodyPt: "[19:58] Terminal 07 ligado remotamente.\n[20:12] Ve\xEDculo chegou. Entrada
+    dos fundos.\n[20:31] Operador acomodado na sala 07. Sedado.\n[20:32] Porta 07:
+    TRANCADA.\n[20:33] Rede de c\xE2meras: aguardando o link de campo.\n[03:12] Operador
+    acordado."
+  requiredFlag: 
+  order: 10
+  kind: 0
+  image: {fileID: 0}
+  folderEn: Documents
+  folderPt: Documentos
+  inRecycleBin: 0

@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 02_shift_log
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: shift_07.log
+  fileNamePt: turno_07.log
+  titleEn: System log
+  titlePt: Registro do sistema
+  bodyEn: '[23:58] Terminal 07 powered on.
+
+    [23:58] Operator badge: ACCEPTED.
+
+    [23:59]
+    Camera grid: 9/12 online. 3 cameras not responding.
+
+    [00:00] Subject located:
+    PADDED CELL. Vital signs: stable. Name on file: HELENA.
+
+    [00:01] Door 07
+    (operator room): LOCKED by remote command.
+
+    [00:01] Remote command origin:
+    UNKNOWN.
+
+    [00:02] Note to the operator: do not try the door.'
+  bodyPt: "[23:58] Terminal 07 ligado.\n[23:58] Crach\xE1 do operador: ACEITO.\n[23:59]
+    Rede de c\xE2meras: 9/12 online. 3 c\xE2meras sem resposta.\n[00:00] Pessoa localizada:
+    CELA ACOLCHOADA. Sinais vitais: est\xE1veis. Nome na ficha: HELENA.\n[00:01]
+    Porta 07 (sala do operador): TRANCADA por comando remoto.\n[00:01] Origem do
+    comando: DESCONHECIDA.\n[00:02] Aviso ao operador: n\xE3o tente a porta."
+  requiredFlag: 
+  order: 10

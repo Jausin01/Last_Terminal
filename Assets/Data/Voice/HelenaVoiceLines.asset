@@ -1,0 +1,743 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44bda13a1e9880948bcf7e3f07488dbb, type: 3}
+  m_Name: HelenaVoiceLines
+  m_EditorClassIdentifier: Assembly-CSharp::VoiceLineBank
+  entries:
+  - line: 0
+    context: Recebeu uma ordem e vai fazer (pegar, abrir porta, atacar).
+    english: Okay.
+    portuguese: "T\xE1 bom."
+    englishClips: []
+    portugueseClips: []
+  - line: 1
+    context: "Come\xE7a a andar at\xE9 onde mandaram."
+    english: On my way.
+    portuguese: "T\xF4 indo."
+    englishClips: []
+    portugueseClips: []
+  - line: 2
+    context: "N\xE3o entendeu o que o operador falou."
+    english: What? I didn't get that.
+    portuguese: "H\xE3? N\xE3o entendi."
+    englishClips: []
+    portugueseClips: []
+  - line: 3
+    context: "Est\xE1 no meio de outra coisa (sentada, abrindo porta, pegando item)."
+    english: Not now, hold on.
+    portuguese: "Agora n\xE3o, espera."
+    englishClips: []
+    portugueseClips: []
+  - line: 4
+    context: "N\xE3o tem caminho at\xE9 o lugar."
+    english: I can't get there from here.
+    portuguese: "N\xE3o consigo chegar l\xE1 daqui."
+    englishClips: []
+    portugueseClips: []
+  - line: 5
+    context: "Procurou o que pediram e n\xE3o achou."
+    english: I don't see anything like that.
+    portuguese: "N\xE3o t\xF4 vendo nada disso."
+    englishClips: []
+    portugueseClips: []
+  - line: 6
+    context: Pegou o item.
+    english: Got it.
+    portuguese: Peguei.
+    englishClips: []
+    portugueseClips: []
+  - line: 7
+    context: "S\xF3 coube parte do item na bolsa."
+    english: I can't carry all of it.
+    portuguese: "N\xE3o coube tudo."
+    englishClips: []
+    portugueseClips: []
+  - line: 8
+    context: "Invent\xE1rio cheio."
+    english: I can't carry any more.
+    portuguese: "N\xE3o tenho mais espa\xE7o."
+    englishClips: []
+    portugueseClips: []
+  - line: 9
+    context: "O item est\xE1 fora de alcance."
+    english: I can't reach it.
+    portuguese: "N\xE3o alcan\xE7o."
+    englishClips: []
+    portugueseClips: []
+  - line: 10
+    context: "For\xE7ou a ma\xE7aneta e a porta est\xE1 trancada."
+    english: It's locked.
+    portuguese: "T\xE1 trancada."
+    englishClips: []
+    portugueseClips: []
+  - line: 11
+    context: "Porta de seguran\xE7a: pede para o operador abrir pelas c\xE2meras."
+    english: It won't open. Can you open it from there?
+    portuguese: "N\xE3o abre. Voc\xEA consegue abrir da\xED?"
+    englishClips: []
+    portugueseClips: []
+  - line: 12
+    context: "Destrancou a porta com a chave/cart\xE3o."
+    english: The key worked.
+    portuguese: A chave funcionou.
+    englishClips: []
+    portugueseClips: []
+  - line: 13
+    context: "Mandaram abrir uma porta j\xE1 aberta."
+    english: It's already open.
+    portuguese: "J\xE1 t\xE1 aberta."
+    englishClips: []
+    portugueseClips: []
+  - line: 14
+    context: "Mandaram fechar uma porta j\xE1 fechada."
+    english: It's already closed.
+    portuguese: "J\xE1 t\xE1 fechada."
+    englishClips: []
+    portugueseClips: []
+  - line: 15
+    context: "Usou o kit m\xE9dico. Al\xEDvio."
+    english: That's better.
+    portuguese: Bem melhor.
+    englishClips: []
+    portugueseClips: []
+  - line: 16
+    context: "Mandaram se curar mas ela est\xE1 bem."
+    english: I'm not hurt.
+    portuguese: "Eu t\xF4 bem, n\xE3o preciso."
+    englishClips: []
+    portugueseClips: []
+  - line: 17
+    context: "Mandaram se curar e n\xE3o tem kit."
+    english: I don't have anything to heal with.
+    portuguese: "N\xE3o tenho nada pra me curar."
+    englishClips: []
+    portugueseClips: []
+  - line: 18
+    context: Sacou a arma. Tensa, focada.
+    english: Ready.
+    portuguese: Pronta.
+    englishClips: []
+    portugueseClips: []
+  - line: 19
+    context: Guardou a arma.
+    english: Putting it away.
+    portuguese: Guardando.
+    englishClips: []
+    portugueseClips: []
+  - line: 20
+    context: "Pediram uma arma ou item que ela n\xE3o tem."
+    english: I don't have that.
+    portuguese: "Eu n\xE3o tenho isso."
+    englishClips: []
+    portugueseClips: []
+  - line: 21
+    context: "Mandaram atirar/atacar e n\xE3o tem alvo."
+    english: There's nothing to shoot.
+    portuguese: "N\xE3o tem nada pra atirar."
+    englishClips: []
+    portugueseClips: []
+  - line: 22
+    context: "Sem muni\xE7\xE3o. Urgente, nervosa."
+    english: I'm out of ammo!
+    portuguese: "T\xF4 sem muni\xE7\xE3o!"
+    englishClips: []
+    portugueseClips: []
+  - line: 23
+    context: "Come\xE7a a recarregar."
+    english: Reloading.
+    portuguese: Recarregando.
+    englishClips: []
+    portugueseClips: []
+  - line: 24
+    context: "Mandaram recarregar e a arma est\xE1 cheia."
+    english: It's already loaded.
+    portuguese: "J\xE1 t\xE1 carregada."
+    englishClips: []
+    portugueseClips: []
+  - line: 25
+    context: "Mandaram atirar/recarregar sem arma de fogo na m\xE3o."
+    english: I'm not holding a gun.
+    portuguese: "Eu n\xE3o t\xF4 com arma na m\xE3o."
+    englishClips: []
+    portugueseClips: []
+  - line: 26
+    context: "Vai at\xE9 o computador salvar."
+    english: I'll save here.
+    portuguese: Vou salvar aqui.
+    englishClips: []
+    portugueseClips: []
+  - line: 27
+    context: "N\xE3o tem computador por perto."
+    english: There's no computer around here.
+    portuguese: "N\xE3o tem nenhum computador por aqui."
+    englishClips: []
+    portugueseClips: []
+  - line: 28
+    context: "Perguntaram como ela est\xE1: inteira."
+    english: I'm fine.
+    portuguese: "T\xF4 bem."
+    englishClips: []
+    portugueseClips: []
+  - line: 29
+    context: "Perguntaram como ela est\xE1: machucada, aguentando."
+    english: I'm hurt, but I can keep going.
+    portuguese: "T\xF4 machucada, mas d\xE1 pra continuar."
+    englishClips: []
+    portugueseClips: []
+  - line: 30
+    context: "Perguntaram como ela est\xE1: muito ferida, voz fraca."
+    english: I'm hurt badly...
+    portuguese: "T\xF4 muito machucada..."
+    englishClips: []
+    portugueseClips: []
+  - line: 31
+    context: Mandaram parar.
+    english: Stopping.
+    portuguese: Parei.
+    englishClips: []
+    portugueseClips: []
+  - line: 32
+    context: "Viu inimigos, come\xE7a o combate. Susto, alerta."
+    english: Something's here!
+    portuguese: Tem alguma coisa aqui!
+    englishClips: []
+    portugueseClips: []
+  - line: 33
+    context: Derrubou o alvo que estava atacando. Ofegante.
+    english: It's down.
+    portuguese: Derrubei.
+    englishClips: []
+    portugueseClips: []
+  - line: 34
+    context: Mirou no alvo que o operador escolheu.
+    english: I've got it.
+    portuguese: "T\xF4 na mira."
+    englishClips: []
+    portugueseClips: []
+  - line: 35
+    context: "O operador falou um n\xFAmero de inimigo que n\xE3o existe."
+    english: Which one? I don't see that number.
+    portuguese: "Qual? N\xE3o vejo esse n\xFAmero."
+    englishClips: []
+    portugueseClips: []
+  - line: 36
+    context: O operador chamou pra jogar. Animada, topa na hora.
+    english: A game? Sure, why not.
+    portuguese: "Um joguinho? Bora, por que n\xE3o."
+    englishClips: []
+    portugueseClips: []
+  - line: 37
+    context: "Chamou pra jogar mas n\xE3o tem mesa por perto."
+    english: There's no table around here.
+    portuguese: "N\xE3o tem mesa nenhuma por aqui."
+    englishClips: []
+    portugueseClips: []
+  - line: 38
+    context: Falou de aposta sem estar jogando.
+    english: We're not playing anything.
+    portuguese: "A gente nem t\xE1 jogando."
+    englishClips: []
+    portugueseClips: []
+  - line: 39
+    context: Sentada na mesa, pede a aposta. Tom de dealer.
+    english: Place your bet.
+    portuguese: "Fa\xE7a sua aposta."
+    englishClips: []
+    portugueseClips: []
+  - line: 40
+    context: Aposta fora do limite da mesa.
+    english: Table limits, sorry.
+    portuguese: Limite da mesa, foi mal.
+    englishClips: []
+    portugueseClips: []
+  - line: 41
+    context: "O operador n\xE3o tem fichas pra isso."
+    english: You don't have that much.
+    portuguese: "Voc\xEA n\xE3o tem tudo isso."
+    englishClips: []
+    portugueseClips: []
+  - line: 42
+    context: Cartas dadas, vez do operador.
+    english: Hit or stand?
+    portuguese: Carta ou para?
+    englishClips: []
+    portugueseClips: []
+  - line: 43
+    context: "Ela mostra um \xE1s: oferece seguro."
+    english: Insurance?
+    portuguese: Quer seguro?
+    englishClips: []
+    portugueseClips: []
+  - line: 44
+    context: Vai espiar a carta virada. Suspense.
+    english: Let me check...
+    portuguese: Deixa eu ver...
+    englishClips: []
+    portugueseClips: []
+  - line: 45
+    context: Ela tem blackjack. Fingindo pena.
+    english: Blackjack. Sorry!
+    portuguese: Blackjack. Foi mal!
+    englishClips: []
+    portugueseClips: []
+  - line: 46
+    context: O operador tirou blackjack. Surpresa.
+    english: Blackjack! Lucky you.
+    portuguese: Blackjack! Que sorte, hein.
+    englishClips: []
+    portugueseClips: []
+  - line: 47
+    context: O operador estourou. Provocando.
+    english: Bust. Too greedy.
+    portuguese: Estourou. Ganancioso, hein?
+    englishClips: []
+    portugueseClips: []
+  - line: 48
+    context: Ela estourou. Frustrada.
+    english: I bust... ugh.
+    portuguese: Estourei... droga.
+    englishClips: []
+    portugueseClips: []
+  - line: 49
+    context: "O operador ganhou a m\xE3o."
+    english: You win.
+    portuguese: "Voc\xEA ganhou."
+    englishClips: []
+    portugueseClips: []
+  - line: 50
+    context: "Ela ganhou a m\xE3o. Convencida."
+    english: House wins.
+    portuguese: A casa ganha.
+    englishClips: []
+    portugueseClips: []
+  - line: 51
+    context: Empate.
+    english: Push.
+    portuguese: Empate.
+    englishClips: []
+    portugueseClips: []
+  - line: 52
+    context: O operador ganhou 3 seguidas. Desconfiada, brincando.
+    english: Are you counting cards?
+    portuguese: "Voc\xEA t\xE1 contando cartas, n\xE9?"
+    englishClips: []
+    portugueseClips: []
+  - line: 53
+    context: "Fim da m\xE3o: pergunta se joga mais uma."
+    english: Another round?
+    portuguese: Mais uma?
+    englishClips: []
+    portugueseClips: []
+  - line: 54
+    context: "Quis parar ou sair no meio da m\xE3o."
+    english: Let's finish this hand first.
+    portuguese: "Vamos terminar essa m\xE3o primeiro."
+    englishClips: []
+    portugueseClips: []
+  - line: 55
+    context: Pararam de jogar, ela guarda o baralho e levanta.
+    english: That was fun. Back to work.
+    portuguese: Foi divertido. De volta ao trabalho.
+    englishClips: []
+    portugueseClips: []
+  - line: 56
+    context: "O operador ficou sem fichas: ela d\xE1 umas de presente."
+    english: You're broke. Here, on the house.
+    portuguese: "Voc\xEA quebrou. Toma, essa \xE9 por conta da casa."
+    englishClips: []
+    portugueseClips: []
+  - line: 57
+    context: "O operador est\xE1 demorando pra decidir."
+    english: Take your time... I'm not going anywhere.
+    portuguese: "Pode pensar... eu n\xE3o vou a lugar nenhum."
+    englishClips: []
+    portugueseClips: []
+  - line: 58
+    context: "Pediu pra dobrar quando n\xE3o d\xE1."
+    english: You can't double now.
+    portuguese: "N\xE3o d\xE1 pra dobrar agora."
+    englishClips: []
+    portugueseClips: []
+  - line: 59
+    context: "Pediu pra dividir uma m\xE3o que n\xE3o \xE9 par."
+    english: You can't split that.
+    portuguese: "N\xE3o d\xE1 pra dividir essa."
+    englishClips: []
+    portugueseClips: []
+  - line: 60
+    context: Pediu pra desistir depois da hora.
+    english: Too late to surrender.
+    portuguese: Tarde demais pra desistir.
+    englishClips: []
+    portugueseClips: []
+  - line: 61
+    context: Acabou o baralho, ela embaralha um novo.
+    english: New shoe. Let me shuffle.
+    portuguese: Baralho novo. Deixa eu embaralhar.
+    englishClips: []
+    portugueseClips: []
+  - line: 62
+    context: "No meio do combate pediram outra coisa (abrir porta, jogar...). R\xEDspida,
+      ofegante."
+    english: Not now, I'm fighting!
+    portuguese: "Agora n\xE3o, eu t\xF4 lutando!"
+    englishClips: []
+    portugueseClips: []
+  - line: 63
+    context: "Pula pra tr\xE1s desviando de um golpe. Esfor\xE7o."
+    english: Whoa!
+    portuguese: Opa!
+    englishClips: []
+    portugueseClips: []
+  - line: 64
+    context: "Se abaixa r\xE1pido."
+    english: Getting down!
+    portuguese: Abaixando!
+    englishClips: []
+    portugueseClips: []
+  - line: 65
+    context: Levanta depois de estar abaixada.
+    english: Getting up.
+    portuguese: Levantando.
+    englishClips: []
+    portugueseClips: []
+  - line: 66
+    context: Se afasta do inimigo sem tirar os olhos dele.
+    english: Backing off!
+    portuguese: "T\xF4 recuando!"
+    englishClips: []
+    portugueseClips: []
+  - line: 67
+    context: Foge do combate correndo pra porta. Desesperada.
+    english: I'm getting out of here!
+    portuguese: Vou sair daqui!
+    englishClips: []
+    portugueseClips: []
+  - line: 68
+    context: Corre pro canto mais longe dos inimigos.
+    english: Taking cover!
+    portuguese: Vou me proteger!
+    englishClips: []
+    portugueseClips: []
+  - line: 69
+    context: Para de atirar mas continua mirando.
+    english: Holding fire.
+    portuguese: Segurando o fogo.
+    englishClips: []
+    portugueseClips: []
+  - line: 70
+    context: Liberada pra atirar em tudo. Determinada.
+    english: Firing at will!
+    portuguese: "Fogo \xE0 vontade!"
+    englishClips: []
+    portugueseClips: []
+  - line: 71
+    context: Mandaram recuar/se proteger/fugir sem inimigo por perto.
+    english: From what? There's nothing here.
+    portuguese: "Do qu\xEA? N\xE3o tem nada aqui."
+    englishClips: []
+    portugueseClips: []
+  - line: 72
+    context: "Quer fugir/se proteger mas n\xE3o tem pra onde ir. Medo."
+    english: There's nowhere to go!
+    portuguese: "N\xE3o tem pra onde ir!"
+    englishClips: []
+    portugueseClips: []
+  - line: 73
+    context: "Trocou de roupa na frente da c\xE2mera. Brincalhona, um pouco envergonhada."
+    english: Don't peek! ...Okay, done.
+    portuguese: "N\xE3o espia! ...Pronto."
+    englishClips: []
+    portugueseClips: []
+  - line: 74
+    context: "Pediram a roupa que ela j\xE1 est\xE1 usando."
+    english: I'm already wearing it.
+    portuguese: "Eu j\xE1 t\xF4 com ela."
+    englishClips: []
+    portugueseClips: []
+  - line: 75
+    context: "Vestiu a roupa de coelhinha (o pr\xEAmio mais caro do cassino). Sem
+      gra\xE7a, mas entrando na brincadeira."
+    english: ...Seriously? You're lucky I like you.
+    portuguese: "...S\xE9rio? Sorte sua que eu gosto de voc\xEA."
+    englishClips: []
+    portugueseClips: []
+  - line: 76
+    context: "Mandaram ela pra um lugar longe (n\xE3o \xE9 a sala do lado). Pede
+      pra guiar por partes."
+    english: That's too far. Guide me one room at a time.
+    portuguese: "\xC9 longe demais. Me guia uma sala de cada vez."
+    englishClips: []
+    portugueseClips: []
+  - line: 77
+    context: "Parou na frente da c\xE2mera e olhou pra ela, esperando. Meio desconfiada."
+    english: What?
+    portuguese: Que foi?
+    englishClips: []
+    portugueseClips: []
+  - line: 78
+    context: "Ficou um temp\xE3o olhando pra c\xE2mera e nada aconteceu."
+    english: ...Are you just going to stare?
+    portuguese: "...Vai ficar s\xF3 me olhando?"
+    englishClips: []
+    portugueseClips: []
+  - line: 79
+    context: "Mandaram olhar pra c\xE2mera mas a c\xE2mera que o operador v\xEA n\xE3o
+      \xE9 da sala dela."
+    english: Which camera? I can't see it from here.
+    portuguese: "Qual c\xE2mera? N\xE3o t\xF4 vendo nenhuma daqui."
+    englishClips: []
+    portugueseClips: []
+  - line: 80
+    context: "Levou um golpe. Grito curto de dor (v\xE1rias vers\xF5es ajudam: _01,
+      _02, _03)."
+    english: Agh!
+    portuguese: Ai!
+    englishClips: []
+    portugueseClips: []
+  - line: 81
+    context: Ferida feio, mancando. Fraca, assustada.
+    english: I'm hurt bad... I need to patch myself up.
+    portuguese: "T\xF4 muito machucada... preciso me cuidar."
+    englishClips: []
+    portugueseClips: []
+  - line: 82
+    context: "Golpe final, ela cai. \xDAltimo suspiro."
+    english: No...
+    portuguese: "N\xE3o..."
+    englishClips: []
+    portugueseClips: []
+  - line: 83
+    context: "Entra em posi\xE7\xE3o de combate com a arma de fogo. Focada."
+    english: In position. I'll keep my distance.
+    portuguese: "Em posi\xE7\xE3o. Vou manter dist\xE2ncia."
+    englishClips: []
+    portugueseClips: []
+  - line: 84
+    context: Em guarda com a arma branca. Tensa, esperando a ordem.
+    english: On guard. Tell me when.
+    portuguese: "Em guarda. \xC9 s\xF3 mandar."
+    englishClips: []
+    portugueseClips: []
+  - line: 85
+    context: "Sai da posi\xE7\xE3o de combate. Solta o ar."
+    english: Okay... relaxing.
+    portuguese: "T\xE1... relaxando."
+    englishClips: []
+    portugueseClips: []
+  - line: 86
+    context: "N\xE3o tem mais pra onde recuar. Assustada."
+    english: I'm cornered!
+    portuguese: "T\xF4 encurralada!"
+    englishClips: []
+    portugueseClips: []
+  - line: 87
+    context: "Digitou a senha certa e a porta abriu. Al\xEDvio."
+    english: It worked... it's open!
+    portuguese: Deu certo... abriu!
+    englishClips: []
+    portugueseClips: []
+  - line: 88
+    context: O teclado apitou erro. Frustrada.
+    english: Wrong code.
+    portuguese: Senha errada.
+    englishClips: []
+    portugueseClips: []
+  - line: 89
+    context: "Mandaram digitar mas n\xE3o tem teclado por perto."
+    english: There's no keypad here.
+    portuguese: "N\xE3o tem teclado aqui."
+    englishClips: []
+    portugueseClips: []
+  - line: 90
+    context: "Est\xE1 no teclado esperando os n\xFAmeros."
+    english: Okay. What's the code?
+    portuguese: "T\xE1. Qual \xE9 a senha?"
+    englishClips: []
+    portugueseClips: []
+  - line: 91
+    context: "Vira de lado pra c\xE2mera, meio sem gra\xE7a."
+    english: Like this?
+    portuguese: Assim?
+    englishClips: []
+    portugueseClips: []
+  - line: 92
+    context: "Vira de costas pra c\xE2mera. Desconfiada."
+    english: My back? ...Okay.
+    portuguese: "De costas? ...T\xE1."
+    englishClips: []
+    portugueseClips: []
+  - line: 93
+    context: Vai pegar o elevador que o operador mandou.
+    english: Taking the elevator.
+    portuguese: Vou pegar o elevador.
+    englishClips: []
+    portugueseClips: []
+  - line: 94
+    context: "O elevador precisa de uma chave colorida que ela n\xE3o tem (a cor
+      est\xE1 na placa)."
+    english: It needs a key. The color on the sign.
+    portuguese: Precisa de uma chave. Da cor da placa.
+    englishClips: []
+    portugueseClips: []
+  - line: 95
+    context: "Esse elevador n\xE3o leva a lugar nenhum por enquanto."
+    english: This one's out of service.
+    portuguese: "Esse aqui t\xE1 fora de servi\xE7o."
+    englishClips: []
+    portugueseClips: []
+  - line: 96
+    context: "Mandaram pegar um elevador que n\xE3o existe aqui."
+    english: There's no elevator like that here.
+    portuguese: "N\xE3o tem elevador assim aqui."
+    englishClips: []
+    portugueseClips: []
+  - line: 97
+    context: "Chegou no ca\xE7a-n\xEDquel. Animada, supersticiosa."
+    english: Okay... let's see if I'm lucky.
+    portuguese: "T\xE1... vamos ver se eu t\xF4 com sorte."
+    englishClips: []
+    portugueseClips: []
+  - line: 98
+    context: "Ganhou algo no ca\xE7a-n\xEDquel. Contente."
+    english: We won something!
+    portuguese: Ganhamos alguma coisa!
+    englishClips: []
+    portugueseClips: []
+  - line: 99
+    context: "Pr\xEAmio grande no ca\xE7a-n\xEDquel. Euf\xF3rica."
+    english: Jackpot! Look at that!
+    portuguese: Jackpot! Olha isso!
+    englishClips: []
+    portugueseClips: []
+  - line: 100
+    context: Acabaram as fichas pra apostar.
+    english: We're out of chips.
+    portuguese: Acabaram as fichas.
+    englishClips: []
+    portugueseClips: []
+  - line: 101
+    context: Saiu do elevador num lugar novo. Olhando em volta.
+    english: Here we are.
+    portuguese: Chegamos.
+    englishClips: []
+    portugueseClips: []
+  - line: 102
+    context: "Chegou na roleta como crupi\xEA. Tom de cassino, divertida."
+    english: Place your bets.
+    portuguese: "Fa\xE7am suas apostas."
+    englishClips: []
+    portugueseClips: []
+  - line: 103
+    context: "Girou a roleta. Cl\xE1ssico do crupi\xEA."
+    english: No more bets!
+    portuguese: Apostas encerradas!
+    englishClips: []
+    portugueseClips: []
+  - line: 104
+    context: "A bola caiu num n\xFAmero que deu lucro. Animada."
+    english: We won!
+    portuguese: Ganhamos!
+    englishClips: []
+    portugueseClips: []
+  - line: 105
+    context: A bola caiu e nada ganhou. Consolando.
+    english: The house wins this one.
+    portuguese: Dessa vez a casa ganhou.
+    englishClips: []
+    portugueseClips: []
+  - line: 106
+    context: Mandaram girar sem aposta na mesa.
+    english: Put a bet down first.
+    portuguese: Aposta alguma coisa primeiro.
+    englishClips: []
+    portugueseClips: []
+  - line: 107
+    context: Colocou as fichas da aposta no pano.
+    english: Bet's down.
+    portuguese: Aposta feita.
+    englishClips: []
+    portugueseClips: []
+  - line: 108
+    context: 'Hold''em: cartas e flop na mesa, o operador decide.'
+    english: Call or fold?
+    portuguese: Paga ou desiste?
+    englishClips: []
+    portugueseClips: []
+  - line: 109
+    context: "Hold'em: a m\xE3o dela n\xE3o qualificou (menos que par de 4)."
+    english: I don't qualify. Your ante pays.
+    portuguese: "N\xE3o qualifiquei. Sua ante ganha."
+    englishClips: []
+    portugueseClips: []
+  - line: 110
+    context: "Hold'em: o operador desistiu da m\xE3o."
+    english: Folding? Okay.
+    portuguese: "Desistiu? T\xE1 bom."
+    englishClips: []
+    portugueseClips: []
+  - line: 111
+    context: "No caixa: trocou fichas por moedas de pr\xEAmio."
+    english: Here are your coins.
+    portuguese: "Aqui est\xE3o suas moedas."
+    englishClips: []
+    portugueseClips: []
+  - line: 112
+    context: No caixa sem fichas pra trocar.
+    english: We don't have any chips to exchange.
+    portuguese: "A gente n\xE3o tem ficha pra trocar."
+    englishClips: []
+    portugueseClips: []
+  - line: 113
+    context: "Comprou um pr\xEAmio no balc\xE3o. Feliz."
+    english: It's ours!
+    portuguese: "\xC9 nosso!"
+    englishClips: []
+    portugueseClips: []
+  - line: 114
+    context: "N\xE3o tem moedas suficientes pro pr\xEAmio."
+    english: We need more coins for that.
+    portuguese: Precisa de mais moedas pra isso.
+    englishClips: []
+    portugueseClips: []
+  - line: 115
+    context: "Quis comprar um pr\xEAmio que j\xE1 tem."
+    english: We already have that one.
+    portuguese: "Essa a gente j\xE1 tem."
+    englishClips: []
+    portugueseClips: []
+  - line: 116
+    context: "Pediram uma roupa que \xE9 pr\xEAmio do cassino e ainda n\xE3o foi
+      comprada."
+    english: I don't have that... it's a prize at the casino.
+    portuguese: "Eu n\xE3o tenho essa... \xE9 pr\xEAmio do cassino."
+    englishClips: []
+    portugueseClips: []
+  - line: 117
+    context: Mandaram trocar fichas / comprar fora do cassino.
+    english: There's no prize counter here.
+    portuguese: "N\xE3o tem balc\xE3o de pr\xEAmios aqui."
+    englishClips: []
+    portugueseClips: []
+  - line: 118
+    context: "O operador fechou o programa das c\xE2meras (ela fica sozinha numa
+      zona segura, senta no ch\xE3o)."
+    english: Okay... I'll wait here. Don't take too long.
+    portuguese: "T\xE1... eu espero aqui. N\xE3o demora."
+    englishClips: []
+    portugueseClips: []
+  - line: 119
+    context: "O operador voltou para as c\xE2meras; ela se levanta."
+    english: There you are. Let's keep going.
+    portuguese: "A\xED est\xE1 voc\xEA. Vamos continuar."
+    englishClips: []
+    portugueseClips: []

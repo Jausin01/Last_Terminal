@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 956da2428366c894396fef6bf7de9aaa, type: 3}
+  m_Name: Outfit_Pajama
+  m_EditorClassIdentifier: Assembly-CSharp::OutfitDefinition
+  key: outfit_pajama
+  displayName: Pajamas
+  displayNamePt: Pijama
+  price: 2500
+  swaps:
+  - original: {fileID: 2100000, guid: 97deec62e30420d48898289e38ba7723, type: 2}
+    replacement: {fileID: 2100000, guid: b2b7964991d5ac44b97602a59da50c32, type: 2}
+  - original: {fileID: 2100000, guid: 554db9c4b6854984aaba1fb3900e7e6f, type: 2}
+    replacement: {fileID: 2100000, guid: b25330f8267e14545a02bddf221abc9d, type: 2}
+  - original: {fileID: 2100000, guid: eb57436253c86e942a01b7e99abdf0f1, type: 2}
+    replacement: {fileID: 2100000, guid: a9d1913a2f07a3a4eb57eb0a6aac01fb, type: 2}
+  - original: {fileID: 2100000, guid: 3cc21d3e35a7e9c4c9062d9d54adc898, type: 2}
+    replacement: {fileID: 2100000, guid: a4619ca20b674004eb103f57b02f09bc, type: 2}
+  meshSwaps: []
+  hiddenParts:
+  - Plane.001
+  - retop.001
+  - retop.003
+  - retop.004
+  - retop.005
+  - billas.001
+  - pants.003
+  extraParts: []
+  line: 73

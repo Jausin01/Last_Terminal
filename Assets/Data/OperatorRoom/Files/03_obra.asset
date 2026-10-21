@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 03_obra
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: site_report_L3.txt
+  fileNamePt: relatorio_obra_N3.txt
+  titleEn: Site report - level -3
+  titlePt: "Relat\xF3rio de obra - n\xEDvel -3"
+  bodyEn: 'SITE REPORT - LEVEL -3
+
+
+    Excavation: complete.
+
+    Reinforcement
+    of the walls: complete. Thickness as requested (unusual).
+
+    Ventilation: only
+    toward the inside.
+
+    Night deliveries: 14 this month. Not to be recorded.
+
+    The
+    crew asks again what the rooms are for. No answer was given.'
+  bodyPt: "RELAT\xD3RIO DE OBRA - N\xCDVEL -3\n\nEscava\xE7\xE3o: conclu\xEDda.\nRefor\xE7o
+    das paredes: conclu\xEDdo. Espessura conforme pedido (fora do comum).\nVentila\xE7\xE3o:
+    s\xF3 para dentro.\nEntregas noturnas: 14 este m\xEAs. N\xE3o registrar.\nA equipe
+    pergunta de novo para que servem as salas. Nenhuma resposta foi dada."
+  requiredFlag: 
+  order: 20
+  kind: 0
+  image: {fileID: 0}
+  folderEn: Documents
+  folderPt: Documentos
+  inRecycleBin: 0

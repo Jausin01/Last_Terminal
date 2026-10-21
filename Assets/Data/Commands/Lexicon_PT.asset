@@ -1,0 +1,1177 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 64336a36a297ba64fb19b239b92e7d35, type: 3}
+  m_Name: Lexicon_PT
+  m_EditorClassIdentifier: Assembly-CSharp::CommandLexicon
+  language: 1
+  verbs:
+  - verb: 1
+    phrases:
+    - vai
+    - va
+    - vai para
+    - vai pra
+    - vai pro
+    - vai ate
+    - ir
+    - ir para
+    - anda
+    - anda ate
+    - ande
+    - corre
+    - corra
+    - entra
+    - entre
+    - entra no
+    - entra na
+    - segue
+    - siga
+    - volta
+    - volte
+    - olha
+    - confere
+  - verb: 2
+    phrases:
+    - pare
+    - para ai
+    - espera
+    - espere
+    - fica ai
+    - fique ai
+    - fica parada
+    - fique parada
+    - calma
+    - nao se mexe
+  - verb: 3
+    phrases:
+    - pega
+    - pegue
+    - pegar
+    - apanha
+    - apanhe
+    - coleta
+    - recolhe
+    - junta
+  - verb: 4
+    phrases:
+    - abr*
+    - destranca
+    - destranque
+  - verb: 5
+    phrases:
+    - fech*
+  - verb: 6
+    phrases:
+    - passa pela
+    - passe pela
+    - passa por
+    - passe por
+    - atravessa
+    - atravesse
+    - entra pela
+    - entre pela
+  - verb: 7
+    phrases:
+    - usa
+    - use
+    - usar
+    - utiliza
+  - verb: 8
+    phrases:
+    - cur*
+    - se cura
+    - se trata
+    - se cuida
+  - verb: 9
+    phrases:
+    - arma
+    - pega a arma
+    - pegue a arma
+    - pega sua arma
+    - pegue sua arma
+    - usa a arma
+    - use a arma
+    - saca
+    - saque
+    - equipa
+    - equipe
+    - prepara
+    - prepare
+    - empunha
+    - troca para
+    - troca pra
+    - muda para
+    - muda pra
+  - verb: 10
+    phrases:
+    - guarda
+    - guarde
+    - guarda a arma
+    - abaixa a arma
+    - abaixe a arma
+  - verb: 11
+    phrases:
+    - ataca
+    - ataque
+    - bate
+    - bata
+    - golpeia
+    - acerta
+    - mata
+    - mate
+    - esfaqueia
+  - verb: 12
+    phrases:
+    - atir*
+    - dispara
+    - dispare
+    - fogo
+  - verb: 13
+    phrases:
+    - recarreg*
+  - verb: 14
+    phrases:
+    - salv*
+  - verb: 16
+    phrases:
+    - mira
+    - mire
+    - mirar
+    - aponta
+    - aponte
+    - aponta para
+    - aponta pro
+    - aponta pra
+    - foca
+    - foque
+    - troca de alvo
+    - troca o alvo
+    - troque de alvo
+    - muda de alvo
+    - muda o alvo
+    - mude de alvo
+  - verb: 17
+    phrases:
+    - vamos jogar
+    - bora jogar
+    - jogar
+    - joga
+    - vamos jogar um jogo
+    - bora um jogo
+    - uma partida
+  - verb: 18
+    phrases:
+    - aposta
+    - aposto
+    - apostar
+    - aposte
+    - boto
+    - coloca
+  - verb: 29
+    phrases:
+    - da as cartas
+    - distribui
+    - pode dar
+    - comeca
+    - pode comecar
+  - verb: 19
+    phrases:
+    - carta
+    - mais uma carta
+    - pede
+    - peco
+    - pedir
+    - me da uma carta
+    - manda carta
+    - mais
+  - verb: 20
+    phrases:
+    - fico
+    - parar
+    - paro
+    - chega de carta
+    - to bom
+    - ta bom assim
+    - fico com essas
+    - fico assim
+    - segura
+  - verb: 21
+    phrases:
+    - dobra
+    - dobro
+    - dobrar
+    - dobrar a aposta
+    - dobra a aposta
+  - verb: 22
+    phrases:
+    - divide
+    - dividir
+    - separa
+    - separar
+    - divide as cartas
+  - verb: 23
+    phrases:
+    - desisto
+    - desistir
+    - me rendo
+    - entrego
+  - verb: 24
+    phrases:
+    - seguro
+    - quero seguro
+    - faz o seguro
+    - fazer seguro
+  - verb: 25
+    phrases:
+    - sim
+    - bora
+    - beleza
+    - pode ser
+    - claro
+    - ok
+    - manda ver
+    - pronto
+    - vai la
+  - verb: 26
+    phrases:
+    - nao
+    - nao quero
+    - sem seguro
+    - agora nao
+    - nao obrigado
+    - nem
+  - verb: 27
+    phrases:
+    - mais uma
+    - bora mais uma
+    - de novo
+    - outra
+    - outra rodada
+    - mais uma rodada
+    - mais uma mao
+  - verb: 28
+    phrases:
+    - chega
+    - chega por agora
+    - chega por hoje
+    - parar de jogar
+    - para de jogar
+    - vamos parar
+    - to fora
+    - acabou
+    - encerrar
+    - sair da mesa
+    - cansei
+  - verb: 15
+    phrases:
+    - status
+    - como voce esta
+    - como vc esta
+    - voce esta bem
+    - vc esta bem
+    - ta bem
+    - tudo bem
+    - como esta
+    - ta machucada
+  - verb: 30
+    phrases:
+    - desvia
+    - desvie
+    - desviar
+    - esquiva
+    - esquive
+    - esquivar
+    - cuidado
+    - pula pra tras
+    - pula para tras
+    - sai da frente
+    - olha o golpe
+  - verb: 31
+    phrases:
+    - abaixa
+    - abaixe
+    - se abaixa
+    - se abaixe
+    - agacha
+    - agache
+    - se agacha
+    - abaixa a cabeca
+    - no chao
+    - fica abaixada
+    - fique abaixada
+  - verb: 32
+    phrases:
+    - levanta
+    - levante
+    - se levanta
+    - fica de pe
+    - fique de pe
+    - de pe
+    - pode levantar
+  - verb: 33
+    phrases:
+    - recua
+    - recue
+    - recuar
+    - se afasta
+    - se afaste
+    - afasta
+    - afaste
+    - sai de perto
+    - sai de perto dele
+    - sai de perto dela
+    - sai de perto disso
+    - para tras
+    - vai pra tras
+    - da um passo pra tras
+    - mantem distancia
+    - mantenha distancia
+  - verb: 34
+    phrases:
+    - se protege
+    - se proteja
+    - protege
+    - se esconde
+    - se esconda
+    - esconde
+    - procura cobertura
+    - cobertura
+    - vai pra um lugar seguro
+  - verb: 35
+    phrases:
+    - foge
+    - fuja
+    - fugir
+    - foge daqui
+    - corre daqui
+    - sai daqui
+    - vamos sair daqui
+    - retirada
+    - bate em retirada
+    - sai da sala
+    - da o fora
+  - verb: 36
+    phrases:
+    - para de atirar
+    - pare de atirar
+    - nao atira
+    - nao atire
+    - cessar fogo
+    - segura o fogo
+    - segura fogo
+  - verb: 37
+    phrases:
+    - atira a vontade
+    - atire a vontade
+    - fogo a vontade
+    - manda bala
+    - pode atirar
+    - atira em tudo
+    - continua atirando
+    - nao para de atirar
+  - verb: 38
+    phrases:
+    - veste
+    - vista
+    - vestir
+    - se veste
+    - troca de roupa
+    - troca a roupa
+    - troque de roupa
+    - muda de roupa
+    - muda a roupa
+    - bota o
+    - bota a
+    - se troca
+    - poe o
+    - poe a
+  - verb: 39
+    phrases:
+    - olha pra camera
+    - olha para a camera
+    - olhe para a camera
+    - olha pra mim
+    - olhe pra mim
+    - olha aqui
+    - olha para mim
+    - deixa eu te ver
+    - aparece
+    - fica onde eu te veja
+    - vem pra camera
+  - verb: 40
+    phrases:
+    - posicao de combate
+    - posicao de batalha
+    - em posicao
+    - em guarda
+    - fica em guarda
+    - fique em guarda
+    - mantem distancia
+    - mantenha distancia
+    - mantem a distancia
+    - mantenha a distancia
+    - fica longe deles
+    - prepara pra lutar
+    - se prepara pra lutar
+  - verb: 41
+    phrases:
+    - relaxa
+    - relaxe
+    - descansa
+    - descanse
+    - pode relaxar
+    - sai da posicao
+    - baixa a guarda
+    - abaixa a guarda
+  - verb: 42
+    phrases:
+    - digita
+    - digite
+    - digitar
+    - aperta
+    - aperte
+    - apertar
+    - pressiona
+    - pressione
+    - tecla
+    - coloca o codigo
+    - coloca a senha
+    - poe a senha
+    - poe o codigo
+    - digita a senha
+    - digita o codigo
+    - aperta o botao
+    - aperte o botao
+  - verb: 43
+    phrases:
+    - vira de lado esquerdo
+    - vira o lado esquerdo
+    - mostra o lado esquerdo
+    - lado esquerdo
+    - de lado esquerdo
+    - fica de lado esquerdo
+    - vira pra esquerda
+    - vira para a esquerda
+    - vire para a esquerda
+    - vire de lado esquerdo
+  - verb: 44
+    phrases:
+    - vira de lado direito
+    - vira o lado direito
+    - mostra o lado direito
+    - lado direito
+    - de lado direito
+    - fica de lado direito
+    - vira pra direita
+    - vira para a direita
+    - vire para a direita
+    - vire de lado direito
+    - vira de lado
+    - fica de lado
+    - vire de lado
+  - verb: 45
+    phrases:
+    - vira de costas
+    - fica de costas
+    - de costas
+    - mostra as costas
+    - vira pra tras
+    - vire de costas
+    - vira as costas
+    - fique de costas
+  - verb: 46
+    phrases:
+    - vira de frente
+    - fica de frente
+    - de frente
+    - vira pra frente
+    - vire de frente
+    - fique de frente
+  - verb: 47
+    phrases:
+    - gira
+    - gire
+    - girar
+    - roda
+    - rode
+    - rodar
+    - puxa
+    - puxe
+    - puxa a alavanca
+    - aperta o spin
+    - joga de novo
+  - verb: 1
+    phrases:
+    - sobe
+    - suba
+    - sobe pro
+    - sobe para
+    - desce
+    - desca
+    - desce pro
+    - desce para
+    - volta pro
+    - volta para
+  - verb: 48
+    phrases:
+    - pago
+    - pagar
+    - paga
+    - eu pago
+    - pago pra ver
+    - vou pagar
+    - pago para ver
+  - verb: 23
+    phrases:
+    - larga
+    - largo
+    - foldo
+    - fold
+    - corro
+  - verb: 49
+    phrases:
+    - troca
+    - troque
+    - trocar
+    - troca as fichas
+    - troca minhas fichas
+    - troca as minhas fichas
+    - converte
+    - converter
+    - converte as fichas
+  - verb: 50
+    phrases:
+    - compra
+    - compre
+    - comprar
+    - compra pra mim
+    - quero comprar
+  - verb: 51
+    phrases:
+    - tira as apostas
+    - limpa as apostas
+    - limpa
+    - cancela as apostas
+    - tira tudo da mesa
+  names:
+  - key: Lobby
+    phrases:
+    - lobby
+    - recepcao
+    - entrada
+    - saguao
+    - hall
+  - key: Office
+    phrases:
+    - escritorio
+  - key: Training Room
+    phrases:
+    - sala de treino
+    - sala de treinamento
+    - treino
+    - treinamento
+  - key: Corridor
+    phrases:
+    - corredor
+  - key: Storage
+    phrases:
+    - deposito
+    - almoxarifado
+    - estoque
+    - despensa
+  - key: door
+    phrases:
+    - porta
+  - key: computer
+    phrases:
+    - computador
+    - terminal
+    - pc
+  - key: dummy
+    phrases:
+    - boneco
+    - manequim
+  - key: allin
+    phrases:
+    - tudo
+    - all in
+    - tudo que eu tenho
+    - todas as fichas
+  - key: minbet
+    phrases:
+    - minimo
+    - o minimo
+    - aposta minima
+  - key: maxbet
+    phrases:
+    - maximo
+    - o maximo
+    - aposta maxima
+  - key: samebet
+    phrases:
+    - mesma
+    - mesma aposta
+    - o mesmo
+    - a mesma
+    - igual
+  - key: enemy
+    phrases:
+    - inimigo
+    - inimigos
+    - alvo
+    - monstro
+    - criatura
+    - numero
+  - key: item_ammo_handgun
+    phrases:
+    - municao de pistola
+    - balas de pistola
+    - balas
+    - municao
+  - key: item_ammo_shotgun
+    phrases:
+    - cartuchos
+    - cartucho
+    - municao de escopeta
+    - municao de espingarda
+    - municao
+  - key: item_ammo_magnum
+    phrases:
+    - municao magnum
+    - balas magnum
+    - municao de magnum
+    - municao
+  - key: item_medkit
+    phrases:
+    - kit medico
+    - kit de primeiros socorros
+    - primeiros socorros
+    - medkit
+    - remedio
+  - key: item_keycard
+    phrases:
+    - cartao
+    - cartao de acesso
+    - chave
+  - key: Weapon_Pistol1911
+    phrases:
+    - pistola
+    - colt
+    - 1911
+  - key: Weapon_DesertEagle
+    phrases:
+    - desert eagle
+    - deagle
+    - magnum
+  - key: Weapon_ShotgunMossberg
+    phrases:
+    - escopeta
+    - espingarda
+    - shotgun
+    - doze
+  - key: Weapon_KitchenKnife
+    phrases:
+    - faca
+  - key: Weapon_Cleaver
+    phrases:
+    - cutelo
+  - key: Weapon_Machete
+    phrases:
+    - facao
+    - machete
+  - key: Weapon_Hammer
+    phrases:
+    - martelo
+  - key: Weapon_Bat
+    phrases:
+    - taco
+    - taco de beisebol
+  - key: Weapon_NailBat
+    phrases:
+    - taco com pregos
+    - taco de pregos
+  - key: Weapon_Axe
+    phrases:
+    - machado
+  - key: outfit_pajama
+    phrases:
+    - pijama
+    - pijaminha
+    - roupa de dormir
+  - key: outfit_default
+    phrases:
+    - roupa normal
+    - sua roupa
+    - roupa de sempre
+    - sua jaqueta
+    - roupa de antes
+  - key: outfit_bunny
+    phrases:
+    - coelhinha
+    - roupa de coelhinha
+    - fantasia de coelhinha
+    - bunny
+    - coelho
+    - orelhinhas
+  - key: outfit_prison
+    phrases:
+    - roupa de prisao
+    - uniforme de prisao
+    - roupa de presidiaria
+    - uniforme listrado
+    - roupa listrada
+    - listrada
+  - key: center
+    phrases:
+    - centro
+    - meio
+    - centro da sala
+    - meio da sala
+  - key: zombie
+    phrases:
+    - zumbi
+    - zumbis
+    - zombie
+    - morto vivo
+    - infectado
+  - key: killer
+    phrases:
+    - assassino
+    - queimado
+    - homem queimado
+    - matador
+    - acougueiro
+    - maniaco
+  - key: Padded Cell
+    phrases:
+    - cela
+    - cela acolchoada
+    - solitaria
+    - minha cela
+  - key: keypad
+    phrases:
+    - teclado
+    - teclado numerico
+    - painel
+    - keypad
+    - senha
+    - codigo
+    - teclas
+  - key: stop_facility_office
+    phrases:
+    - instalacao
+    - instalacoes
+    - de volta pra instalacao
+    - la embaixo
+  - key: stop_casino
+    phrases:
+    - cassino
+    - casino
+    - o cassino
+  - key: stop_laboratory
+    phrases:
+    - laboratorio
+    - lab
+  - key: stop_hospital
+    phrases:
+    - hospital
+  - key: stop_rooftop
+    phrases:
+    - terraco
+    - telhado
+    - cobertura
+  - key: color_red
+    phrases:
+    - vermelha
+    - vermelho
+  - key: item_key_red
+    phrases:
+    - chave vermelha
+    - chave do elevador vermelha
+  - key: color_orange
+    phrases:
+    - laranja
+  - key: item_key_orange
+    phrases:
+    - chave laranja
+    - chave do elevador laranja
+  - key: color_yellow
+    phrases:
+    - amarela
+    - amarelo
+  - key: item_key_yellow
+    phrases:
+    - chave amarela
+    - chave do elevador amarela
+  - key: color_green
+    phrases:
+    - verde
+  - key: item_key_green
+    phrases:
+    - chave verde
+    - chave do elevador verde
+  - key: color_white
+    phrases:
+    - branca
+    - branco
+  - key: item_key_white
+    phrases:
+    - chave branca
+    - chave do elevador branca
+  - key: color_blue
+    phrases:
+    - azul
+  - key: item_key_blue
+    phrases:
+    - chave azul
+    - chave do elevador azul
+  - key: color_black
+    phrases:
+    - preta
+    - preto
+  - key: item_key_black
+    phrases:
+    - chave preta
+    - chave do elevador preta
+  - key: color_purple
+    phrases:
+    - roxa
+    - roxo
+  - key: item_key_purple
+    phrases:
+    - chave roxa
+    - chave do elevador roxa
+  - key: Elevator Hall
+    phrases:
+    - hall dos elevadores
+    - saguao dos elevadores
+    - area dos elevadores
+  - key: Bar
+    phrases:
+    - bar
+    - o bar
+  - key: elevator
+    phrases:
+    - elevador
+    - elevadores
+  - key: slot
+    phrases:
+    - caca niquel
+    - caca niqueis
+    - maquina
+    - maquininha
+    - slot
+    - slots
+    - maquina de caca niquel
+  - key: Center
+    phrases:
+    - centro do cassino
+    - meio do cassino
+    - mesas
+    - area das mesas
+    - mesas de cartas
+  - key: Roulette
+    phrases:
+    - roleta
+    - a roleta
+    - mesa da roleta
+  - key: Front Slots
+    phrases:
+    - maquinas da frente
+    - primeiras maquinas
+    - caca niqueis da frente
+  - key: Back Slots
+    phrases:
+    - maquinas de tras
+    - fundo
+    - fundo do cassino
+    - la no fundo
+    - caca niqueis de tras
+  - key: game_blackjack
+    phrases:
+    - blackjack
+    - black jack
+  - key: game_poker
+    phrases:
+    - poker
+    - poquer
+    - hold em
+    - holdem
+  - key: game_roulette
+    phrases:
+    - roleta
+  - key: counter
+    phrases:
+    - caixa
+    - balcao de premios
+    - premios
+    - os premios
+  - key: rl_even
+    phrases:
+    - par
+    - pares
+  - key: rl_odd
+    phrases:
+    - impar
+    - impares
+  - key: rl_low
+    phrases:
+    - baixo
+    - baixos
+    - numeros baixos
+    - primeira metade
+  - key: rl_high
+    phrases:
+    - alto
+    - altos
+    - numeros altos
+    - segunda metade
+  - key: rl_dozen1
+    phrases:
+    - primeira duzia
+    - primeira duzia de numeros
+  - key: rl_dozen2
+    phrases:
+    - segunda duzia
+    - duzia do meio
+  - key: rl_dozen3
+    phrases:
+    - terceira duzia
+    - ultima duzia
+  - key: rl_number
+    phrases:
+    - numero
+    - pleno
+    - no numero
+  - key: rl_zero
+    phrases:
+    - zero
+  - key: Prize Gallery
+    phrases:
+    - galeria de premios
+    - galeria
+    - premios
+    - os premios
+    - armarios
+    - vitrines
+    - armarios de premios
+  modifiers:
+  - modifier: 1
+    phrases:
+    - outro
+    - outra
+    - o outro
+    - a outra
+    - proximo
+    - proxima
+  - modifier: 2
+    phrases:
+    - esquerda
+    - da esquerda
+    - a esquerda
+  - modifier: 3
+    phrases:
+    - direita
+    - da direita
+    - a direita
+  - modifier: 4
+    phrases:
+    - mais perto
+    - mais proximo
+    - mais proxima
+    - perto
+  - modifier: 5
+    phrases:
+    - mais longe
+    - mais distante
+    - longe
+    - do fundo
+  numbers:
+  - value: 1
+    phrases:
+    - um
+    - uma
+    - primeiro
+    - primeira
+  - value: 2
+    phrases:
+    - dois
+    - duas
+    - segundo
+    - segunda
+  - value: 3
+    phrases:
+    - tres
+    - terceiro
+    - terceira
+  - value: 4
+    phrases:
+    - quatro
+    - quarto
+    - quarta
+  - value: 5
+    phrases:
+    - cinco
+    - quinto
+    - quinta
+  - value: 6
+    phrases:
+    - seis
+    - sexto
+    - sexta
+  - value: 7
+    phrases:
+    - sete
+    - setimo
+    - setima
+  - value: 8
+    phrases:
+    - oito
+    - oitavo
+    - oitava
+  - value: 9
+    phrases:
+    - nove
+    - nono
+    - nona
+  - value: 10
+    phrases:
+    - dez
+    - decimo
+    - decima
+  - value: 15
+    phrases:
+    - quinze
+  - value: 20
+    phrases:
+    - vinte
+  - value: 25
+    phrases:
+    - vinte e cinco
+  - value: 30
+    phrases:
+    - trinta
+  - value: 40
+    phrases:
+    - quarenta
+  - value: 50
+    phrases:
+    - cinquenta
+  - value: 60
+    phrases:
+    - sessenta
+  - value: 75
+    phrases:
+    - setenta e cinco
+  - value: 100
+    phrases:
+    - cem
+    - cento
+  - value: 150
+    phrases:
+    - cento e cinquenta
+  - value: 200
+    phrases:
+    - duzentos
+  - value: 250
+    phrases:
+    - duzentos e cinquenta
+  - value: 300
+    phrases:
+    - trezentos
+  - value: 400
+    phrases:
+    - quatrocentos
+  - value: 500
+    phrases:
+    - quinhentos
+  - value: 1000
+    phrases:
+    - mil
+  - value: 11
+    phrases:
+    - onze
+  - value: 12
+    phrases:
+    - doze
+  - value: 13
+    phrases:
+    - treze
+  - value: 14
+    phrases:
+    - quatorze
+    - catorze
+  - value: 16
+    phrases:
+    - dezesseis
+  - value: 17
+    phrases:
+    - dezessete
+  - value: 18
+    phrases:
+    - dezoito
+  - value: 19
+    phrases:
+    - dezenove
+  - value: 21
+    phrases:
+    - vinte e um
+    - vinte e uma
+  - value: 22
+    phrases:
+    - vinte e dois
+  - value: 23
+    phrases:
+    - vinte e tres
+  - value: 24
+    phrases:
+    - vinte e quatro
+  - value: 26
+    phrases:
+    - vinte e seis
+  - value: 27
+    phrases:
+    - vinte e sete
+  - value: 28
+    phrases:
+    - vinte e oito
+  - value: 29
+    phrases:
+    - vinte e nove
+  - value: 31
+    phrases:
+    - trinta e um
+  - value: 32
+    phrases:
+    - trinta e dois
+  - value: 33
+    phrases:
+    - trinta e tres
+  - value: 34
+    phrases:
+    - trinta e quatro
+  - value: 35
+    phrases:
+    - trinta e cinco
+  - value: 36
+    phrases:
+    - trinta e seis
+  pronouns:
+  - isso
+  - isto
+  - aquilo
+  - ali
+  - la
+  - ele
+  - ela
+  - nele
+  - nela

@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cceb5888749a8ce44b69aa1ed1394f43, type: 3}
+  m_Name: Stop_rooftop
+  m_EditorClassIdentifier: Assembly-CSharp::ElevatorStop
+  id: rooftop
+  displayName: Rooftop
+  displayNamePt: "Terra\xE7o"
+  sceneName: 
+  requiredKey: {fileID: 11400000, guid: 39f09d562e6b0f849818422027bc264b, type: 2}
+  floor: R

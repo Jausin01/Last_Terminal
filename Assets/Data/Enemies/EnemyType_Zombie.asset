@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57818de5193c5ad45aa96ec0d5bcb39a, type: 3}
+  m_Name: EnemyType_Zombie
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyType
+  displayName: Zombie
+  commandKey: zombie
+  maxHealth: 80
+  walkSpeed: 0.45
+  walkClipSpeed: 0.37
+  runs: 0
+  runSpeed: 2.6
+  runClipSpeed: 2.9
+  turnSpeed: 150
+  stepInTime: 0.4
+  sightRange: 8
+  sightAngle: 140
+  hearRange: 3
+  feedingHearRange: 2
+  screamsOnAlert: 1
+  loseTime: 6
+  attacks:
+  - slot: 0
+    weight: 1
+    range: 1.1
+    hitTime: 0.4
+    exitTime: 0.68
+    damage: 10
+    cooldown: 1.2
+  - slot: 1
+    weight: 0.6
+    range: 1
+    hitTime: 0.335
+    exitTime: 0.46
+    damage: 12
+    cooldown: 1.6
+  - slot: 2
+    weight: 0.6
+    range: 0.9
+    hitTime: 0.24
+    exitTime: 0.72
+    damage: 20
+    cooldown: 2
+  attackSpeed: 1
+  staggerDamage: 30
+  staggerTime: 0.7
+  wanderPause: 4

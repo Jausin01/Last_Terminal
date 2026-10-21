@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 08_rascunho
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: draft.txt
+  fileNamePt: rascunho.txt
+  titleEn: 
+  titlePt: 
+  bodyEn: 'if you found this, you''re the new one.
+
+    don''t trust who brought
+    you here.
+
+    the door has a code. the code is not the way out.'
+  bodyPt: "se voc\xEA achou isso, voc\xEA \xE9 o novo.\nn\xE3o confia em quem te
+    trouxe at\xE9 aqui.\na porta tem c\xF3digo. o c\xF3digo n\xE3o \xE9 a sa\xEDda."
+  requiredFlag: 
+  order: 70
+  kind: 0
+  image: {fileID: 0}
+  folderEn: Documents
+  folderPt: Documentos
+  inRecycleBin: 1

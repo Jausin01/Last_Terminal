@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 09_recorte
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: clipping.jpg
+  fileNamePt: recorte.jpg
+  titleEn: 
+  titlePt: 
+  bodyEn: An old clipping. Somebody tried to delete it.
+  bodyPt: "Um recorte antigo. Algu\xE9m tentou apagar."
+  requiredFlag: 
+  order: 80
+  kind: 1
+  image: {fileID: 2800000, guid: caa74c218f3c095439f5d94cedf7f0c6, type: 3}
+  folderEn: Pictures
+  folderPt: Imagens
+  inRecycleBin: 1

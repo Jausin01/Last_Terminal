@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 06_casino
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: casino_floor.memo
+  fileNamePt: andar_cassino.memo
+  titleEn: 'Memo: casino floor'
+  titlePt: 'Memorando: cassino'
+  bodyEn: 'MEMO - CASINO FLOOR
+
+
+    The games still work. Nobody remembers switching
+    them on.
+
+    The chips are real. The prize lockers open with coins.
+
+    Management
+    reminds every operator: the house always wins. That is the point of a house.'
+  bodyPt: "MEMORANDO - ANDAR DO CASSINO\n\nOs jogos ainda funcionam. Ningu\xE9m lembra
+    de ter ligado.\nAs fichas s\xE3o de verdade. Os arm\xE1rios de pr\xEAmios abrem
+    com moedas.\nA administra\xE7\xE3o lembra a todos os operadores: a casa sempre
+    ganha. \xC9 pra isso que serve uma casa."
+  requiredFlag: visited_Casino
+  order: 50

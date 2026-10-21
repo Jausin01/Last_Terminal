@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0914c0e38f539ef4aa26248707ec82fd, type: 3}
+  m_Name: 01_michael
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorEmail
+  fromName: Governador Michael
+  fromAddress: gabinete@governo.gov.br
+  subjectEn: Welcome back
+  subjectPt: Bem-vindo de volta
+  date: 20:05
+  bodyEn: 'If you''re reading this, you got there in one piece. I''m sorry about
+    the ride. It wasn''t how I wanted it, but nobody could know where you were going.
+    Not even you.
+
+
+    Helena will reach you through the camera program. Be her
+    eyes. Like before.
+
+
+    And don''t do anything stupid with that door.
+
+
+    -
+    M.'
+  bodyPt: "Se voc\xEA est\xE1 lendo isso, chegou inteiro. Desculpa pelo transporte.
+    N\xE3o era como eu queria, mas ningu\xE9m podia saber pra onde voc\xEA ia. Nem
+    voc\xEA.\n\nA Helena vai falar com voc\xEA pelo programa das c\xE2meras. Seja
+    os olhos dela. Como antes.\n\nE n\xE3o fa\xE7a nenhuma besteira com aquela porta.\n\n-
+    M."
+  requiredFlag: 
+  order: 0
+  attachment: {fileID: 11400000, guid: 94202c935e270ea4e80a7eb68d783078, type: 2}

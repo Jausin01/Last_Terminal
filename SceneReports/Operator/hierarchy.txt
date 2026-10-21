@@ -1,0 +1,40 @@
+﻿# Operator (Assets/Scenes/Operator.unity) - positions/rotations are WORLD, size = renderers' bounds (m)
+# [x] = inactive.  ~N = N mesh pieces of an imported model summed up
+Main Camera pos(0, 1, -10) rot(0, 0, 0) | Camera fov 60 ; AudioListener
+Directional Light pos(0, 3, 0) rot(50, 330, 0) | Light Directional color#FFF4D6 intensity 1 range 10 shadows Soft; UniversalAdditionalLightData
+Floor1 pos(0, 0, 0) rot(0, 0, 0) size(10, 0, 10) <Assets/Art/Props/Floor/Floor_CarpetOnConcrete.fbx> | Mesh Floor_CarpetOnConcrete; MeshRenderer [Floor_Mat]
+Wall_Window_Barricaded pos(-2,66, 0, 5) rot(0, 0, 0) scale(1,17, 1, 1) size(4,68, 3, 0,29) <Assets/Art/Props/Walls/Wall_Window_Barricaded.fbx> | Mesh Wall_Window_Barricaded; MeshRenderer [Wall_Concrete, Wall_Metal]; DesignNote
+Wall_Plain pos(2,35, 0, 5) rot(0, 0, 0) scale(1,34, 1, 1) size(5,34, 3, 0,2) <Assets/Art/Props/Walls/Wall_Plain.fbx> | Mesh Wall_Plain; MeshRenderer [Wall_Concrete]
+Wall_Plain (3) pos(2,15, 0, -5) rot(0, 180, 0) scale(1,34, 1, 1) size(5,34, 3, 0,2) <Assets/Art/Props/Walls/Wall_Plain.fbx> | Mesh Wall_Plain; MeshRenderer [Wall_Concrete]
+Wall_Plain (6) pos(-2,74, 0, -5) rot(0, 180, 0) scale(1,11, 1, 1) size(4,43, 3, 0,2) <Assets/Art/Props/Walls/Wall_Plain.fbx> | Mesh Wall_Plain; MeshRenderer [Wall_Concrete]
+Wall_Plain (2) pos(4,92, 0, -2,12) rot(0, 90, 0) scale(1,56, 1, 1) size(0,2, 3, 6,26) <Assets/Art/Props/Walls/Wall_Plain.fbx> | Mesh Wall_Plain; MeshRenderer [Wall_Concrete]
+Wall_Plain (4) pos(-4,91, 0, 2,23) rot(0, 90, 0) scale(1,34, 1, 1) size(0,2, 3, 5,34) <Assets/Art/Props/Walls/Wall_Plain.fbx> | Mesh Wall_Plain; MeshRenderer [Wall_Concrete]
+Wall_Plain (7) pos(-5,71, 3,1, 0,1) rot(90, 90, 0) scale(3,23, 3,7, 1) size(11,09, 0,2, 12,93) <Assets/Art/Props/Walls/Wall_Plain.fbx> | Mesh Wall_Plain; MeshRenderer [Wall_Concrete]
+Wall_Plain (5) pos(-4,91, 0, -2,69) rot(0, 90, 0) scale(1,14, 1, 1) size(0,2, 3, 4,54) <Assets/Art/Props/Walls/Wall_Plain.fbx> | Mesh Wall_Plain; MeshRenderer [Wall_Concrete]
+Wall_Door pos(4,92, 0, 3) rot(0, 90, 0) size(0,2, 3, 4) <Assets/Art/Props/Walls/Wall_Door.fbx> | Mesh Wall_Door; MeshRenderer [Wall_Concrete]
+Door_Metal pos(4,92, 0, 3,01) rot(0, 270, 0) size(0,25, 2,66, 1,6) <Assets/Art/Props/Walls/Door_Metal.fbx>
+  ~3 mesh pieces
+Ceiling_Office pos(0, 2,99, 0) rot(0, 0, 0) size(10, 0, 10) <Assets/Art/Props/Walls/Ceiling_Office.fbx> | Mesh Ceiling_Office; MeshRenderer [Ceiling_Tiles]; DesignNote
+Keypad pos(4,83, 1,25, 2,01) rot(0, 270, 0) size(0,05, 0,34, 0,22) <Assets/Art/Props/Walls/Keypad.fbx> | Mesh Keypad; MeshRenderer [Keypad_Body]; DesignNote
+  ~15 mesh pieces
+SM_OpDesk pos(-3,67, 0, -4,2) rot(0, 0, 0) size(2,28, 0,75, 1,4) <Assets/Art/Props/Operator/SM_OpDesk.fbx> | Mesh OpDesk; MeshRenderer [M_Op_Desk_00, M_Op_Desk_01]
+SM_OperatorPC pos(-3,59, 0,73, -4,6) rot(0, 0, 0) size(0,62, 0,4, 0,4) <Assets/Art/Props/Operator/SM_OperatorPC.fbx> | DesignNote
+  ~6 mesh pieces
+SM_OpWaterCooler pos(-0,96, 0, -4,69) rot(0, 90, 0) size(0,42, 1,51, 0,41) <Assets/Art/Props/Operator/SM_OpWaterCooler.fbx> | DesignNote
+  ~2 mesh pieces
+SM_OpPlant pos(-2,24, 1,12, -4,57) rot(0, 0, 0) size(0,46, 0,43, 0,44) <Assets/Art/Props/Operator/SM_OpPlant.fbx> | Mesh OpPlant; MeshRenderer [M_Op_Plant_00, M_Op_Plant_01]
+SM_OpFilingCabinet pos(-2,23, 0, -4,55) rot(0, 90, 0) size(0,38, 1,13, 0,58) <Assets/Art/Props/Operator/SM_OpFilingCabinet.fbx>
+  ~2 mesh pieces
+SM_Ini_OfficeChair pos(-3,74, 0, -3,66) rot(0, 66,33, 0) size(0,99, 1,18, 1) <Assets/Art/Props/Iniciacao/SM_Ini_OfficeChair.fbx> | Mesh OfficeChair; MeshRenderer [M_Ini_OfficeChair]
+SM_OpCorkBoardB pos(-4,74, 0,78, -1,8) rot(0, 90, 0) scale(3,21, 3,21, 3,21) size(0,09, 1,73, 2,89) <Assets/Art/Props/Operator/SM_OpCorkBoardB.fbx> | Mesh OpCorkBoardB; MeshRenderer [M_Op_CorkBoardB_Frame, M_Op_CorkBoardB_Front]
+psx Cork board for kasujin pos(-4,75, -1,33, -21,62) rot(0, 90, 0) scale(31,6, 31,6, 31,6) size(0,09, 1,79, 2,99) <Assets/Art/Props/Operator/psx Cork board for kasujin.fbx>
+  ~1 mesh pieces
+SM_Ini_CorkBoard pos(-3,24, 1,2, -4,86) rot(0, 0, 0) size(1,38, 0,87, 0,05) <Assets/Art/Props/Iniciacao/SM_Ini_CorkBoard.fbx> | Mesh CorkBoard; MeshRenderer [M_Ini_Notes, M_Ini_Newspaper, M_Ini_Pin, M_Ini_Polaroid]
+SM_OpCorkBoardA pos(2,12, 0,05, -4,8) rot(0, 0, 0) scale(5,27, 5,27, 5,27) size(4,74, 2,84, 0,15) <Assets/Art/Props/Operator/SM_OpCorkBoardA.fbx> | Mesh OpCorkBoardA; MeshRenderer [M_Op_CorkBoardA_Frame, M_Op_CorkBoardA_Front]; DesignNote
+SM_ComputerCase pos(-2,7, 0, -4,56) rot(0, 0, 0) size(0,2, 0,41, 0,44) <Assets/Art/Props/Operator/SM_ComputerCase.fbx> | Mesh SM_ComputerCase; MeshRenderer [M_ComputerCase]; DesignNote
+SM_OpTrashCan pos(-4,48, 0, -3,25) rot(0, 0, 0) size(0,39, 0,47, 0,4) <Assets/Art/Props/Operator/SM_OpTrashCan.fbx> | Mesh OpTrashCan; MeshRenderer [M_Op_TrashCan_00]
+SM_OpPlant (1) pos(-4,52, 0, 4,67) rot(0, 0, 0) size(0,46, 0,43, 0,44) <Assets/Art/Props/Operator/SM_OpPlant.fbx> | Mesh OpPlant; MeshRenderer [M_Op_Plant_00, M_Op_Plant_01]
+SM_OpPlant (2) pos(4,58, 0, 4,6) rot(0, 0, 0) size(0,46, 0,43, 0,44) <Assets/Art/Props/Operator/SM_OpPlant.fbx> | Mesh OpPlant; MeshRenderer [M_Op_Plant_00, M_Op_Plant_01]
+SM_OpFilingCabinet (1) pos(3,37, 0, -0,91) rot(0, 0, 0) size(0,15, 0,27, 0,36) <Assets/Art/Props/Operator/SM_OpFilingCabinet.fbx>
+  ~1 mesh pieces
+SM_OpPapers pos(-4,41, 0,75, -4,43) rot(0, 0, 0) size(0,33, 0,06, 0,36) <Assets/Art/Props/Operator/SM_OpPapers.fbx> | Mesh OpPapers; MeshRenderer [M_Op_Papers_00]

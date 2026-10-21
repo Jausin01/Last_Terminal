@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0914c0e38f539ef4aa26248707ec82fd, type: 3}
+  m_Name: 03_contato
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorEmail
+  fromName: (no sender)
+  fromAddress: '-'
+  subjectEn: rules
+  subjectPt: regras
+  date: 03:12
+  bodyEn: '1. don''t try the door.
+
+    2. don''t shut it down when she needs you.
+
+    3.
+    i see what you see.
+
+
+    the code exists. you''ll get it when you earn it.'
+  bodyPt: "1. n\xE3o tente a porta.\n2. n\xE3o desligue quando ela precisar de voc\xEA.\n3.
+    eu vejo o que voc\xEA v\xEA.\n\no c\xF3digo existe. voc\xEA ganha quando merecer."
+  requiredFlag: 
+  order: 20
+  attachment: {fileID: 0}

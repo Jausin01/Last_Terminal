@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 03_no_subject
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: no_subject.eml
+  fileNamePt: sem_assunto.eml
+  titleEn: (no subject)
+  titlePt: (sem assunto)
+  bodyEn: 'From: operator06@terminal06
+
+    To: whoever is at terminal 07
+
+
+    If
+    you''re reading this, she got through the first door. Good. That means she trusts
+    you.
+
+
+    I sat where you''re sitting. I had a coffee machine and a pinball
+    too. They give you those so you stay.
+
+
+    Don''t let her wait too long in the
+    dark. And don''t believe everything the README says.
+
+
+    - 06'
+  bodyPt: "De: operador06@terminal06\nPara: quem estiver no terminal 07\n\nSe voc\xEA
+    est\xE1 lendo isto, ela passou pela primeira porta. Bom. Quer dizer que ela confia
+    em voc\xEA.\n\nEu sentei onde voc\xEA est\xE1 sentado. Eu tamb\xE9m tinha uma
+    m\xE1quina de caf\xE9 e um fliperama. Eles d\xE3o isso pra voc\xEA ficar.\n\nN\xE3o
+    deixe ela esperando muito tempo no escuro. E n\xE3o acredite em tudo que o LEIA-ME
+    diz.\n\n- 06"
+  requiredFlag: keypad_solved
+  order: 20

@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 08_arcane_quest
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: arcane_quest.hi
+  fileNamePt: arcane_quest.rec
+  titleEn: High scores
+  titlePt: Recordes
+  bodyEn: 'ARCANE QUEST - HIGH SCORE TABLE (factory reset: never)
+
+
+    1. ???  
+    the score you just beat
+
+    2. H.    "for when you get bored of watching me"
+
+    3.
+    06
+
+
+    The second line was written by hand, on the sticker under the glass.'
+  bodyPt: "ARCANE QUEST - TABELA DE RECORDES (reset de f\xE1brica: nunca)\n\n1. ???  
+    o recorde que voc\xEA acabou de bater\n2. H.    \"pra quando voc\xEA cansar de
+    me vigiar\"\n3. 06\n\nA segunda linha foi escrita \xE0 m\xE3o, no adesivo debaixo
+    do vidro."
+  requiredFlag: pinball_100k
+  order: 70

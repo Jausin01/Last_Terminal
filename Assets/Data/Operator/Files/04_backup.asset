@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 04_backup
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: backup_restore.txt
+  fileNamePt: restauracao_backup.txt
+  titleEn: Backup restored
+  titlePt: Backup restaurado
+  bodyEn: 'SAVE SYSTEM - BACKUP RESTORED
+
+
+    A previous session was found on this
+    terminal.
+
+    Session owner: [CORRUPTED]
+
+    Last entry: 03:12 - "she said
+    my name. how does she know my name"
+
+    Session ended: the operator left the
+    terminal. The subject was NOT in a safe zone.
+
+    Outcome: [DATA REMOVED]'
+  bodyPt: "SISTEMA DE SALVAMENTO - BACKUP RESTAURADO\n\nUma sess\xE3o anterior foi
+    encontrada neste terminal.\nDono da sess\xE3o: [CORROMPIDO]\n\xDAltima entrada:
+    03:12 - \"ela disse meu nome. como ela sabe meu nome\"\nFim da sess\xE3o: o operador
+    saiu do terminal. Ela N\xC3O estava numa zona segura.\nResultado: [DADOS REMOVIDOS]"
+  requiredFlag: first_save
+  order: 30

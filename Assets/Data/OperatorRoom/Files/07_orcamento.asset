@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 07_orcamento
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: budget_scan.jpg
+  fileNamePt: orcamento_scan.jpg
+  titleEn: 
+  titlePt: 
+  bodyEn: 5,248,800. Approved. The line in the middle was blacked out by hand.
+  bodyPt: "R$ 5.248.800,00. Aprovado. A linha do meio foi riscada \xE0 m\xE3o."
+  requiredFlag: 
+  order: 60
+  kind: 1
+  image: {fileID: 2800000, guid: 6efc7140783ed83448248fee568c76d7, type: 3}
+  folderEn: Pictures
+  folderPt: Imagens
+  inRecycleBin: 0

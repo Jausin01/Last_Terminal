@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 01_readme
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: README.txt
+  fileNamePt: LEIA-ME.txt
+  titleEn: Operator instructions
+  titlePt: "Instru\xE7\xF5es do operador"
+  bodyEn: 'OPERATOR TERMINAL 07 - STANDING INSTRUCTIONS
+
+
+    1. You are the only
+    link between the subject and the outside. Keep the line open.
+
+    2. The subject
+    can hear you. Speak clearly. Do not panic her.
+
+    3. Cameras: Q / E. Map: TAB.
+    Talk: ENTER.
+
+    4. Never close LIFELINE.EXE while the subject is exposed. Close
+    it only when she is in a SAFE ZONE (the save rooms).
+
+    5. The door of this
+    room is locked for your own protection.
+
+    6. Coffee is free. Please do not
+    ask for anything else.
+
+
+    - Facility Management'
+  bodyPt: "TERMINAL DO OPERADOR 07 - INSTRU\xC7\xD5ES PERMANENTES\n\n1. Voc\xEA \xE9
+    a \xFAnica liga\xE7\xE3o entre a pessoa monitorada e o lado de fora. Mantenha
+    a linha aberta.\n2. Ela consegue ouvir voc\xEA. Fale com clareza. N\xE3o a deixe
+    em p\xE2nico.\n3. C\xE2meras: Q / E. Mapa: TAB. Falar: ENTER.\n4. Nunca feche
+    o LIFELINE.EXE com ela exposta. Feche apenas quando ela estiver numa ZONA SEGURA
+    (as salas de salvar).\n5. A porta desta sala est\xE1 trancada para a sua pr\xF3pria
+    prote\xE7\xE3o.\n6. O caf\xE9 \xE9 de gra\xE7a. Por favor, n\xE3o pe\xE7a mais
+    nada.\n\n- Administra\xE7\xE3o das Instala\xE7\xF5es"
+  requiredFlag: 
+  order: 0

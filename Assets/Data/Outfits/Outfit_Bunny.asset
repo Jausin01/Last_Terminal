@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 956da2428366c894396fef6bf7de9aaa, type: 3}
+  m_Name: Outfit_Bunny
+  m_EditorClassIdentifier: Assembly-CSharp::OutfitDefinition
+  key: outfit_bunny
+  displayName: Bunny Suit
+  displayNamePt: Coelhinha
+  price: 10000
+  swaps:
+  - original: {fileID: 2100000, guid: 554db9c4b6854984aaba1fb3900e7e6f, type: 2}
+    replacement: {fileID: 2100000, guid: c25a882c129b8bb4eaf16ad29c04adf4, type: 2}
+  - original: {fileID: 2100000, guid: eb57436253c86e942a01b7e99abdf0f1, type: 2}
+    replacement: {fileID: 2100000, guid: 8c520f5daca44a545b7e52bbd848e2cc, type: 2}
+  - original: {fileID: 2100000, guid: 3cc21d3e35a7e9c4c9062d9d54adc898, type: 2}
+    replacement: {fileID: 2100000, guid: 559b62ef419ac024595860e5a103cef1, type: 2}
+  - original: {fileID: 2100000, guid: 580c04ce562fc8b4a97c446efe09ac99, type: 2}
+    replacement: {fileID: 2100000, guid: 14fab8c4d4452de43b33c820501c93c5, type: 2}
+  meshSwaps:
+  - part: top.002
+    mesh: {fileID: 4300000, guid: fa592b2a7ea2bdb47bbd877e46a6d619, type: 2}
+  hiddenParts:
+  - Plane.001
+  - retop.001
+  - retop.003
+  - retop.004
+  - retop.005
+  - billas.001
+  - pants.003
+  - jacket
+  extraParts:
+  - BunnyEars
+  - BunnyTail
+  line: 75

@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0914c0e38f539ef4aa26248707ec82fd, type: 3}
+  m_Name: 02_mary
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorEmail
+  fromName: Mary
+  fromAddress: mary.secretaria@governo.gov.br
+  subjectEn: Your things
+  subjectPt: Suas coisas
+  date: 20:40
+  bodyEn: 'Hi. You left your coat and your keys in the governor''s office. I''ll
+    keep them in my drawer until you''re back.
+
+
+    I hope it''s not cold where
+    you are.
+
+
+    Good luck.
+
+    Mary'
+  bodyPt: "Oi. Voc\xEA esqueceu o casaco e as chaves no gabinete do governador. Vou
+    guardar na minha gaveta at\xE9 voc\xEA voltar.\n\nEspero que n\xE3o esteja frio
+    a\xED onde voc\xEA est\xE1.\n\nBoa sorte.\nMary"
+  requiredFlag: 
+  order: 10
+  attachment: {fileID: 0}

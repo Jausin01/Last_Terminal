@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 05_incident
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: incident_report_04.txt
+  fileNamePt: relatorio_incidente_04.txt
+  titleEn: Incident report
+  titlePt: "Relat\xF3rio de incidente"
+  bodyEn: 'INCIDENT REPORT 04 - CONTAINMENT
+
+
+    Hostile entities confirmed inside
+    the facility. They do not respond to the lights.
+
+    The subject defended herself
+    under the operator''s guidance.
+
+    Recommendation: keep the operator at the
+    terminal at all times.
+
+    Note: the entities seem to move toward the cameras
+    that are switched on. Unconfirmed.'
+  bodyPt: "RELAT\xD3RIO DE INCIDENTE 04 - CONTEN\xC7\xC3O\n\nEntidades hostis confirmadas
+    dentro das instala\xE7\xF5es. Elas n\xE3o reagem \xE0s luzes.\nA pessoa monitorada
+    se defendeu com a orienta\xE7\xE3o do operador.\nRecomenda\xE7\xE3o: manter o
+    operador no terminal o tempo todo.\nObserva\xE7\xE3o: as entidades parecem ir
+    na dire\xE7\xE3o das c\xE2meras ligadas. N\xE3o confirmado."
+  requiredFlag: first_kill
+  order: 40

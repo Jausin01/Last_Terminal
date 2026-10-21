@@ -1,0 +1,1103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 64336a36a297ba64fb19b239b92e7d35, type: 3}
+  m_Name: Lexicon_EN
+  m_EditorClassIdentifier: Assembly-CSharp::CommandLexicon
+  language: 0
+  verbs:
+  - verb: 1
+    phrases:
+    - go
+    - go to
+    - go into
+    - go inside
+    - walk
+    - walk to
+    - head
+    - head to
+    - move
+    - move to
+    - run
+    - run to
+    - get to
+    - come to
+    - enter
+    - check
+    - check out
+  - verb: 2
+    phrases:
+    - stop
+    - wait
+    - halt
+    - freeze
+    - hold on
+    - hold it
+    - stay
+    - stay there
+    - don t move
+  - verb: 3
+    phrases:
+    - pick up
+    - pick
+    - grab
+    - take
+    - get
+    - collect
+  - verb: 4
+    phrases:
+    - open
+    - unlock
+  - verb: 5
+    phrases:
+    - close
+    - shut
+  - verb: 6
+    phrases:
+    - go through
+    - walk through
+    - pass through
+    - get through
+    - through
+  - verb: 7
+    phrases:
+    - use
+  - verb: 8
+    phrases:
+    - heal
+    - heal yourself
+    - heal up
+    - patch up
+    - patch yourself up
+  - verb: 9
+    phrases:
+    - draw
+    - equip
+    - ready
+    - take out
+    - pull out
+    - switch to
+    - arm yourself
+    - weapon out
+    - get your gun
+    - get your weapon
+    - draw your weapon
+    - take out your gun
+  - verb: 10
+    phrases:
+    - holster
+    - put away
+    - put it away
+    - lower
+    - stow
+  - verb: 11
+    phrases:
+    - attack
+    - stab
+    - kill
+    - strike
+    - swing at
+    - smash
+  - verb: 12
+    phrases:
+    - shoot
+    - shoot at
+    - fire
+    - fire at
+    - open fire
+  - verb: 13
+    phrases:
+    - reload
+  - verb: 14
+    phrases:
+    - save
+    - save the game
+    - save game
+  - verb: 16
+    phrases:
+    - aim
+    - aim at
+    - point at
+    - point your gun at
+    - lock on
+    - lock on to
+    - focus
+    - focus on
+    - switch target
+    - switch target to
+    - change target
+    - change target to
+  - verb: 17
+    phrases:
+    - play
+    - let s play
+    - lets play
+    - play a game
+    - let s play a game
+    - deal me in
+    - game time
+  - verb: 18
+    phrases:
+    - bet
+    - i bet
+    - wager
+    - bet on
+    - put down
+  - verb: 29
+    phrases:
+    - deal
+    - deal the cards
+    - deal them
+    - start
+  - verb: 19
+    phrases:
+    - hit
+    - hit me
+    - card
+    - another card
+    - one more card
+    - give me a card
+    - more
+  - verb: 20
+    phrases:
+    - stand
+    - i stand
+    - i m good
+    - im good
+    - no more
+    - hold
+    - that s good
+    - stick
+  - verb: 21
+    phrases:
+    - double
+    - double down
+    - double it
+  - verb: 22
+    phrases:
+    - split
+    - split them
+    - split it
+  - verb: 23
+    phrases:
+    - surrender
+    - give up
+    - i give up
+    - fold
+  - verb: 24
+    phrases:
+    - insurance
+    - take insurance
+    - insure
+    - insure it
+  - verb: 25
+    phrases:
+    - yes
+    - yeah
+    - yep
+    - sure
+    - ok
+    - okay
+    - ready
+    - let s go
+    - sure thing
+    - go ahead
+  - verb: 26
+    phrases:
+    - no
+    - nope
+    - nah
+    - no thanks
+    - not now
+    - no insurance
+  - verb: 27
+    phrases:
+    - again
+    - one more
+    - another
+    - another one
+    - another round
+    - one more round
+    - deal again
+    - next round
+  - verb: 28
+    phrases:
+    - quit
+    - i m done
+    - im done
+    - that s enough
+    - enough
+    - stop playing
+    - let s stop
+    - i m out
+    - cash out
+    - leave the table
+    - game over
+    - enough for now
+  - verb: 15
+    phrases:
+    - status
+    - how are you
+    - are you ok
+    - are you okay
+    - you ok
+    - how do you feel
+    - are you hurt
+  - verb: 30
+    phrases:
+    - dodge
+    - dodge it
+    - evade
+    - jump back
+    - look out
+    - watch out
+    - get out of the way
+    - move it
+  - verb: 31
+    phrases:
+    - duck
+    - get down
+    - crouch
+    - crouch down
+    - down
+    - hit the deck
+    - keep your head down
+    - stay down
+  - verb: 32
+    phrases:
+    - get up
+    - stand up
+    - on your feet
+    - up
+    - get back up
+  - verb: 33
+    phrases:
+    - back off
+    - back up
+    - back away
+    - step back
+    - get back
+    - get away
+    - get away from it
+    - move away
+    - keep your distance
+    - keep away
+    - give it some space
+  - verb: 34
+    phrases:
+    - take cover
+    - find cover
+    - get to cover
+    - cover
+    - hide
+    - get to safety
+    - get somewhere safe
+  - verb: 35
+    phrases:
+    - run away
+    - run for it
+    - retreat
+    - fall back
+    - get out
+    - get out of here
+    - escape
+    - flee
+    - leave the room
+  - verb: 36
+    phrases:
+    - hold fire
+    - hold your fire
+    - cease fire
+    - stop shooting
+    - stop firing
+    - don t shoot
+  - verb: 37
+    phrases:
+    - fire at will
+    - shoot at will
+    - shoot everything
+    - free fire
+    - weapons free
+    - light them up
+    - keep shooting
+  - verb: 38
+    phrases:
+    - put on
+    - wear
+    - change into
+    - change clothes
+    - change your clothes
+    - get changed
+    - change outfit
+    - switch outfit
+    - dress up
+    - get dressed
+  - verb: 39
+    phrases:
+    - look at the camera
+    - look at me
+    - look here
+    - look into the camera
+    - face the camera
+    - let me see you
+    - show yourself
+    - stand where i can see you
+    - come where i can see you
+  - verb: 40
+    phrases:
+    - combat position
+    - combat stance
+    - battle stance
+    - battle position
+    - fighting stance
+    - get in position
+    - on guard
+    - en garde
+    - stay on guard
+    - keep your distance
+    - keep distance
+    - keep your distance from them
+    - get ready to fight
+    - be ready
+  - verb: 41
+    phrases:
+    - relax
+    - at ease
+    - stand down
+    - ease up
+    - you can relax
+    - lower your guard
+  - verb: 42
+    phrases:
+    - type
+    - type in
+    - press
+    - punch in
+    - key in
+    - input
+    - dial
+    - enter the code
+    - type the code
+    - put in the code
+    - press the button
+    - push
+    - push the button
+  - verb: 43
+    phrases:
+    - show your left side
+    - turn your left side
+    - left side
+    - turn to your left side
+    - left profile
+    - turn left side
+  - verb: 44
+    phrases:
+    - show your right side
+    - turn your right side
+    - right side
+    - turn to your right side
+    - right profile
+    - turn right side
+    - turn sideways
+    - show your side
+    - turn to the side
+  - verb: 45
+    phrases:
+    - turn around
+    - show your back
+    - turn your back
+    - face away
+    - back to the camera
+    - turn your back to the camera
+    - show me your back
+  - verb: 46
+    phrases:
+    - turn to the front
+    - face front
+    - turn back around
+    - turn to face me
+    - face forward
+  - verb: 47
+    phrases:
+    - spin
+    - spin it
+    - spin the reels
+    - pull
+    - pull the lever
+    - pull it
+    - hit the button
+    - press spin
+  - verb: 1
+    phrases:
+    - go up to
+    - go down to
+    - go back to
+    - go up
+    - go down
+  - verb: 7
+    phrases:
+    - ride
+    - ride to
+    - ride up to
+    - ride down to
+  - verb: 48
+    phrases:
+    - call
+    - i call
+    - calling
+    - pay
+    - pay to see
+  - verb: 49
+    phrases:
+    - exchange
+    - exchange my chips
+    - exchange the chips
+    - cash in
+    - trade in
+    - trade my chips
+    - change my chips
+    - convert
+    - convert my chips
+  - verb: 50
+    phrases:
+    - buy
+    - purchase
+    - buy me
+    - get me
+  - verb: 51
+    phrases:
+    - clear the bets
+    - clear bets
+    - clear
+    - take the bets back
+    - remove the bets
+    - take back the bets
+  names:
+  - key: Lobby
+    phrases:
+    - lobby
+    - reception
+    - entrance
+    - hall
+  - key: Office
+    phrases:
+    - office
+  - key: Training Room
+    phrases:
+    - training room
+    - training
+    - gym
+  - key: Corridor
+    phrases:
+    - corridor
+    - hallway
+  - key: Storage
+    phrases:
+    - storage
+    - storage room
+    - storeroom
+    - supply room
+  - key: door
+    phrases:
+    - door
+  - key: computer
+    phrases:
+    - computer
+    - terminal
+    - save point
+    - pc
+  - key: dummy
+    phrases:
+    - dummy
+    - mannequin
+    - training dummy
+  - key: allin
+    phrases:
+    - all in
+    - everything
+    - all of it
+    - all my chips
+  - key: minbet
+    phrases:
+    - minimum
+    - the minimum
+    - min
+  - key: maxbet
+    phrases:
+    - maximum
+    - the maximum
+    - max
+  - key: samebet
+    phrases:
+    - same
+    - same bet
+    - same again
+    - the same
+  - key: enemy
+    phrases:
+    - enemy
+    - enemies
+    - target
+    - monster
+    - creature
+    - thing
+    - number
+  - key: item_ammo_handgun
+    phrases:
+    - handgun ammo
+    - pistol ammo
+    - bullets
+    - ammo
+  - key: item_ammo_shotgun
+    phrases:
+    - shotgun shells
+    - shotgun ammo
+    - shells
+    - ammo
+  - key: item_ammo_magnum
+    phrases:
+    - magnum ammo
+    - magnum rounds
+    - magnum bullets
+    - ammo
+  - key: item_medkit
+    phrases:
+    - medkit
+    - med kit
+    - first aid
+    - first aid kit
+    - health kit
+  - key: item_keycard
+    phrases:
+    - keycard
+    - key card
+    - card
+    - key
+  - key: Weapon_Pistol1911
+    phrases:
+    - pistol
+    - handgun
+    - colt
+    - 1911
+    - gun
+  - key: Weapon_DesertEagle
+    phrases:
+    - desert eagle
+    - deagle
+    - magnum
+    - eagle
+  - key: Weapon_ShotgunMossberg
+    phrases:
+    - shotgun
+    - mossberg
+  - key: Weapon_KitchenKnife
+    phrases:
+    - knife
+    - kitchen knife
+  - key: Weapon_Cleaver
+    phrases:
+    - cleaver
+    - meat cleaver
+  - key: Weapon_Machete
+    phrases:
+    - machete
+  - key: Weapon_Hammer
+    phrases:
+    - hammer
+  - key: Weapon_Bat
+    phrases:
+    - bat
+    - baseball bat
+  - key: Weapon_NailBat
+    phrases:
+    - nail bat
+    - spiked bat
+    - bat with nails
+  - key: Weapon_Axe
+    phrases:
+    - axe
+  - key: outfit_pajama
+    phrases:
+    - pajamas
+    - pajama
+    - pyjamas
+    - pjs
+    - sleepwear
+    - pajama outfit
+  - key: outfit_default
+    phrases:
+    - your clothes
+    - clothes
+    - normal clothes
+    - usual clothes
+    - regular clothes
+    - your jacket
+    - your outfit
+    - normal outfit
+  - key: outfit_bunny
+    phrases:
+    - bunny suit
+    - bunny outfit
+    - bunny girl
+    - bunny costume
+    - bunny
+    - bunny ears
+  - key: outfit_prison
+    phrases:
+    - prison clothes
+    - prison uniform
+    - prison outfit
+    - inmate uniform
+    - stripes
+    - striped clothes
+  - key: center
+    phrases:
+    - center
+    - centre
+    - middle
+    - center of the room
+    - middle of the room
+    - room center
+  - key: zombie
+    phrases:
+    - zombie
+    - zombies
+    - walker
+    - runner
+    - infected
+    - ghoul
+    - dead guy
+  - key: killer
+    phrases:
+    - killer
+    - burnt man
+    - burned man
+    - burnt guy
+    - murderer
+    - butcher
+    - maniac
+  - key: Padded Cell
+    phrases:
+    - cell
+    - padded cell
+    - my cell
+    - the cell
+  - key: keypad
+    phrases:
+    - keypad
+    - key pad
+    - code panel
+    - number pad
+    - code
+    - password
+    - keys
+    - panel
+  - key: stop_facility_office
+    phrases:
+    - facility
+    - the facility
+    - back to the facility
+    - downstairs
+  - key: stop_casino
+    phrases:
+    - casino
+    - the casino
+  - key: stop_laboratory
+    phrases:
+    - laboratory
+    - lab
+    - the lab
+  - key: stop_hospital
+    phrases:
+    - hospital
+    - the hospital
+  - key: stop_rooftop
+    phrases:
+    - rooftop
+    - roof
+    - the roof
+  - key: color_red
+    phrases:
+    - red
+  - key: item_key_red
+    phrases:
+    - red key
+    - red elevator key
+  - key: color_orange
+    phrases:
+    - orange
+  - key: item_key_orange
+    phrases:
+    - orange key
+    - orange elevator key
+  - key: color_yellow
+    phrases:
+    - yellow
+  - key: item_key_yellow
+    phrases:
+    - yellow key
+    - yellow elevator key
+  - key: color_green
+    phrases:
+    - green
+  - key: item_key_green
+    phrases:
+    - green key
+    - green elevator key
+  - key: color_white
+    phrases:
+    - white
+  - key: item_key_white
+    phrases:
+    - white key
+    - white elevator key
+  - key: color_blue
+    phrases:
+    - blue
+  - key: item_key_blue
+    phrases:
+    - blue key
+    - blue elevator key
+  - key: color_black
+    phrases:
+    - black
+  - key: item_key_black
+    phrases:
+    - black key
+    - black elevator key
+  - key: color_purple
+    phrases:
+    - purple
+  - key: item_key_purple
+    phrases:
+    - purple key
+    - purple elevator key
+  - key: Elevator Hall
+    phrases:
+    - elevator hall
+    - elevator lobby
+    - elevators area
+  - key: Bar
+    phrases:
+    - bar
+    - the bar
+  - key: elevator
+    phrases:
+    - elevator
+    - elevators
+    - lift
+  - key: slot
+    phrases:
+    - slot machine
+    - slot machines
+    - slots
+    - slot
+    - machine
+    - one armed bandit
+    - the slots
+  - key: Center
+    phrases:
+    - casino center
+    - center of the casino
+    - middle of the casino
+    - card tables
+    - tables
+    - table area
+  - key: Roulette
+    phrases:
+    - roulette
+    - the roulette
+    - roulette table
+    - wheel
+  - key: Front Slots
+    phrases:
+    - front slots
+    - front machines
+    - first machines
+  - key: Back Slots
+    phrases:
+    - back slots
+    - back machines
+    - back of the casino
+    - the back
+  - key: game_blackjack
+    phrases:
+    - blackjack
+    - black jack
+  - key: game_poker
+    phrases:
+    - poker
+    - hold em
+    - holdem
+    - casino hold em
+    - texas hold em
+  - key: game_roulette
+    phrases:
+    - roulette
+  - key: counter
+    phrases:
+    - cashier
+    - cash desk
+    - prize counter
+    - prizes
+    - the prizes
+  - key: rl_even
+    phrases:
+    - even
+  - key: rl_odd
+    phrases:
+    - odd
+  - key: rl_low
+    phrases:
+    - low
+    - first half
+    - low numbers
+  - key: rl_high
+    phrases:
+    - high
+    - second half
+    - high numbers
+  - key: rl_dozen1
+    phrases:
+    - first dozen
+    - first twelve
+  - key: rl_dozen2
+    phrases:
+    - second dozen
+    - second twelve
+    - middle dozen
+  - key: rl_dozen3
+    phrases:
+    - third dozen
+    - third twelve
+    - last dozen
+  - key: rl_number
+    phrases:
+    - number
+    - straight
+    - straight up
+  - key: rl_zero
+    phrases:
+    - zero
+  - key: Prize Gallery
+    phrases:
+    - prize gallery
+    - gallery
+    - prizes
+    - the prizes
+    - lockers
+    - prize lockers
+    - showcases
+  modifiers:
+  - modifier: 1
+    phrases:
+    - other
+    - other one
+    - another
+    - another one
+    - next
+    - next one
+  - modifier: 2
+    phrases:
+    - left
+    - on the left
+    - left one
+  - modifier: 3
+    phrases:
+    - right
+    - on the right
+    - right one
+  - modifier: 4
+    phrases:
+    - closest
+    - nearest
+    - closer
+    - near
+    - closest one
+    - nearest one
+  - modifier: 5
+    phrases:
+    - farthest
+    - furthest
+    - far
+    - far one
+    - farther
+    - farthest one
+    - furthest one
+  numbers:
+  - value: 1
+    phrases:
+    - one
+    - first
+  - value: 2
+    phrases:
+    - two
+    - second
+  - value: 3
+    phrases:
+    - three
+    - third
+  - value: 4
+    phrases:
+    - four
+    - fourth
+  - value: 5
+    phrases:
+    - five
+    - fifth
+  - value: 6
+    phrases:
+    - six
+    - sixth
+  - value: 7
+    phrases:
+    - seven
+    - seventh
+  - value: 8
+    phrases:
+    - eight
+    - eighth
+  - value: 9
+    phrases:
+    - nine
+    - ninth
+  - value: 10
+    phrases:
+    - ten
+    - tenth
+  - value: 15
+    phrases:
+    - fifteen
+  - value: 20
+    phrases:
+    - twenty
+  - value: 25
+    phrases:
+    - twenty five
+  - value: 30
+    phrases:
+    - thirty
+  - value: 40
+    phrases:
+    - forty
+  - value: 50
+    phrases:
+    - fifty
+  - value: 60
+    phrases:
+    - sixty
+  - value: 75
+    phrases:
+    - seventy five
+  - value: 100
+    phrases:
+    - hundred
+    - a hundred
+    - one hundred
+  - value: 150
+    phrases:
+    - one fifty
+    - a hundred fifty
+    - one hundred fifty
+  - value: 200
+    phrases:
+    - two hundred
+  - value: 250
+    phrases:
+    - two fifty
+    - two hundred fifty
+  - value: 300
+    phrases:
+    - three hundred
+  - value: 400
+    phrases:
+    - four hundred
+  - value: 500
+    phrases:
+    - five hundred
+  - value: 1000
+    phrases:
+    - a thousand
+    - one thousand
+    - thousand
+  - value: 11
+    phrases:
+    - eleven
+  - value: 12
+    phrases:
+    - twelve
+  - value: 13
+    phrases:
+    - thirteen
+  - value: 14
+    phrases:
+    - fourteen
+  - value: 16
+    phrases:
+    - sixteen
+  - value: 17
+    phrases:
+    - seventeen
+  - value: 18
+    phrases:
+    - eighteen
+  - value: 19
+    phrases:
+    - nineteen
+  - value: 21
+    phrases:
+    - twenty one
+  - value: 22
+    phrases:
+    - twenty two
+  - value: 23
+    phrases:
+    - twenty three
+  - value: 24
+    phrases:
+    - twenty four
+  - value: 26
+    phrases:
+    - twenty six
+  - value: 27
+    phrases:
+    - twenty seven
+  - value: 28
+    phrases:
+    - twenty eight
+  - value: 29
+    phrases:
+    - twenty nine
+  - value: 31
+    phrases:
+    - thirty one
+  - value: 32
+    phrases:
+    - thirty two
+  - value: 33
+    phrases:
+    - thirty three
+  - value: 34
+    phrases:
+    - thirty four
+  - value: 35
+    phrases:
+    - thirty five
+  - value: 36
+    phrases:
+    - thirty six
+  pronouns:
+  - it
+  - that
+  - this
+  - there
+  - them
+  - those

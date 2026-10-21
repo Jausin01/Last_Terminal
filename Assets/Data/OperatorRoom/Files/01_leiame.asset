@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4eed53444f28c7a448788809f8598a5b, type: 3}
+  m_Name: 01_leiame
+  m_EditorClassIdentifier: Assembly-CSharp::OperatorFile
+  fileNameEn: README.txt
+  fileNamePt: LEIA-ME.txt
+  titleEn: Terminal 07
+  titlePt: Terminal 07
+  bodyEn: 'OPERATIONS TERMINAL 07 - INSTRUCTIONS
+
+
+    1. This terminal is wired
+    into every camera of the building.
+
+    2. The person on the ground hears your
+    voice. Speak clearly.
+
+    3. Cameras: open LIFELINE.EXE.
+
+    4. The door of
+    this room opens with a code. You will get the code when it is necessary.
+
+    5.
+    Do not shut the terminal down while she is exposed.
+
+
+    - Inside contact'
+  bodyPt: "TERMINAL DE OPERA\xC7\xD5ES 07 - INSTRU\xC7\xD5ES\n\n1. Este terminal
+    est\xE1 ligado a todas as c\xE2meras do pr\xE9dio.\n2. A pessoa em campo ouve
+    a sua voz. Fale com clareza.\n3. C\xE2meras: abra o LIFELINE.EXE.\n4. A porta
+    desta sala abre com um c\xF3digo. Voc\xEA vai receber o c\xF3digo quando for
+    necess\xE1rio.\n5. N\xE3o desligue o terminal com ela exposta.\n\n- Contato interno"
+  requiredFlag: 
+  order: 0
+  kind: 0
+  image: {fileID: 0}
+  folderEn: Documents
+  folderPt: Documentos
+  inRecycleBin: 0
