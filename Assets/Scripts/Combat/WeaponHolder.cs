@@ -8,9 +8,15 @@ public class WeaponHolder : MonoBehaviour
 {
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string LoadoutField = nameof(loadout);
+    public const string InventoryField = nameof(inventory);
+    public const string RequireItemsField = nameof(requireItems);
 
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private Weapon[] loadout = new Weapon[0];
+    [Tooltip("Her inventory: with Require Items, a weapon of the loadout is hers only while she carries its item (WeaponItem, id = the weapon's name).")]
+    [SerializeField] private Inventory inventory;
+    [Tooltip("Off: she has every weapon of the loadout (test rooms). On: only the ones she picked up.")]
+    [SerializeField] private bool requireItems;
     [Tooltip("Seconds to hand the left arm over to the reload clip and back.")]
     [SerializeField] private float leftHandBlendTime = 0.15f;
 
@@ -28,9 +34,9 @@ public class WeaponHolder : MonoBehaviour
 
     private void Awake()
     {
-        if (partnerAnimator == null || loadout.Length == 0)
+        if (partnerAnimator == null || loadout.Length == 0 || (requireItems && inventory == null))
         {
-            Debug.LogError($"{name}: WeaponHolder needs a PartnerAnimator and at least one weapon in the loadout.", this);
+            Debug.LogError($"{name}: WeaponHolder needs a PartnerAnimator, at least one weapon in the loadout (and the Inventory with Require Items).", this);
             enabled = false;
             return;
         }
@@ -46,10 +52,26 @@ public class WeaponHolder : MonoBehaviour
 
     public Weapon GetWeapon(int index) => index >= 0 && index < loadout.Length ? loadout[index] : null;
 
+    // she has this weapon (always, without Require Items)
+    public bool Owns(int index)
+    {
+        Weapon w = GetWeapon(index);
+        if (w == null) return false;
+        if (!requireItems) return true;
+        return inventory != null && inventory.FindById(w.name) != null;
+    }
+
+    // the first weapon she has, -1 = none
+    public int FirstOwned()
+    {
+        for (int i = 0; i < loadout.Length; i++) if (Owns(i)) return i;
+        return -1;
+    }
+
     // Shows the weapon at index in her hand (hides the previous one). False if it can't be used.
     public bool Equip(int index)
     {
-        if (!enabled || index < 0 || index >= loadout.Length || loadout[index] == null) return false;
+        if (!enabled || index < 0 || index >= loadout.Length || loadout[index] == null || !Owns(index)) return false;
         Transform rightHand = partnerAnimator.RightHand;
         if (rightHand == null) return false;
 

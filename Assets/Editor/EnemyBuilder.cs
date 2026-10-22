@@ -563,22 +563,53 @@ public static class EnemyBuilder
         var placed = new List<EnemyBrain>();
         foreach (var e in TestEnemies)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabFolder}/{e.prefab}.prefab");
-            if (prefab == null) { Debug.LogWarning($"[Enemies] {e.prefab} not built (run Last Terminal/7): not placed."); continue; }
-            var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
-            go.transform.SetParent(parent, false);
-            go.transform.SetPositionAndRotation(e.position, Quaternion.Euler(0f, e.yaw, 0f));
-            var brain = go.GetComponent<EnemyBrain>();
-            var so = new SerializedObject(brain);
-            so.FindProperty(EnemyBrain.StartModeField).enumValueIndex = (int)e.mode;
-            so.FindProperty(EnemyBrain.SaveIdField).stringValue = e.saveId;
-            so.FindProperty(EnemyBrain.PartnerField).objectReferenceValue = partner;
-            so.FindProperty(EnemyBrain.PartnerHealthField).objectReferenceValue = partnerHealth;
-            so.FindProperty(EnemyBrain.ShooterField).objectReferenceValue = shooter;
-            so.FindProperty(EnemyBrain.TargetsField).objectReferenceValue = targets;
-            so.ApplyModifiedPropertiesWithoutUndo();
-            placed.Add(brain);
+            EnemyBrain brain = PlaceEnemy(scene, parent, e.prefab, e.position, e.yaw, e.mode, e.saveId, partner, partnerHealth, shooter, targets);
+            if (brain != null) placed.Add(brain);
         }
         return placed;
+    }
+
+    // one enemy (prefab of Last Terminal/7) wired to her; null when the prefab isn't built
+    internal static EnemyBrain PlaceEnemy(Scene scene, Transform parent, string prefabName, Vector3 position, float yaw, EnemyStartMode mode,
+                                          string saveId, Transform partner, Health partnerHealth, PartnerShooter shooter, CommandTargets targets)
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabFolder}/{prefabName}.prefab");
+        if (prefab == null) { Debug.LogWarning($"[Enemies] {prefabName} not built (run Last Terminal/7): not placed."); return null; }
+        var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+        go.transform.SetParent(parent, false);
+        go.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+        var brain = go.GetComponent<EnemyBrain>();
+        var so = new SerializedObject(brain);
+        so.FindProperty(EnemyBrain.StartModeField).enumValueIndex = (int)mode;
+        so.FindProperty(EnemyBrain.SaveIdField).stringValue = saveId;
+        so.FindProperty(EnemyBrain.PartnerField).objectReferenceValue = partner;
+        so.FindProperty(EnemyBrain.PartnerHealthField).objectReferenceValue = partnerHealth;
+        so.FindProperty(EnemyBrain.ShooterField).objectReferenceValue = shooter;
+        so.FindProperty(EnemyBrain.TargetsField).objectReferenceValue = targets;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return brain;
+    }
+
+    // A dead body (scenery): the enemy model posed with the last frame of a death clip, no Animator, no collider
+    // that blocks (the NavMesh is baked without it). onBack: fell backward (Zombie_Death), else on the face.
+    // Needs Last Terminal/7 (the model's material); null when the model is missing.
+    internal static GameObject PlaceCorpse(Transform parent, string objectName, Vector3 position, float yaw, bool onBack)
+    {
+        var model = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
+        if (model == null) { Debug.LogWarning($"[Enemies] {ModelPath} missing: no body placed."); return null; }
+        var go = (GameObject)PrefabUtility.InstantiatePrefab(model, parent);
+        PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+        go.name = objectName;
+        go.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+        AnimationClip death = LoadClip(onBack ? DeathBack : DeathFront);
+        Animator animator = go.GetComponent<Animator>();
+        if (death != null && animator != null)
+        {
+            death.SampleAnimation(go, death.length);   // humanoid: sampled through its Animator
+            go.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+        }
+        if (animator != null) Object.DestroyImmediate(animator);
+        foreach (SkinnedMeshRenderer r in go.GetComponentsInChildren<SkinnedMeshRenderer>(true)) r.updateWhenOffscreen = true;
+        return go;
     }
 }

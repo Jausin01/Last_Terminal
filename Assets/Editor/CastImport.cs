@@ -17,7 +17,10 @@ public class CastImport : AssetPostprocessor
     const string PigFile = ModelFolder + "PigDriver.fbx";
     const float PigFileHeight = 4.918f;
     const float PigHeight = 1.86f;
-    static readonly string[] OneShots = { "Cast_ArmsOpen", "Cast_PigLunge", "Cast_PigTurn" };
+    static readonly string[] OneShots = { "Cast_ArmsOpen", "Cast_PigLunge", "Cast_PigTurn", "Cast_BedSitUp" };
+    // lying down (the asylum bed): the body orientation of the first frame points at the ceiling, so the root keeps
+    // the orientation of the file (she faces +Z) instead
+    static bool OriginalOrientation(string fileName) => fileName.StartsWith("Cast_Bed");
 
     void OnPreprocessModel()
     {
@@ -47,6 +50,7 @@ public class CastImport : AssetPostprocessor
         c.loopTime = loop;
         c.loopPose = loop;
         c.lockRootRotation = true;
+        c.keepOriginalOrientation = OriginalOrientation(fileName);
         c.lockRootHeightY = true;
         c.keepOriginalPositionY = !mary;   // her idle: feet on the floor
         c.heightFromFeet = mary;

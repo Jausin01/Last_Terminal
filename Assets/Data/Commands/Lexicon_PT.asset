@@ -37,8 +37,6 @@ MonoBehaviour:
     - siga
     - volta
     - volte
-    - olha
-    - confere
   - verb: 2
     phrases:
     - pare
@@ -562,6 +560,31 @@ MonoBehaviour:
     - limpa
     - cancela as apostas
     - tira tudo da mesa
+  - verb: 52
+    phrases:
+    - olha
+    - olhe
+    - olha a
+    - olha o
+    - examina
+    - examine
+    - verifica
+    - verifique
+    - confere
+    - confira
+    - investiga
+    - investigue
+    - o que e isso
+    - o que tem
+    - da uma olhada
+    - de uma olhada
+    - observa
+    - observe
+    - le
+    - leia
+    - procura
+    - procure
+    - vasculha
   names:
   - key: Lobby
     phrases:
@@ -964,6 +987,183 @@ MonoBehaviour:
     - armarios
     - vitrines
     - armarios de premios
+  - key: outfit_patient
+    phrases:
+    - roupa de paciente
+    - roupa de hospital
+    - roupa do hospicio
+    - pijama de hospital
+  - key: Isolation Wing
+    phrases:
+    - ala de isolamento
+    - ala
+    - corredor das celas
+    - bloco das celas
+  - key: Observation
+    phrases:
+    - observacao
+    - sala de observacao
+    - sala de monitoramento
+  - key: Nurses Station
+    phrases:
+    - enfermaria
+    - posto de enfermagem
+    - enfermagem
+  - key: Service Hall
+    phrases:
+    - corredor interno
+    - corredor da enfermaria
+  - key: Linen Room
+    phrases:
+    - rouparia
+    - lavanderia
+    - sala de roupas
+  - key: Bathroom
+    phrases:
+    - banheiro
+    - banheiros
+    - sanitario
+    - chuveiros
+  - key: Therapy Room
+    phrases:
+    - sala de terapia
+    - terapia
+    - sala de tratamento
+  - key: Guard Post
+    phrases:
+    - guarita
+    - sala dos guardas
+    - posto de guarda
+  - key: Armory
+    phrases:
+    - arsenal
+    - sala de armas
+    - armaria
+  - key: Service Corridor
+    phrases:
+    - corredor de servico
+    - corredor longo
+    - corredor comprido
+  - key: Stairwell
+    phrases:
+    - escada
+    - escadas
+    - escadaria
+    - saida
+  - key: Cell 1
+    phrases:
+    - cela 1
+    - cela um
+  - key: Cell 2
+    phrases:
+    - cela 2
+    - cela dois
+  - key: Cell 3
+    phrases:
+    - cela 3
+    - cela tres
+  - key: Cell 4
+    phrases:
+    - cela 4
+    - cela quatro
+  - key: Cell 5
+    phrases:
+    - cela 5
+    - cela cinco
+  - key: Cell 6
+    phrases:
+    - cela 6
+    - cela seis
+  - key: x_bed
+    phrases:
+    - cama
+    - colchao
+    - leito
+  - key: x_writing
+    phrases:
+    - parede
+    - escrita
+    - sangue
+    - mensagem
+    - escrito
+    - frase
+  - key: x_body
+    phrases:
+    - corpo
+    - cadaver
+    - defunto
+    - morto
+    - guarda morto
+    - corpo do guarda
+    - corpos
+  - key: x_toilet
+    phrases:
+    - privada
+    - vaso
+    - vaso sanitario
+    - latrina
+  - key: x_forced
+    phrases:
+    - porta arrombada
+    - porta quebrada
+    - porta aberta
+    - cela aberta
+  - key: x_blood
+    phrases:
+    - rastro
+    - rastro de sangue
+    - sangue no chao
+    - mancha
+  - key: x_monitors
+    phrases:
+    - monitores
+    - monitor
+    - telas
+    - tela
+    - televisao
+  - key: x_chair
+    phrases:
+    - cadeira
+  - key: x_desk
+    phrases:
+    - mesa
+    - prontuarios
+    - prontuario
+    - fichas
+    - registro
+    - papeis
+  - key: x_map
+    phrases:
+    - mapa
+    - cartaz
+    - planta
+  - key: x_cabinet
+    phrases:
+    - armario
+    - armario de remedios
+  - key: x_gurney
+    phrases:
+    - maca
+    - carrinho
+  - key: x_shelf
+    phrases:
+    - prateleira
+    - prateleiras
+    - estante
+    - lencois
+  - key: x_sink
+    phrases:
+    - pia
+    - torneira
+  - key: x_tape
+    phrases:
+    - gravador
+    - fita
+    - fita cassete
+  - key: x_stairs
+    phrases:
+    - degraus
+    - degrau
   modifiers:
   - modifier: 1
     phrases:

@@ -39,6 +39,7 @@ public class PartnerCombat : MonoBehaviour
     public bool IsAiming => aiming;
     public bool IsFacing => facing;
     public int SelectedWeapon => selectedWeapon;
+    public bool HasAnyWeapon => weaponHolder.FirstOwned() >= 0;
 
     // The selected weapon is a firearm (Attack shoots) / a melee weapon (Attack swings).
     public bool SelectedIsRanged => HasComponent<RangedWeapon>(selectedWeapon);
@@ -75,7 +76,15 @@ public class PartnerCombat : MonoBehaviour
     public bool Draw()
     {
         if (partnerAnimator.IsArmed) return true;
-        if (partnerAnimator.IsScripted || !weaponHolder.Equip(selectedWeapon)) return false;
+        if (partnerAnimator.IsScripted) return false;
+        if (!weaponHolder.Owns(selectedWeapon))
+        {
+            // the selected one isn't hers (yet): the first one she has
+            int owned = weaponHolder.FirstOwned();
+            if (owned < 0) return false;
+            selectedWeapon = owned;
+        }
+        if (!weaponHolder.Equip(selectedWeapon)) return false;
         partnerAnimator.SetHoldType(weaponHolder.Current.HoldType);
         partnerAnimator.SetArmed(true);
         return true;
@@ -84,7 +93,7 @@ public class PartnerCombat : MonoBehaviour
     // Chooses the weapon; if she is armed, she switches right away ("use the shotgun").
     public bool SelectWeapon(int index)
     {
-        if (partnerAnimator.IsAttacking || partnerAnimator.IsScripted || weaponHolder.GetWeapon(index) == null) return false;
+        if (partnerAnimator.IsAttacking || partnerAnimator.IsScripted || weaponHolder.GetWeapon(index) == null || !weaponHolder.Owns(index)) return false;
         selectedWeapon = index;
         if (!partnerAnimator.IsArmed) return true;
         if (!weaponHolder.Equip(index)) return false;

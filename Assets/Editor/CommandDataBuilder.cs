@@ -51,9 +51,12 @@ public static class CommandDataBuilder
         // "blackjack" / "vinte e um" are a game's name now (game_blackjack), not a way to say "let's play"
         lexicon.EditorRemoveVerbPhrases(CommandVerb.Play, new[] { "play blackjack", "let s play blackjack", "blackjack",
                                                                   "vamos jogar blackjack", "bora jogar blackjack", "vinte e um" });
+        // "olha" / "confere" / "check": Examine now (she looks at the thing and comments on it)
+        lexicon.EditorRemoveVerbPhrases(CommandVerb.GoTo, new[] { "olha", "confere", "check", "check out" });
         lexicon.EditorMerge(language,
             (pt ? PortugueseVerbs : EnglishVerbs).Select(v => new CommandLexicon.VerbPhrases(v.verb, v.phrases)),
             Names.Concat(ElevatorBuilder.LexiconNames()).Concat(CasinoBuilder.LexiconNames()).Concat(CasinoBuilder.GameNames())
+                 .Concat(AsylumBuilder.LexiconNames())
                  .Select(n => new CommandLexicon.NamePhrases(n.key, pt ? n.pt : n.en)),
             (pt ? PortugueseModifiers : EnglishModifiers).Select(m => new CommandLexicon.ModifierPhrases(m.modifier, m.phrases)),
             (pt ? PortugueseNumbers : EnglishNumbers).Select((words, i) => new CommandLexicon.NumberPhrases(i + 1, words))
@@ -69,7 +72,10 @@ public static class CommandDataBuilder
     private static readonly (CommandVerb verb, string[] phrases)[] EnglishVerbs =
     {
         (CommandVerb.GoTo, new[] { "go", "go to", "go into", "go inside", "walk", "walk to", "head", "head to", "move", "move to",
-                                   "run", "run to", "get to", "come to", "enter", "check", "check out" }),
+                                   "run", "run to", "get to", "come to", "enter" }),
+        // "look at the bed": she goes up to it and says what she thinks ("check" / "check out" were GoTo before)
+        (CommandVerb.Examine, new[] { "look", "look at", "examine", "check", "check out", "inspect", "investigate", "what s that",
+                                      "what is that", "take a look", "take a look at", "have a look", "read", "search" }),
         (CommandVerb.Stop, new[] { "stop", "wait", "halt", "freeze", "hold on", "hold it", "stay", "stay there", "don t move" }),
         (CommandVerb.PickUp, new[] { "pick up", "pick", "grab", "take", "get", "collect" }),
         (CommandVerb.Open, new[] { "open", "unlock" }),
@@ -142,7 +148,11 @@ public static class CommandDataBuilder
     private static readonly (CommandVerb verb, string[] phrases)[] PortugueseVerbs =
     {
         (CommandVerb.GoTo, new[] { "vai", "va", "vai para", "vai pra", "vai pro", "vai ate", "ir", "ir para", "anda", "anda ate", "ande",
-                                   "corre", "corra", "entra", "entre", "entra no", "entra na", "segue", "siga", "volta", "volte", "olha", "confere" }),
+                                   "corre", "corra", "entra", "entre", "entra no", "entra na", "segue", "siga", "volta", "volte" }),
+        // "olha a cama": ela vai até a coisa e comenta ("olha" / "confere" eram GoTo antes)
+        (CommandVerb.Examine, new[] { "olha", "olhe", "olha a", "olha o", "examina", "examine", "verifica", "verifique", "confere", "confira",
+                                      "investiga", "investigue", "o que e isso", "o que tem", "da uma olhada", "de uma olhada", "observa",
+                                      "observe", "le", "leia", "procura", "procure", "vasculha" }),
         (CommandVerb.Stop, new[] { "pare", "para ai", "espera", "espere", "fica ai", "fique ai", "fica parada", "fique parada", "calma", "nao se mexe" }),
         (CommandVerb.PickUp, new[] { "pega", "pegue", "pegar", "apanha", "apanhe", "coleta", "recolhe", "junta" }),
         (CommandVerb.Open, new[] { "abr*", "destranca", "destranque" }),
@@ -305,6 +315,8 @@ public static class CommandDataBuilder
         (CommandTargets.SameBetKey, new[] { "same", "same bet", "same again", "the same" }, new[] { "mesma", "mesma aposta", "o mesmo", "a mesma", "igual" }),
         ("outfit_pajama", new[] { "pajamas", "pajama", "pyjamas", "pjs", "sleepwear", "pajama outfit" },
                           new[] { "pijama", "pijaminha", "roupa de dormir" }),
+        (OutfitBuilder.PatientOutfitKey, new[] { "patient clothes", "patient outfit", "scrubs", "hospital clothes", "patient gown" },
+                                         new[] { "roupa de paciente", "roupa de hospital", "roupa do hospicio", "pijama de hospital" }),
         ("outfit_prison", new[] { "prison clothes", "prison uniform", "prison outfit", "inmate uniform", "stripes", "striped clothes" },
                           new[] { "roupa de prisao", "uniforme de prisao", "roupa de presidiaria", "uniforme listrado", "roupa listrada", "listrada" }),
         (CommandTargets.CenterKey, new[] { "center", "centre", "middle", "center of the room", "middle of the room", "room center" },

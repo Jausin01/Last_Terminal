@@ -693,6 +693,38 @@ public static class HelenaSetupMenu
         public string Description;    // for the log
         public string PlaceName = "FACILITY", PlaceNamePt = "INSTALAÇÃO";   // the map title
         public Room CenterRoom;       // optional: where "the center" goes (the middle of a big hall)
+        // the story scenes (the asylum): no operator room inside the scene, she starts with nothing (her weapons only
+        // once she picks them up), in another outfit; enemies placed by the content; things she comments on
+        public bool EmbedOperatorRoom = true;
+        public bool BareStart;
+        public string StartOutfit;    // outfit key (empty = the default one)
+        public readonly List<EnemySpec> Enemies = new List<EnemySpec>();
+        public readonly List<Examinable> Examinables = new List<Examinable>();
+        // called once the rig is built (cutscenes, things that need her systems)
+        public System.Action<LocationRig> Finish;
+    }
+
+    internal struct EnemySpec
+    {
+        public string Prefab;         // Enemy_Zombie, Enemy_Zombie_Pipe, Enemy_Killer_Axe, Enemy_Runner
+        public Vector3 Position;
+        public float Yaw;
+        public EnemyStartMode Mode;
+        public string SaveId;
+    }
+
+    // what the content's Finish gets: the systems of the scene
+    internal class LocationRig
+    {
+        public Scene Scene;
+        public GameObject Helena;
+        public CutsceneDirector Director;
+        public SecurityCameraSystem CameraSystem;
+        public CameraSettings Settings;
+        public StoryProgress Story;
+        public CommandTargets Targets;
+        public PartnerVoice Voice;
+        public readonly List<EnemyBrain> Enemies = new List<EnemyBrain>();
     }
 
     [MenuItem("Last Terminal/4 - Build Test Scene")]
@@ -825,14 +857,15 @@ public static class HelenaSetupMenu
         SetReference(partnerAnimator, PartnerAnimator.AgentField, agent);
 
         // outfits (skins): same model, other materials
-        PartnerOutfit outfit = OutfitBuilder.AddTo(helena, lit);
+        PartnerOutfit outfit = OutfitBuilder.AddTo(helena, lit, content.StartOutfit);
 
         // gameplay: health, slot inventory, interaction, test keys (H heal / J damage)
         helena.AddComponent<Health>();
         var inventory = helena.AddComponent<Inventory>();
         SetInt(inventory, Inventory.SlotCountField, 8);
         Dictionary<string, ItemDefinition> startItems = EnsureTestItems();
-        SetStartingItems(inventory, (startItems["HandgunAmmo"], 14), (startItems["ShotgunShells"], 6), (startItems["MagnumAmmo"], 7));   // spare ammo to test reloads
+        if (!content.BareStart)
+            SetStartingItems(inventory, (startItems["HandgunAmmo"], 14), (startItems["ShotgunShells"], 6), (startItems["MagnumAmmo"], 7));   // spare ammo to test reloads
         var interactor = helena.AddComponent<PartnerInteractor>();
         SetReference(interactor, PartnerInteractor.PartnerAnimatorField, partnerAnimator);
         var harness = helena.AddComponent<PartnerTestHarness>();
@@ -852,6 +885,14 @@ public static class HelenaSetupMenu
             holder = helena.AddComponent<WeaponHolder>();
             SetReference(holder, WeaponHolder.PartnerAnimatorField, partnerAnimator);
             SetReferenceArray(holder, WeaponHolder.LoadoutField, loadout);
+            if (content.BareStart)
+            {
+                // her weapons are only the ones she picked up (WeaponItem in her inventory)
+                SetReference(holder, WeaponHolder.InventoryField, inventory);
+                var hso = new SerializedObject(holder);
+                hso.FindProperty(WeaponHolder.RequireItemsField).boolValue = true;
+                hso.ApplyModifiedPropertiesWithoutUndo();
+            }
             var melee = helena.AddComponent<PartnerMelee>();
             SetReference(melee, PartnerMelee.PartnerAnimatorField, partnerAnimator);
             SetReference(melee, PartnerMelee.WeaponHolderField, holder);
@@ -975,6 +1016,12 @@ public static class HelenaSetupMenu
                 List<EnemyBrain> enemies = content.TestEnemies
                     ? EnemyBuilder.PlaceTestEnemies(scene, enemyRoot.transform, helena.transform, helena.GetComponent<Health>(), shooter, targets)
                     : new List<EnemyBrain>();
+                foreach (EnemySpec e in content.Enemies)
+                {
+                    EnemyBrain brain = EnemyBuilder.PlaceEnemy(scene, enemyRoot.transform, e.Prefab, e.Position, e.Yaw, e.Mode, e.SaveId,
+                                                               helena.transform, helena.GetComponent<Health>(), shooter, targets);
+                    if (brain != null) enemies.Add(brain);
+                }
                 var shootables = new List<(string key, Health target)>();
                 foreach (Health d in content.Dummies) shootables.Add((CommandTargets.DummyKey, d));
                 foreach (EnemyBrain e in enemies) shootables.Add((e.Type.CommandKey, e.GetComponent<Health>()));
@@ -984,6 +1031,7 @@ public static class HelenaSetupMenu
                 SetReference(targets, CommandTargets.PartnerField, helena.transform);
                 SetReference(targets, CommandTargets.CenterRoomField, content.CenterRoom);
                 SetReferenceArray(targets, CommandTargets.KeypadsField, level.Keypads);
+                SetReferenceArray(targets, CommandTargets.ExaminablesField, content.Examinables);
                 var encounter = targets.gameObject.AddComponent<CombatEncounter>();
                 SetReference(encounter, CombatEncounter.TargetsField, targets);
                 SetReference(encounter, CombatEncounter.PartnerField, helena.transform);
@@ -1119,6 +1167,13 @@ public static class HelenaSetupMenu
                 SetReference(story, StoryProgress.EncounterField, encounter);
                 SetReferenceArray(story, StoryProgress.KeypadsField, level.Keypads);
                 SetReference(saveSystemRef, SaveSystem.StoryField, story);
+                // "look at the bed": she walks up to things and comments on them
+                var examiner = helena.AddComponent<PartnerExaminer>();
+                SetReference(examiner, PartnerExaminer.InteractorField, interactor);
+                SetReference(examiner, PartnerExaminer.PartnerAnimatorField, partnerAnimator);
+                SetReference(examiner, PartnerExaminer.VoiceField, voice);
+                SetReference(examiner, PartnerExaminer.StoryField, story);
+                SetReference(commands, PartnerCommands.ExaminerField, examiner);
                 var rest = helena.AddComponent<PartnerRest>();
                 SetReference(rest, PartnerRest.PartnerAnimatorField, partnerAnimator);
                 SetReference(rest, PartnerRest.AgentField, agent);
@@ -1131,11 +1186,22 @@ public static class HelenaSetupMenu
                     Session = session, Settings = camSettings, Story = story,
                 };
                 rig.OperatorBehaviours.AddRange(new Behaviour[] { cameraSystem, console, mic, click, combatInput, harness, volume });
-                OperatorStation station = OperatorRoomBuilder.Build(lit, rig);
+                // (the story scenes: not in the scene; it will be its own scene, loaded with them)
+                OperatorStation station = content.EmbedOperatorRoom ? OperatorRoomBuilder.Build(lit, rig) : null;
 
                 // cutscenes: the director (Last Terminal/12 adds a cutscene to the scene)
                 CutsceneDirector cutsceneDirector = CutsceneBuilder.Build(canvas, cameraSystem, shotCamera, station, encounter, helena, partnerAnimator, voice, story, camSettings, mic, console);
                 if (level.Rooms.Exists(r => r.DisplayName == "Padded Cell")) CutsceneBuilder.BuildIntro(scene, cutsceneDirector, cameraSystem, station);   // the facility: the intro
+                if (content.Finish != null)
+                {
+                    var located = new LocationRig
+                    {
+                        Scene = scene, Helena = helena, Director = cutsceneDirector, CameraSystem = cameraSystem, Settings = camSettings,
+                        Story = story, Targets = targets, Voice = voice,
+                    };
+                    located.Enemies.AddRange(enemies);
+                    content.Finish(located);
+                }
             }
         }
         else Debug.LogWarning("[Helena] No CCTV prefab / UI: run menu 3 (and import TMP) to get the camera system.");
@@ -1178,8 +1244,51 @@ public static class HelenaSetupMenu
     {
         Dictionary<string, ItemDefinition> all = EnsureTestItems();
         foreach (var k in ElevatorBuilder.EnsureKeys()) all["Key_" + k.Key] = k.Value;
+        foreach (var def in Weapons) all[WeaponItemName(def.Name)] = EnsureWeaponItem(def.Name);
         return all;
     }
+
+    // ------------------------------------------------------------------ weapons as items (the story scenes)
+    // The item of a weapon: id = the weapon prefab's name (Weapon_<name>), the lexicon key of the weapon too,
+    // so "pick up the knife" finds the pickup and, once she has it, "draw the knife" finds the weapon.
+    private static string WeaponItemName(string weapon) => "Weapon_" + weapon;
+
+    internal static WeaponItem EnsureWeaponItem(string weapon) =>
+        GetOrCreateItem<WeaponItem>(WeaponItemName(weapon), WeaponItemName(weapon), weapon, 1);
+
+    // a weapon lying somewhere: its model on its side + the pickup (its item). Null when the model is missing.
+    internal static Pickup PlaceWeaponPickup(Transform parent, string weapon, Vector3 pos, float yaw)
+    {
+        var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{WeaponPropsFolder}/SM_{weapon}.fbx");
+        WeaponItem item = EnsureWeaponItem(weapon);
+        if (model == null)
+        {
+            Debug.LogWarning($"[Helena] {WeaponPropsFolder}/SM_{weapon}.fbx missing: a cube stands for it.");
+            return CreateCubePickup(parent, item, 1, pos + Vector3.up * 0.15f, new Color(0.6f, 0.6f, 0.65f));
+        }
+        var root = new GameObject("Pickup_" + WeaponItemName(weapon));
+        root.transform.SetParent(parent, false);
+        root.transform.SetPositionAndRotation(pos, Quaternion.Euler(0f, yaw, 0f));
+        var visual = (GameObject)PrefabUtility.InstantiatePrefab(model, root.transform);
+        visual.name = "Model";
+        // the models lie along x with their thin side along z: turned so the thin side is up (lying on its side)
+        visual.transform.localPosition = new Vector3(0.07f, 0.015f, 0f);   // (their grip end at the origin)
+        visual.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+        var box = root.AddComponent<BoxCollider>();
+        box.center = new Vector3(0f, 0.04f, 0f);
+        box.size = new Vector3(0.3f, 0.08f, 0.2f);
+        var pickup = root.AddComponent<Pickup>();
+        SetReference(pickup, Pickup.ItemField, item);
+        SetInt(pickup, Pickup.AmountField, 1);
+        SetReference(pickup, Pickup.VisualField, visual.transform);
+        return pickup;
+    }
+
+    // a pickup of one of the test items (ammo, medkit, keycard) for other builders
+    internal static Pickup PlaceItemPickup(Transform parent, string itemName, int amount, Vector3 pos, float yaw, Color fallback) =>
+        PlacePickup(parent, itemName, EnsureTestItems(), amount, pos, yaw, fallback);
+
+    internal static Dictionary<string, ItemDefinition> TestItems() => EnsureTestItems();
 
     // ------------------------------------------------------------------ helpers
     internal static Shader DefaultLitShader()

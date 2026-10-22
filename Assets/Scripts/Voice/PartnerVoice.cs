@@ -65,6 +65,22 @@ public class PartnerVoice : MonoBehaviour
         LineStarted?.Invoke(text, duration);
     }
 
+    // a line that isn't in the bank (what she says about a thing she looks at): the text, its recording if any
+    public void SayText(string text, AudioClip clip = null)
+    {
+        if (!enabled || string.IsNullOrEmpty(text)) return;
+        float duration;
+        audioSource.Stop();
+        if (clip != null)
+        {
+            audioSource.clip = clip;
+            audioSource.Play();
+            duration = clip.length + subtitleTail;
+        }
+        else duration = Mathf.Max(minSubtitleTime, text.Length * secondsPerCharacter);
+        LineStarted?.Invoke(text, duration);
+    }
+
     // a random take, not the same one twice in a row when there are several
     private AudioClip PickClip(AudioClip[] clips)
     {

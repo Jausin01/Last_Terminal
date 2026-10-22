@@ -15,23 +15,23 @@ using UnityEngine.UI;
 internal static class FacilityBuilder
 {
     private const string CctvFolder = "Assets/Art/Props/CCTV";
-    private const string DoorsFolder = "Assets/Art/Props/Doors";
-    private const string EnvFolder = "Assets/Art/Environment";
+    internal const string DoorsFolder = "Assets/Art/Props/Doors";
+    internal const string EnvFolder = "Assets/Art/Environment";
     private const string KeypadFolder = "Assets/Art/Props/Keypad";
     private const string PrefabFolder = "Assets/Prefabs/Facility";
     private const string CctvPrefabPath = PrefabFolder + "/SecurityCamera.prefab";
-    private const string WoodDoorPrefabPath = PrefabFolder + "/Door_Wood.prefab";
-    private const string SecurityDoorPrefabPath = PrefabFolder + "/Door_Security.prefab";
+    internal const string WoodDoorPrefabPath = PrefabFolder + "/Door_Wood.prefab";
+    internal const string SecurityDoorPrefabPath = PrefabFolder + "/Door_Security.prefab";
     private const string DataFolder = "Assets/Data/Facility";
     private const string FilterProfilePath = DataFolder + "/CameraFilter.asset";
     private const string StaticNoisePath = DataFolder + "/StaticNoise.asset";
 
-    private const float WallHeight = 3f;
-    private const float WallThickness = 0.2f;
-    private const float CameraHeight = 2.75f;
+    internal const float WallHeight = 3f;
+    internal const float WallThickness = 0.2f;
+    internal const float CameraHeight = 2.75f;
     internal const float PartnerRadius = 0.3f;      // her NavMeshAgent radius
-    private const float WoodDoorWidth = 1.06f;       // outer width of the frames (SM_Door*)
-    private const float SecurityDoorWidth = 1.44f;
+    internal const float WoodDoorWidth = 1.06f;       // outer width of the frames (SM_Door*)
+    internal const float SecurityDoorWidth = 1.44f;
 
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private static readonly int BaseMapStId = Shader.PropertyToID("_BaseMap_ST");
@@ -54,7 +54,7 @@ internal static class FacilityBuilder
     private const string CellCode = "17";                                  // 0+9+1+7: the number on her back (OutfitBuilder)
     private static readonly Vector3 KeypadCenter = new Vector3(1.15f, 1.27f, -8.18f);
     private static readonly Vector2 KeypadSize = new Vector2(0.16f, 0.24f);
-    private const float PaddingThickness = 0.08f;
+    internal const float PaddingThickness = 0.08f;
 
     // ================================================================== prefabs (menu 3)
     internal static void BuildPrefabs(Scene preview, Shader lit)
@@ -151,7 +151,7 @@ internal static class FacilityBuilder
         return m;
     }
 
-    private static Material MaterialFor(string matPath, string texPath, float smooth, Shader lit, string folder)
+    internal static Material MaterialFor(string matPath, string texPath, float smooth, Shader lit, string folder)
     {
         if (lit == null) return null;
         HelenaSetupMenu.EnsureFolder(folder, "Materials");
@@ -278,7 +278,11 @@ internal static class FacilityBuilder
     // The keypad beside her cell door: a metal plate with the keys printed on it (T_Keypad, 256 x 384 px for 0.16 x 0.24 m),
     // a key transform at each printed key (her finger goes there), the code display (3D text) and a speaker for the beeps.
     // Its forward points into the cell.
-    private static Keypad BuildKeypad(Transform parent, Door door, Shader lit)
+    private static Keypad BuildKeypad(Transform parent, Door door, Shader lit) =>
+        BuildKeypad(parent, door, lit, KeypadCenter, Vector3.back, CellCode);
+
+    // a keypad for any door: its center, the way its face looks (into the room it opens from), the code
+    internal static Keypad BuildKeypad(Transform parent, Door door, Shader lit, Vector3 center, Vector3 facing, string code)
     {
         var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{KeypadFolder}/T_Keypad.png");
         if (tex == null) { Debug.LogWarning($"[Facility] {KeypadFolder}/T_Keypad.png missing: no keypad (the cell door stays locked)."); return null; }
@@ -287,7 +291,7 @@ internal static class FacilityBuilder
 
         var root = new GameObject("Keypad_" + door.DisplayName.Replace(" ", ""));
         root.transform.SetParent(parent, false);
-        root.transform.SetPositionAndRotation(KeypadCenter, Quaternion.LookRotation(Vector3.back));   // facing into the cell
+        root.transform.SetPositionAndRotation(center, Quaternion.LookRotation(facing));   // facing into the room
 
         // the plate: its printed face toward +z (the cell), u to the viewer's right (= local -x)
         var plate = new GameObject("Plate");
@@ -344,7 +348,7 @@ internal static class FacilityBuilder
 
         var keypad = root.AddComponent<Keypad>();
         HelenaSetupMenu.SetReference(keypad, Keypad.DoorField, door);
-        HelenaSetupMenu.SetString(keypad, Keypad.CodeField, CellCode);
+        HelenaSetupMenu.SetString(keypad, Keypad.CodeField, code);
         HelenaSetupMenu.SetReferenceArray(keypad, Keypad.KeysField, keys);
         HelenaSetupMenu.SetReference(keypad, Keypad.DisplayField, text);
         HelenaSetupMenu.SetReference(keypad, Keypad.AudioSourceField, audio);
@@ -395,14 +399,19 @@ internal static class FacilityBuilder
         }
     }
 
-    private static Room AddRoom(Transform rooms, Transform geometry, Material floorMat, string displayName, Rect r, Color lightColor, float intensity)
+    private static Room AddRoom(Transform rooms, Transform geometry, Material floorMat, string displayName, Rect r, Color lightColor, float intensity) =>
+        AddRoom(rooms, geometry, floorMat, displayName, Portuguese(displayName), r, lightColor, intensity);
+
+    // a room (its floor in the geometry, a ceiling light): English name = lexicon key, the Portuguese one for the map
+    internal static Room AddRoom(Transform rooms, Transform geometry, Material floorMat, string displayName, string displayNamePt, Rect r,
+                                 Color lightColor, float intensity)
     {
         var go = new GameObject("Room_" + displayName.Replace(" ", ""));
         go.transform.SetParent(rooms, false);
         go.transform.position = new Vector3(r.center.x, 0f, r.center.y);
         var room = go.AddComponent<Room>();
         HelenaSetupMenu.SetString(room, Room.DisplayNameField, displayName);
-        HelenaSetupMenu.SetString(room, Room.DisplayNamePtField, Portuguese(displayName));
+        HelenaSetupMenu.SetString(room, Room.DisplayNamePtField, displayNamePt);
         var so = new SerializedObject(room);
         so.FindProperty(Room.SizeField).vector2Value = r.size;
         so.ApplyModifiedPropertiesWithoutUndo();
@@ -421,19 +430,19 @@ internal static class FacilityBuilder
     }
 
     // wall along X at z, from x0 to x1, with gaps (center x, width)
-    private static void WallX(Transform parent, Material m, float z, float x0, float x1, params (float center, float width)[] gaps)
+    internal static void WallX(Transform parent, Material m, float z, float x0, float x1, params (float center, float width)[] gaps)
     {
         foreach (var (a, b) in Segments(x0, x1, gaps))
             Block(parent, "Wall", new Vector3((a + b) * 0.5f, WallHeight * 0.5f, z), new Vector3(b - a + WallThickness, WallHeight, WallThickness), m, 2f, true);
     }
 
-    private static void WallZ(Transform parent, Material m, float x, float z0, float z1, params (float center, float width)[] gaps)
+    internal static void WallZ(Transform parent, Material m, float x, float z0, float z1, params (float center, float width)[] gaps)
     {
         foreach (var (a, b) in Segments(z0, z1, gaps))
             Block(parent, "Wall", new Vector3(x, WallHeight * 0.5f, (a + b) * 0.5f), new Vector3(WallThickness, WallHeight, b - a + WallThickness), m, 2f, true);
     }
 
-    private static List<(float, float)> Segments(float from, float to, (float center, float width)[] gaps)
+    internal static List<(float, float)> Segments(float from, float to, (float center, float width)[] gaps)
     {
         var result = new List<(float, float)>();
         float start = from;
@@ -448,7 +457,7 @@ internal static class FacilityBuilder
     }
 
     // a box with UVs in meters / tile (texture repeats instead of stretching); wall UVs: 2 m x 3 m per tile
-    private static GameObject Block(Transform parent, string objectName, Vector3 center, Vector3 size, Material m, float tile, bool wallUv = false)
+    internal static GameObject Block(Transform parent, string objectName, Vector3 center, Vector3 size, Material m, float tile, bool wallUv = false)
     {
         var go = new GameObject(objectName);
         go.transform.SetParent(parent, false);
@@ -489,9 +498,9 @@ internal static class FacilityBuilder
         return mesh;
     }
 
-    private struct DoorSigns { public Material Wall, Plates; }
+    internal struct DoorSigns { public Material Wall, Plates; }
 
-    private static Door AddDoor(Transform parent, string prefabPath, string displayName, Vector3 pos, float yaw, bool open,
+    internal static Door AddDoor(Transform parent, string prefabPath, string displayName, Vector3 pos, float yaw, bool open,
                                 int number, DoorSigns signs)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
@@ -674,19 +683,20 @@ internal static class FacilityBuilder
 
         // map panel: the blueprint (left, dark well with a frame) + the info column (right); content built by the HUD
         Vector2 mid = new Vector2(0.5f, 0.5f);
-        CanvasGroup map = Panel(root.transform, "MapPanel", "FACILITY MAP  //  SECURITY NETWORK", new Vector2(1060f, 640f));
+        // (canvas 1280 x 720: nearly the whole screen; the map zooms with the wheel, the side column scrolls)
+        CanvasGroup map = Panel(root.transform, "MapPanel", "FACILITY MAP  //  SECURITY NETWORK", new Vector2(1250f, 700f));
         var well = HelenaSetupMenu.CreateUiObject(map.transform.GetChild(1), "MapWell").AddComponent<Image>();
         well.color = new Color(0f, 0.025f, 0.012f, 0.95f);
         well.raycastTarget = false;
-        HelenaSetupMenu.Place(well.rectTransform, mid, mid, mid, new Vector2(-150f, -16f), new Vector2(720f, 570f));
+        HelenaSetupMenu.Place(well.rectTransform, mid, mid, mid, new Vector2(-195f, -18f), new Vector2(830f, 636f));
         var wellLine = well.gameObject.AddComponent<Outline>();
         wellLine.effectColor = Dim;
         wellLine.effectDistance = new Vector2(1f, -1f);
         var area = HelenaSetupMenu.CreateUiObject(well.transform, "MapArea").GetComponent<RectTransform>();
-        HelenaSetupMenu.Place(area, mid, mid, mid, Vector2.zero, new Vector2(700f, 550f));
+        HelenaSetupMenu.Place(area, mid, mid, mid, Vector2.zero, new Vector2(816f, 622f));
         area.gameObject.AddComponent<RectMask2D>();   // the grid stays inside the well
         var side = HelenaSetupMenu.CreateUiObject(map.transform.GetChild(1), "MapSide").GetComponent<RectTransform>();
-        HelenaSetupMenu.Place(side, mid, mid, mid, new Vector2(368f, -16f), new Vector2(290f, 570f));
+        HelenaSetupMenu.Place(side, mid, mid, mid, new Vector2(424f, -18f), new Vector2(372f, 636f));
 
         // settings panel
         CanvasGroup settingsPanel = Panel(root.transform, "SettingsPanel", "SETTINGS", new Vector2(760f, 600f));

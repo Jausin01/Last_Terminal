@@ -27,6 +27,7 @@ public class CommandTargets : MonoBehaviour
     public const string HoldemTablesField = nameof(holdemTables);
     public const string RouletteField = nameof(roulette);
     public const string CounterField = nameof(counter);
+    public const string ExaminablesField = nameof(examinables);
 
     // generic names (lexicon keys) that aren't the name of one particular thing
     public const string DoorKey = "door";
@@ -83,6 +84,8 @@ public class CommandTargets : MonoBehaviour
     [SerializeField] private Elevator[] elevators = new Elevator[0];
     [SerializeField] private SlotMachine[] slots = new SlotMachine[0];
     [SerializeField] private HoldemGame[] holdemTables = new HoldemGame[0];
+    [Tooltip("Things she looks at and comments on (\"look at the bed\").")]
+    [SerializeField] private Examinable[] examinables = new Examinable[0];
     [Tooltip("Optional: the roulette of the scene.")]
     [SerializeField] private RouletteGame roulette;
     [Tooltip("Optional: the cashier / prize counter of the scene.")]
@@ -428,6 +431,33 @@ public class CommandTargets : MonoBehaviour
             AddInReach(s.Target, from);
         }
         return Choose(cmd.Modifier, from, exclude) as Health;
+    }
+
+    // a named thing to look at (in reach); with no name, the closest one in her room
+    public Examinable FindExaminable(ParsedCommand cmd, Vector3 from, Component exclude = null)
+    {
+        candidates.Clear();
+        LastSearchOutOfReach = false;
+        bool anyName = false;
+        foreach (Examinable x in examinables) if (x != null && cmd.HasKey(x.Key)) { anyName = true; break; }
+        Room here = CurrentRoom(from);
+        foreach (Examinable x in examinables)
+        {
+            if (x == null || !x.isActiveAndEnabled) continue;
+            if (anyName)
+            {
+                if (cmd.HasKey(x.Key)) AddInReach(x, from);
+            }
+            else if (here != null && here.Contains(x.LookPoint, doorwayMargin)) candidates.Add(x);
+        }
+        return Choose(cmd.Modifier, from, exclude) as Examinable;
+    }
+
+    // a key names one of the things to look at (the command means "look at it", not "go there")
+    public bool NamesExaminable(ParsedCommand cmd)
+    {
+        foreach (Examinable x in examinables) if (x != null && cmd.HasKey(x.Key)) return true;
+        return false;
     }
 
     private void AddInReach(Component c, Vector3 from)

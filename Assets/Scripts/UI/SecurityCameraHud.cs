@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 // The operator's screen over the camera feed:
@@ -11,6 +12,7 @@ using UnityEngine.UI;
 //   map   - (Tab) blueprint of the place drawn from the Rooms: numbered doors (click the remote ones), cameras and
 //           their view, her blip, the marked spots of big halls (named: say it to send her there); side panel with
 //           where she is, the camera on screen, the places, the door list and a legend;
+//           mouse wheel on the map = zoom (toward the cursor), right / middle drag = move it; wheel on the side = scroll;
 // Every text follows the game's language (CameraSettings), names of rooms included (Room.NameIn).
 //   settings - (Esc) pan control, pan speeds, camera filter on / off + strength, language, subtitles.
 // The fixed layout is built by Last Terminal/4; the map and the settings rows are generated here from the scene data.
@@ -80,6 +82,13 @@ public class SecurityCameraHud : MonoBehaviour
     [SerializeField] private Color spotColor = new Color(1f, 0.85f, 0.3f);
     [SerializeField] private float staticTime = 0.35f;
 
+    [Header("Map zoom / side scroll")]
+    [SerializeField, Min(1f)] private float maxMapZoom = 5f;
+    [Tooltip("Zoom per wheel notch.")]
+    [SerializeField] private float mapZoomStep = 1.2f;
+    [Tooltip("Side panel: pixels per wheel notch.")]
+    [SerializeField] private float sideScrollStep = 48f;
+
     private const float RoomAlpha = 0.07f;
     private readonly List<Image> cameraButtons = new List<Image>();
     private readonly List<(Door door, Image image)> doorIcons = new List<(Door, Image)>();
@@ -100,6 +109,14 @@ public class SecurityCameraHud : MonoBehaviour
     private float sideTimer;
     private Rect worldBounds;
     private float mapScale;
+    private RectTransform mapContent;          // everything drawn on the map: scaled / moved by the zoom
+    private float mapZoom = 1f;
+    private RectTransform sideContent;         // the side rows: scrolled inside sideViewport
+    private RectTransform sideViewport;
+    private float sideHeight;
+    private float sideScroll;
+    private Vector2 lastMouse;
+    private Canvas canvas;
     private float staticTimer;
     private int lastSecond = -1;
     private const int SettingsRowCount = 7;
@@ -229,7 +246,56 @@ public class SecurityCameraHud : MonoBehaviour
             }
         }
 
-        if (system.IsMapOpen) UpdateMap();
+        if (system.IsMapOpen)
+        {
+            UpdateMap();
+            MapInput();
+        }
+    }
+
+    // ------------------------------------------------------------------ map zoom / side scroll (mouse)
+    private void MapInput()
+    {
+        Mouse mouse = Mouse.current;
+        if (mouse == null) return;
+        if (canvas == null) canvas = GetComponentInParent<Canvas>();
+        Camera eventCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+        Vector2 screen = mouse.position.ReadValue();
+        float wheel = mouse.scroll.ReadValue().y;
+        int notch = Mathf.Abs(wheel) > 0.01f ? (int)Mathf.Sign(wheel) : 0;
+
+        if (mapArea != null && mapContent != null && RectTransformUtility.RectangleContainsScreenPoint(mapArea, screen, eventCamera))
+        {
+            if (notch != 0 && RectTransformUtility.ScreenPointToLocalPointInRectangle(mapArea, screen, eventCamera, out Vector2 local))
+            {
+                // the point under the cursor stays under it
+                float next = Mathf.Clamp(mapZoom * Mathf.Pow(mapZoomStep, notch), 1f, maxMapZoom);
+                Vector2 onContent = (local - mapContent.anchoredPosition) / mapZoom;
+                mapZoom = next;
+                SetMapView(local - onContent * mapZoom);
+            }
+            bool drag = mouse.rightButton.isPressed || mouse.middleButton.isPressed;
+            if (drag && (mouse.rightButton.wasPressedThisFrame || mouse.middleButton.wasPressedThisFrame)) lastMouse = screen;
+            else if (drag)
+            {
+                float toLocal = canvas != null ? 1f / canvas.scaleFactor : 1f;
+                SetMapView(mapContent.anchoredPosition + (screen - lastMouse) * toLocal);
+                lastMouse = screen;
+            }
+        }
+        else if (sideViewport != null && notch != 0 && RectTransformUtility.RectangleContainsScreenPoint(mapSide, screen, eventCamera))
+        {
+            sideScroll = Mathf.Clamp(sideScroll - notch * sideScrollStep, 0f, Mathf.Max(0f, sideHeight - sideViewport.rect.height));
+            sideContent.anchoredPosition = new Vector2(0f, sideScroll);
+        }
+    }
+
+    // the zoomed map never leaves the well (at zoom 1 it fits it exactly)
+    private void SetMapView(Vector2 position)
+    {
+        mapContent.localScale = new Vector3(mapZoom, mapZoom, 1f);
+        Vector2 limit = mapArea.rect.size * (mapZoom - 1f) * 0.5f;
+        mapContent.anchoredPosition = new Vector2(Mathf.Clamp(position.x, -limit.x, limit.x), Mathf.Clamp(position.y, -limit.y, limit.y));
     }
 
     private string SubjectText()
@@ -265,6 +331,10 @@ public class SecurityCameraHud : MonoBehaviour
         }
         Vector2 area = mapArea.rect.size * 0.92f;
         mapScale = Mathf.Min(area.x / Mathf.Max(worldBounds.width, 0.01f), area.y / Mathf.Max(worldBounds.height, 0.01f));
+        mapContent = (RectTransform)new GameObject("MapContent", typeof(RectTransform)).transform;
+        mapContent.gameObject.layer = mapArea.gameObject.layer;
+        mapContent.SetParent(mapArea, false);
+        mapContent.sizeDelta = mapArea.rect.size;
 
         BuildGrid();
 
@@ -274,16 +344,23 @@ public class SecurityCameraHud : MonoBehaviour
             if (r == null) continue;
             Rect f = r.FloorRect;
             Vector2 size = f.size * mapScale;
-            Image fill = NewImage(mapArea, "Room_" + r.DisplayName, new Color(phosphor.r, phosphor.g, phosphor.b, RoomAlpha));
+            Image fill = NewImage(mapContent, "Room_" + r.DisplayName, new Color(phosphor.r, phosphor.g, phosphor.b, RoomAlpha));
             fill.raycastTarget = false;
             fill.rectTransform.anchoredPosition = MapPoint(new Vector3(f.center.x, 0f, f.center.y));
             fill.rectTransform.sizeDelta = size;
             Image[] border = Frame(fill.rectTransform, 2f, new Color(phosphor.r, phosphor.g, phosphor.b, 0.75f));
             roomViews.Add((r, fill, border));
             if (r.Spot != null) continue;   // named at its spot (below)
-            TMP_Text t = NewText(fill.rectTransform, "", Mathf.Clamp(size.x / 9f, 11f, 16f), phosphor);
-            Stretch(t.rectTransform, 4f);
+            TMP_Text t = NewText(fill.rectTransform, "", 18f, phosphor);
             t.alignment = TextAlignmentOptions.Center;
+            t.enableAutoSizing = true;
+            t.fontSizeMin = 8f;
+            t.fontSizeMax = Mathf.Clamp(Mathf.Min(size.x, size.y) / 3f, 11f, 18f);
+            bool sideways = size.y > size.x * 1.5f;   // a long narrow hall: the name along it
+            RectTransform tr = t.rectTransform;
+            tr.anchorMin = tr.anchorMax = new Vector2(0.5f, 0.5f);
+            tr.sizeDelta = sideways ? new Vector2(size.y - 8f, size.x - 8f) : new Vector2(size.x - 8f, size.y - 8f);
+            tr.localRotation = sideways ? Quaternion.Euler(0f, 0f, 90f) : Quaternion.identity;
             roomNames.Add((r, t));
         }
 
@@ -292,7 +369,7 @@ public class SecurityCameraHud : MonoBehaviour
         {
             if (r == null || r.Spot == null) continue;
             Vector2 at = MapPoint(r.Spot.position);
-            Image mark = NewImage(mapArea, "Spot_" + r.DisplayName, spotColor);
+            Image mark = NewImage(mapContent, "Spot_" + r.DisplayName, spotColor);
             mark.raycastTarget = false;
             mark.rectTransform.sizeDelta = new Vector2(11f, 11f);
             mark.rectTransform.anchoredPosition = at;
@@ -300,7 +377,7 @@ public class SecurityCameraHud : MonoBehaviour
             Image hole = NewImage(mark.rectTransform, "Hole", new Color(0.02f, 0.06f, 0.035f, 1f));
             hole.raycastTarget = false;
             hole.rectTransform.sizeDelta = new Vector2(5f, 5f);
-            TMP_Text t = NewText(mapArea, "", 13, spotColor);
+            TMP_Text t = NewText(mapContent, "", 13, spotColor);
             t.rectTransform.sizeDelta = new Vector2(180f, 18f);
             t.rectTransform.anchoredPosition = at + new Vector2(0f, 14f);
             roomNames.Add((r, t));
@@ -312,19 +389,19 @@ public class SecurityCameraHud : MonoBehaviour
         {
             int index = i;
             SecurityCamera cam = cams[i];
-            Image wedge = NewImage(mapArea, "View_" + cam.Label, new Color(phosphor.r, phosphor.g, phosphor.b, 0.12f));
+            Image wedge = NewImage(mapContent, "View_" + cam.Label, new Color(phosphor.r, phosphor.g, phosphor.b, 0.12f));
             wedge.sprite = Wedge;
             wedge.raycastTarget = false;
             wedge.rectTransform.pivot = new Vector2(0.5f, 0f);   // apex = the camera
             wedge.rectTransform.sizeDelta = new Vector2(84f, 64f);
             wedge.rectTransform.anchoredPosition = MapPoint(cam.transform.position);
-            Image dot = NewImage(mapArea, "Cam_" + cam.Label, phosphor);
+            Image dot = NewImage(mapContent, "Cam_" + cam.Label, phosphor);
             dot.sprite = Circle;
             dot.raycastTarget = false;
             dot.rectTransform.sizeDelta = new Vector2(8f, 8f);
             dot.rectTransform.anchoredPosition = MapPoint(cam.transform.position);
             string number = cam.Label.Replace("CAM", "").Trim();
-            NewButton(mapArea, number, 12, () => system.Switch(index), out Image tag);
+            NewButton(mapContent, number, 12, () => system.Switch(index), out Image tag);
             tag.rectTransform.sizeDelta = new Vector2(30f, 18f);
             tag.rectTransform.anchoredPosition = MapPoint(cam.transform.position) + InwardOffset(cam.transform.position, 24f);
             cameraButtons.Add(tag);
@@ -338,7 +415,7 @@ public class SecurityCameraHud : MonoBehaviour
             Door door = d;
             Vector3 along = door.transform.right;
             bool horizontal = Mathf.Abs(along.x) >= Mathf.Abs(along.z);
-            Image bar = NewImage(mapArea, "Door_" + door.DisplayName, doorClosed);
+            Image bar = NewImage(mapContent, "Door_" + door.DisplayName, doorClosed);
             bar.raycastTarget = false;
             bar.rectTransform.sizeDelta = horizontal ? new Vector2(1.6f * mapScale, 6f) : new Vector2(6f, 1.6f * mapScale);
             bar.rectTransform.anchoredPosition = MapPoint(door.transform.position);
@@ -346,10 +423,10 @@ public class SecurityCameraHud : MonoBehaviour
             Image badge;
             if (door.IsRemoteControlled)
             {
-                Button b = NewButton(mapArea, "", 14, () => door.Toggle(), out badge);
+                Button b = NewButton(mapContent, "", 14, () => door.Toggle(), out badge);
                 b.transition = Selectable.Transition.ColorTint;
             }
-            else badge = NewImage(mapArea, "Badge_" + door.DisplayName, Color.white);
+            else badge = NewImage(mapContent, "Badge_" + door.DisplayName, Color.white);
             badge.color = new Color(0.02f, 0.06f, 0.035f, 0.95f);
             badge.rectTransform.sizeDelta = new Vector2(24f, 24f);
             badge.rectTransform.anchoredPosition = MapPoint(door.transform.position);
@@ -361,18 +438,18 @@ public class SecurityCameraHud : MonoBehaviour
         }
 
         // her: pulse ring, heading tick, dot, name
-        partnerRing = NewImage(mapArea, "PartnerRing", new Color(1f, 0.25f, 0.2f, 0.6f));
+        partnerRing = NewImage(mapContent, "PartnerRing", new Color(1f, 0.25f, 0.2f, 0.6f));
         partnerRing.sprite = Ring;
         partnerRing.raycastTarget = false;
-        partnerHeading = NewImage(mapArea, "PartnerHeading", new Color(1f, 0.35f, 0.3f));
+        partnerHeading = NewImage(mapContent, "PartnerHeading", new Color(1f, 0.35f, 0.3f));
         partnerHeading.raycastTarget = false;
         partnerHeading.rectTransform.pivot = new Vector2(0.5f, 0f);
         partnerHeading.rectTransform.sizeDelta = new Vector2(3f, 15f);
-        partnerBlip = NewImage(mapArea, "PartnerBlip", new Color(1f, 0.25f, 0.2f));
+        partnerBlip = NewImage(mapContent, "PartnerBlip", new Color(1f, 0.25f, 0.2f));
         partnerBlip.sprite = Circle;
         partnerBlip.raycastTarget = false;
         partnerBlip.rectTransform.sizeDelta = new Vector2(12f, 12f);
-        partnerName = NewText(mapArea, "<b>HELENA</b>", 11, new Color(1f, 0.45f, 0.4f));
+        partnerName = NewText(mapContent, "<b>HELENA</b>", 11, new Color(1f, 0.45f, 0.4f));
         partnerName.rectTransform.sizeDelta = new Vector2(70f, 14f);
 
         BuildMapSide();
@@ -383,14 +460,14 @@ public class SecurityCameraHud : MonoBehaviour
     {
         Color minor = new Color(phosphor.r, phosphor.g, phosphor.b, 0.045f);
         Color major = new Color(phosphor.r, phosphor.g, phosphor.b, 0.1f);
-        Vector2 size = mapArea.rect.size;
+        Vector2 size = mapContent.sizeDelta;
         int x0 = Mathf.FloorToInt(worldBounds.xMin - 2f), x1 = Mathf.CeilToInt(worldBounds.xMax + 2f);
         int z0 = Mathf.FloorToInt(worldBounds.yMin - 2f), z1 = Mathf.CeilToInt(worldBounds.yMax + 2f);
         for (int x = x0; x <= x1; x++)
         {
             float px = MapPoint(new Vector3(x, 0f, 0f)).x;
             if (Mathf.Abs(px) > size.x * 0.5f) continue;
-            Image l = NewImage(mapArea, "GridX", x % 4 == 0 ? major : minor);
+            Image l = NewImage(mapContent, "GridX", x % 4 == 0 ? major : minor);
             l.raycastTarget = false;
             l.rectTransform.sizeDelta = new Vector2(1f, size.y);
             l.rectTransform.anchoredPosition = new Vector2(px, 0f);
@@ -399,7 +476,7 @@ public class SecurityCameraHud : MonoBehaviour
         {
             float py = MapPoint(new Vector3(0f, 0f, z)).y;
             if (Mathf.Abs(py) > size.y * 0.5f) continue;
-            Image l = NewImage(mapArea, "GridZ", z % 4 == 0 ? major : minor);
+            Image l = NewImage(mapContent, "GridZ", z % 4 == 0 ? major : minor);
             l.raycastTarget = false;
             l.rectTransform.sizeDelta = new Vector2(size.x, 1f);
             l.rectTransform.anchoredPosition = new Vector2(0f, py);
@@ -409,33 +486,47 @@ public class SecurityCameraHud : MonoBehaviour
     private void BuildMapSide()
     {
         if (mapSide == null) return;
+        // the rows scroll (mouse wheel) inside a viewport; the controls stay at the bottom
+        sideViewport = (RectTransform)new GameObject("SideViewport", typeof(RectTransform)).transform;
+        sideViewport.gameObject.layer = mapSide.gameObject.layer;
+        sideViewport.SetParent(mapSide, false);
+        Stretch(sideViewport, 0f);
+        sideViewport.offsetMin = new Vector2(0f, KeysHeight + 8f);
+        sideViewport.gameObject.AddComponent<RectMask2D>();
+        sideContent = (RectTransform)new GameObject("SideContent", typeof(RectTransform)).transform;
+        sideContent.gameObject.layer = mapSide.gameObject.layer;
+        sideContent.SetParent(sideViewport, false);
+        sideContent.anchorMin = new Vector2(0f, 1f);
+        sideContent.anchorMax = new Vector2(1f, 1f);
+        sideContent.pivot = new Vector2(0.5f, 1f);
+        sideContent.anchoredPosition = Vector2.zero;
         float y = 0f;
         TMP_Text Header(string en, string pt)
         {
-            TMP_Text h = Fixed(NewText(mapSide, "", 14, dim), "<b>" + en + "</b>", "<b>" + pt + "</b>");
-            Top(h.rectTransform, y, 20f);
-            Image rule = NewImage(mapSide, "Rule", new Color(dim.r, dim.g, dim.b, 0.8f));
+            TMP_Text h = Fixed(NewText(sideContent, "", 16, dim), "<b>" + en + "</b>", "<b>" + pt + "</b>");
+            Top(h.rectTransform, y, 22f);
+            Image rule = NewImage(sideContent, "Rule", new Color(dim.r, dim.g, dim.b, 0.8f));
             rule.raycastTarget = false;
-            Top(rule.rectTransform, y + 21f, 1f);
-            y += 28f;
+            Top(rule.rectTransform, y + 24f, 1f);
+            y += 34f;
             return h;
         }
         TMP_Text Line(float size, float height)
         {
-            TMP_Text t = NewText(mapSide, "", size, phosphor);
+            TMP_Text t = NewText(sideContent, "", size, phosphor);
             Top(t.rectTransform, y, height);
             y += height;
             return t;
         }
 
         Header("SUBJECT", "HELENA");
-        sideSubject = Line(18, 24f);
-        sideSubjectState = Line(14, 22f);
-        y += 10f;
+        sideSubject = Line(20, 28f);
+        sideSubjectState = Line(16, 26f);
+        y += 14f;
         Header("CAMERA ON SCREEN", "CÂMERA NA TELA");
-        sideCamera = Line(18, 24f);
-        sideCameraRoom = Line(14, 22f);
-        y += 10f;
+        sideCamera = Line(20, 28f);
+        sideCameraRoom = Line(16, 26f);
+        y += 14f;
         // the places of big halls (their spots): what to say to send her
         bool anySpot = false;
         foreach (Room r in rooms) anySpot |= r != null && r.Spot != null;
@@ -445,13 +536,13 @@ public class SecurityCameraHud : MonoBehaviour
             foreach (Room r in rooms)
             {
                 if (r == null || r.Spot == null) continue;
-                TMP_Text row = NewText(mapSide, "", 13, phosphor);
-                Top(row.rectTransform, y, 19f);
+                TMP_Text row = NewText(sideContent, "", 15, phosphor);
+                Top(row.rectTransform, y, 24f);
                 row.margin = new Vector4(6f, 0f, 0f, 0f);
                 placeRows.Add((r, row));
-                y += 19f;
+                y += 24f;
             }
-            y += 10f;
+            y += 14f;
         }
         bool anyDoor = false;
         foreach (Door d in doors) anyDoor |= d != null;
@@ -463,22 +554,22 @@ public class SecurityCameraHud : MonoBehaviour
             TMP_Text row;
             if (door.IsRemoteControlled)
             {
-                NewButton(mapSide, "", 13, () => door.Toggle(), out Image img);
-                Top(img.rectTransform, y, 24f);
+                NewButton(sideContent, "", 15, () => door.Toggle(), out Image img);
+                Top(img.rectTransform, y, 44f);
                 row = img.GetComponentInChildren<TMP_Text>();
             }
             else
             {
-                row = NewText(mapSide, "", 13, phosphor);
-                Top(row.rectTransform, y, 24f);
+                row = NewText(sideContent, "", 15, phosphor);
+                Top(row.rectTransform, y, 44f);
             }
             row.alignment = TextAlignmentOptions.Left;
             row.margin = new Vector4(6f, 0f, 6f, 0f);
             row.richText = true;
             doorRows.Add((door, row));
-            y += 27f;
+            y += 50f;   // two lines: the number + the rooms, then the state
         }
-        y += 10f;
+        y += 14f;
         Header("LEGEND", "LEGENDA");
         if (anyDoor)
         {
@@ -489,30 +580,45 @@ public class SecurityCameraHud : MonoBehaviour
         if (anySpot) LegendRow(ref y, spotColor, "PLACE (SAY ITS NAME)", "LUGAR (FALE O NOME)");
         LegendRow(ref y, activeCamera, "CAMERA ON SCREEN", "CÂMERA NA TELA");
         LegendRow(ref y, new Color(1f, 0.3f, 0.25f), "HELENA", "HELENA");
-        TMP_Text keys = Fixed(NewText(mapSide, "", 12, dim),
-                              "<b>CLICK</b> CAMERA  - SWITCH\n<b>CLICK</b> REMOTE DOOR  - OPEN / CLOSE\n<b>TAB</b>  - CLOSE MAP",
-                              "<b>CLIQUE</b> CÂMERA  - TROCAR\n<b>CLIQUE</b> PORTA REMOTA  - ABRIR / FECHAR\n<b>TAB</b>  - FECHAR MAPA");
+        sideHeight = y + 8f;
+        sideContent.sizeDelta = new Vector2(0f, sideHeight);
+        // the controls: fixed under the scrolled rows (with a dark band so the rows don't show through)
+        Image band = NewImage(mapSide, "KeysBand", new Color(0.01f, 0.05f, 0.025f, 1f));
+        band.raycastTarget = false;
+        band.rectTransform.anchorMin = Vector2.zero;
+        band.rectTransform.anchorMax = new Vector2(1f, 0f);
+        band.rectTransform.pivot = new Vector2(0.5f, 0f);
+        band.rectTransform.anchoredPosition = Vector2.zero;
+        band.rectTransform.sizeDelta = new Vector2(0f, KeysHeight);
+        Image bandRule = NewImage(band.rectTransform, "Rule", new Color(dim.r, dim.g, dim.b, 0.8f));
+        bandRule.raycastTarget = false;
+        Top(bandRule.rectTransform, 0f, 1f);
+        TMP_Text keys = Fixed(NewText(mapSide, "", 13, dim),
+                              "<b>WHEEL</b> ON MAP - ZOOM   <b>RIGHT DRAG</b> - MOVE\n<b>WHEEL</b> HERE - SCROLL\n<b>CLICK</b> CAMERA - SWITCH\n<b>CLICK</b> REMOTE DOOR [R] - OPEN / CLOSE   <b>TAB</b> - CLOSE",
+                              "<b>RODA</b> NO MAPA - ZOOM   <b>BOTÃO DIREITO</b> - MOVER\n<b>RODA</b> AQUI - ROLAR\n<b>CLIQUE</b> CÂMERA - TROCAR\n<b>CLIQUE</b> PORTA REMOTA [R] - ABRIR / FECHAR   <b>TAB</b> - FECHAR");
         keys.alignment = TextAlignmentOptions.BottomLeft;
         keys.rectTransform.anchorMin = new Vector2(0f, 0f);
         keys.rectTransform.anchorMax = new Vector2(1f, 0f);
         keys.rectTransform.pivot = new Vector2(0.5f, 0f);
         keys.rectTransform.anchoredPosition = Vector2.zero;
-        keys.rectTransform.sizeDelta = new Vector2(0f, 54f);
+        keys.rectTransform.sizeDelta = new Vector2(0f, KeysHeight - 6f);
     }
+
+    private const float KeysHeight = 84f;
 
     private void LegendRow(ref float y, Color color, string en, string pt)
     {
-        Image sw = NewImage(mapSide, "Swatch", color);
+        Image sw = NewImage(sideContent, "Swatch", color);
         sw.raycastTarget = false;
         sw.rectTransform.anchorMin = sw.rectTransform.anchorMax = new Vector2(0f, 1f);
         sw.rectTransform.pivot = new Vector2(0f, 1f);
-        sw.rectTransform.sizeDelta = new Vector2(14f, 14f);
-        sw.rectTransform.anchoredPosition = new Vector2(2f, -y - 3f);
-        TMP_Text t = Fixed(NewText(mapSide, "", 13, phosphor), en, pt);
+        sw.rectTransform.sizeDelta = new Vector2(16f, 16f);
+        sw.rectTransform.anchoredPosition = new Vector2(2f, -y - 4f);
+        TMP_Text t = Fixed(NewText(sideContent, "", 15, phosphor), en, pt);
         t.alignment = TextAlignmentOptions.Left;
-        Top(t.rectTransform, y, 20f);
-        t.margin = new Vector4(24f, 0f, 0f, 0f);
-        y += 21f;
+        Top(t.rectTransform, y, 24f);
+        t.margin = new Vector4(26f, 0f, 0f, 0f);
+        y += 26f;
     }
 
     // the rooms on both sides of a door
@@ -559,7 +665,7 @@ public class SecurityCameraHud : MonoBehaviour
             string between = DoorRooms(door);
             string state = door.IsLocked ? L("LOCKED", "TRANCADA") : door.IsOpen ? L("OPEN", "ABERTA") : L("CLOSED", "FECHADA");
             string hex = ColorUtility.ToHtmlStringRGB(DoorColor(door));
-            row.text = $"<b>{door.Number:00}</b>  {between}  <color=#{hex}>{state}</color>{(door.IsRemoteControlled ? "  <size=80%>[R]</size>" : "")}";
+            row.text = $"<b>{door.Number:00}</b>  {between}\n      <color=#{hex}>{state}</color>{(door.IsRemoteControlled ? "  <size=80%>[R]</size>" : "")}";
         }
     }
 

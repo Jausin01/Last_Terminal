@@ -229,8 +229,9 @@ public class SecurityCameraSystem : MonoBehaviour
     // wheel: toward the point under the cursor (it stays under the cursor); keys: toward the middle of the picture
     private void ReadZoom(SecurityCamera cam)
     {
-        float wheel = KeysBlocked ? 0f : zoomScroll.ReadValue<float>();
-        float keys = KeysBlocked ? 0f : zoomKeys.ReadValue<float>();
+        bool panelOpen = mapOpen || settingsOpen;   // the wheel zooms / scrolls the map then
+        float wheel = KeysBlocked || panelOpen ? 0f : zoomScroll.ReadValue<float>();
+        float keys = KeysBlocked || panelOpen ? 0f : zoomKeys.ReadValue<float>();
         float factor = 1f;
         if (Mathf.Abs(wheel) > 0.01f) factor = Mathf.Pow(zoomStep, Mathf.Sign(wheel));
         else if (Mathf.Abs(keys) > 0.01f) factor = Mathf.Pow(keyZoomRate, keys * Time.deltaTime);

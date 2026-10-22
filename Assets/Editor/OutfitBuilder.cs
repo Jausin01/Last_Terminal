@@ -33,8 +33,9 @@ public static class OutfitBuilder
     // holster, belt and pouch (they belong to the suit)
     private static readonly string[] Gear = { "Plane.001", "retop.001", "retop.003", "retop.004", "retop.005", "billas.001", "pants.003" };
 
-    // the story: she starts the game locked up
+    // the story: she starts the game locked up (test rooms); the asylum starts her as a patient (AsylumBuilder)
     private const string StartOutfitKey = "outfit_prison";
+    internal const string PatientOutfitKey = "outfit_patient";
 
     private static readonly Outfit[] Outfits =
     {
@@ -54,6 +55,23 @@ public static class OutfitBuilder
             // a painted one would show twice); its digits add up to the code of her cell's keypad (FacilityBuilder)
             accessoryModel = "SM_Helena_PrisonAccessories", accessoryTexture = "T_Helena_Prison_Tag",
             accessories = new[] { ("PrisonTag", HumanBodyBones.UpperChest), ("PrisonBack", HumanBodyBones.UpperChest) },
+        },
+        // the asylum: she got herself committed as a patient. The tag on her chest (PATIENT 2716 / BED 103) adds up to
+        // the code of her cell (2819, AsylumBuilder): she doesn't see it, the operator does ("look at me")
+        new Outfit
+        {
+            key = PatientOutfitKey, asset = "Outfit_Patient", en = "Patient Scrubs", pt = "Roupa de Paciente", price = 0, line = PartnerLine.OutfitChanged,
+            swaps = new[]
+            {
+                ("jacket",   "T_Helena_Patient_Top",   0.12f),
+                ("shirt",    "T_Helena_Patient_Shirt", 0.12f),
+                ("suit",     "T_Helena_Patient_Pants", 0.12f),
+                ("sneakers", "T_Helena_Patient_Shoes", 0.20f),
+                ("skin",     "T_Helena_Patient_Skin",  0.25f),
+            },
+            hidden = Gear,
+            accessoryModel = "SM_Helena_PatientAccessories", accessoryTexture = "T_Helena_Patient_Tag",
+            accessories = new[] { ("PatientTag", HumanBodyBones.UpperChest) },
         },
         new Outfit
         {
@@ -185,7 +203,7 @@ public static class OutfitBuilder
     }
 
     // her outfits on the scene instance: every skinned part of her model, plus the accessories on her bones
-    internal static PartnerOutfit AddTo(GameObject helena, Shader lit)
+    internal static PartnerOutfit AddTo(GameObject helena, Shader lit, string startOutfit = null)
     {
         var parts = new List<SkinnedMeshRenderer>(helena.GetComponentsInChildren<SkinnedMeshRenderer>(true));
         List<OutfitDefinition> outfits = EnsureOutfits(lit, helena);
@@ -198,7 +216,8 @@ public static class OutfitBuilder
         HelenaSetupMenu.SetReferenceArray(outfit, PartnerOutfit.PartsField, parts);
         HelenaSetupMenu.SetReferenceArray(outfit, PartnerOutfit.OutfitsField, outfits);
         HelenaSetupMenu.SetReferenceArray(outfit, PartnerOutfit.ExtrasField, extras);
-        OutfitDefinition start = outfits.Find(x => x.Key == StartOutfitKey);
+        string startKey = string.IsNullOrEmpty(startOutfit) ? StartOutfitKey : startOutfit;
+        OutfitDefinition start = outfits.Find(x => x.Key == startKey);
         if (start != null) HelenaSetupMenu.SetReference(outfit, PartnerOutfit.StartOutfitField, start);
         return outfit;
     }
@@ -220,6 +239,16 @@ public static class OutfitBuilder
         foreach (var a in o.accessories)
         {
             Transform piece = temp.transform.Find(a.name);
+            // a model with a single mesh: Unity makes that mesh the root of the model (no child named after it),
+            // so the piece is copied out of the root (the root is destroyed below)
+            if (piece == null && temp.TryGetComponent(out MeshFilter rootMesh) && rootMesh.sharedMesh != null)
+            {
+                var copy = new GameObject(a.name);
+                copy.transform.SetParent(temp.transform, false);
+                copy.AddComponent<MeshFilter>().sharedMesh = rootMesh.sharedMesh;
+                copy.AddComponent<MeshRenderer>();
+                piece = copy.transform;
+            }
             Transform bone = animator.GetBoneTransform(a.bone);
             if (bone == null && a.bone == HumanBodyBones.UpperChest) bone = animator.GetBoneTransform(HumanBodyBones.Chest);   // avatar without an upper chest
             if (piece == null || bone == null) { Debug.LogWarning($"[Outfits] {o.asset}: '{a.name}' or bone {a.bone} not found."); continue; }

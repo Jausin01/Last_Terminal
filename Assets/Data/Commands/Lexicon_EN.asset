@@ -31,8 +31,6 @@ MonoBehaviour:
     - get to
     - come to
     - enter
-    - check
-    - check out
   - verb: 2
     phrases:
     - stop
@@ -480,6 +478,22 @@ MonoBehaviour:
     - take the bets back
     - remove the bets
     - take back the bets
+  - verb: 52
+    phrases:
+    - look
+    - look at
+    - examine
+    - check
+    - check out
+    - inspect
+    - investigate
+    - what s that
+    - what is that
+    - take a look
+    - take a look at
+    - have a look
+    - read
+    - search
   names:
   - key: Lobby
     phrases:
@@ -896,6 +910,192 @@ MonoBehaviour:
     - lockers
     - prize lockers
     - showcases
+  - key: outfit_patient
+    phrases:
+    - patient clothes
+    - patient outfit
+    - scrubs
+    - hospital clothes
+    - patient gown
+  - key: Isolation Wing
+    phrases:
+    - isolation wing
+    - wing
+    - cell block
+    - the wing
+  - key: Observation
+    phrases:
+    - observation
+    - observation room
+    - monitoring room
+  - key: Nurses Station
+    phrases:
+    - nurses station
+    - nurse station
+    - nurses
+    - infirmary
+    - nursing station
+  - key: Service Hall
+    phrases:
+    - service hall
+    - inner hallway
+    - inner hall
+  - key: Linen Room
+    phrases:
+    - linen room
+    - linen
+    - laundry
+  - key: Bathroom
+    phrases:
+    - bathroom
+    - restroom
+    - toilets
+    - showers
+  - key: Therapy Room
+    phrases:
+    - therapy room
+    - therapy
+    - treatment room
+  - key: Guard Post
+    phrases:
+    - guard post
+    - guard room
+    - security post
+    - guard station
+  - key: Armory
+    phrases:
+    - armory
+    - armoury
+    - weapons room
+    - gun room
+  - key: Service Corridor
+    phrases:
+    - service corridor
+    - long corridor
+    - back corridor
+  - key: Stairwell
+    phrases:
+    - stairwell
+    - stairs
+    - staircase
+    - exit
+  - key: Cell 1
+    phrases:
+    - cell 1
+    - cell one
+  - key: Cell 2
+    phrases:
+    - cell 2
+    - cell two
+  - key: Cell 3
+    phrases:
+    - cell 3
+    - cell three
+  - key: Cell 4
+    phrases:
+    - cell 4
+    - cell four
+  - key: Cell 5
+    phrases:
+    - cell 5
+    - cell five
+  - key: Cell 6
+    phrases:
+    - cell 6
+    - cell six
+  - key: x_bed
+    phrases:
+    - bed
+    - cot
+    - mattress
+  - key: x_writing
+    phrases:
+    - writing
+    - wall
+    - blood
+    - message
+    - words
+    - writing on the wall
+  - key: x_body
+    phrases:
+    - body
+    - corpse
+    - dead body
+    - dead man
+    - guard
+    - bodies
+    - dead guy on the floor
+  - key: x_toilet
+    phrases:
+    - toilet
+    - loo
+  - key: x_forced
+    phrases:
+    - forced door
+    - broken door
+    - open door
+    - open cell
+  - key: x_blood
+    phrases:
+    - blood trail
+    - trail
+    - blood on the floor
+    - stain
+  - key: x_monitors
+    phrases:
+    - monitors
+    - monitor
+    - screens
+    - screen
+    - tv
+  - key: x_chair
+    phrases:
+    - chair
+  - key: x_desk
+    phrases:
+    - desk
+    - files
+    - records
+    - logbook
+    - papers
+    - clipboard
+  - key: x_map
+    phrases:
+    - map
+    - poster
+    - floor plan
+  - key: x_cabinet
+    phrases:
+    - cabinet
+    - medicine cabinet
+    - locker
+    - closet
+  - key: x_gurney
+    phrases:
+    - gurney
+    - stretcher
+    - trolley
+  - key: x_shelf
+    phrases:
+    - shelf
+    - shelves
+    - rack
+    - racks
+    - sheets
+  - key: x_sink
+    phrases:
+    - sink
+    - faucet
+    - tap
+  - key: x_tape
+    phrases:
+    - tape recorder
+    - recorder
+    - tape
+    - cassette
+  - key: x_stairs
+    phrases:
+    - steps
   modifiers:
   - modifier: 1
     phrases:

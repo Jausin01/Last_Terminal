@@ -2,7 +2,7 @@
 
 Grave cada fala num arquivo separado (WAV, mono, 44.1 ou 48 kHz), com o nome do arquivo = ID da fala.
 Mais de um take da mesma fala: `_01`, `_02`... (o jogo sorteia entre eles).
-Português em `Assets/Audio/Voice/Helena/PT/`, inglês em `Assets/Audio/Voice/Helena/EN/`. Depois: Lifeline > 5.
+Português em `Assets/Audio/Voice/Helena/PT/`, inglês em `Assets/Audio/Voice/Helena/EN/`. Depois: Last Terminal > 5.
 
 | ID (nome do arquivo) | Quando ela fala | Português | English |
 |---|---|---|---|

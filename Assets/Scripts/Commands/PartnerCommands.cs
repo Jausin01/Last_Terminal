@@ -39,6 +39,7 @@ public class PartnerCommands : MonoBehaviour
     public const string StanceField = nameof(stance);
     public const string KeypadUserField = nameof(keypadUser);
     public const string ElevatorUserField = nameof(elevatorUser);
+    public const string ExaminerField = nameof(examiner);
 
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private PartnerInteractor interactor;
@@ -66,6 +67,8 @@ public class PartnerCommands : MonoBehaviour
     [SerializeField] private PartnerKeypadUser keypadUser;
     [Tooltip("Optional: elevators (\"take the elevator to the casino\").")]
     [SerializeField] private PartnerElevatorUser elevatorUser;
+    [Tooltip("Optional: things she looks at and comments on (\"look at the bed\").")]
+    [SerializeField] private PartnerExaminer examiner;
 
     [Header("Tuning")]
     [Tooltip("Shots aim this high above the target's feet (m).")]
@@ -167,6 +170,7 @@ public class PartnerCommands : MonoBehaviour
     {
         meleeTarget = null;
         if (cameraPose != null && cmd.Verb != CommandVerb.Status) cameraPose.Stop();   // any order ends the pose
+        if (examiner != null && cmd.Verb != CommandVerb.Status) examiner.Stop();       // and looking at something
 
         // a game of blackjack is on: the table takes the command
         BlackjackGame game = targets.ActiveTable;
@@ -203,6 +207,10 @@ public class PartnerCommands : MonoBehaviour
 
         // the aim stays on its target while she moves, shoots or reloads; anything else drops it
         if (!KeepsAim(cmd.Verb)) aimTarget = null;
+        // just a thing to look at named ("the bed", "vai até a cama"): she looks at it
+        if (examiner != null && (cmd.Verb == CommandVerb.None || cmd.Verb == CommandVerb.GoTo) && targets.NamesExaminable(cmd) &&
+            targets.FindRoom(cmd) == null && !cmd.HasKey(CommandTargets.DoorKey))
+            cmd.Verb = CommandVerb.Examine;
         if (cmd.Verb == CommandVerb.None)
         {
             // just a place / thing: go there
@@ -224,6 +232,7 @@ public class PartnerCommands : MonoBehaviour
         switch (cmd.Verb)
         {
             case CommandVerb.GoTo: GoTo(cmd); break;
+            case CommandVerb.Examine: Examine(cmd); break;
             case CommandVerb.Stop: Stop(); break;
             case CommandVerb.PickUp: PickUp(cmd); break;
             case CommandVerb.Open: UseDoor(cmd, DoorAction.Open); break;
@@ -626,6 +635,24 @@ public class PartnerCommands : MonoBehaviour
         voice.Say(PartnerLine.Stopping);
     }
 
+    // "look at the bed": she goes up to it and says what she thinks; "look at the door" (not a thing to look at): she goes there
+    private void Examine(ParsedCommand cmd)
+    {
+        if (examiner == null) { GoTo(cmd); return; }
+        Examinable thing = null;
+        if (cmd.Keys.Count == 0 && cmd.Pronoun && lastTarget is Examinable last && last.isActiveAndEnabled) thing = last;
+        if (thing == null) thing = targets.FindExaminable(cmd, transform.position, lastTarget);
+        if (thing == null)
+        {
+            if (targets.LastSearchOutOfReach) { voice.Say(PartnerLine.TooFar); return; }
+            if (cmd.Keys.Count > 0) { GoTo(cmd); return; }   // a room / door / item: go and see
+            voice.Say(PartnerLine.NothingThere);
+            return;
+        }
+        if (!examiner.Begin(thing)) { voice.Say(PartnerLine.CantGetThere); return; }
+        lastTarget = thing;
+    }
+
     private void PickUp(ParsedCommand cmd)
     {
         // "pick up the shotgun" = take the weapon out
@@ -635,7 +662,7 @@ public class PartnerCommands : MonoBehaviour
         if (cmd.Keys.Count == 0 && cmd.Pronoun && lastTarget is Pickup last && last.gameObject.activeInHierarchy) pickup = last;
         if (pickup == null) pickup = targets.FindPickup(cmd, transform.position, cmd.Keys.Count == 0, lastTarget);
         if (pickup == null) { voice.Say(targets.LastSearchOutOfReach ? PartnerLine.TooFar : PartnerLine.NothingThere); return; }
-        if (!PathExists(pickup.InteractionPosition)) { voice.Say(PartnerLine.CantGetThere); return; }
+        if (!PathExists(PickupStand(pickup))) { voice.Say(PartnerLine.CantGetThere); return; }
         if (!interactor.PickUp(pickup)) { voice.Say(PartnerLine.Busy); return; }
         lastTarget = pickup;
         voice.Say(PartnerLine.Acknowledge);
@@ -725,6 +752,7 @@ public class PartnerCommands : MonoBehaviour
     {
         if (TryWeapon(cmd, out int weapon)) { DrawWeapon(weapon); return; }
         if (HasUnknownWeapon(cmd)) { voice.Say(PartnerLine.DontHaveThat); return; }
+        if (!combat.HasAnyWeapon) { voice.Say(PartnerLine.DontHaveThat); return; }   // nothing picked up yet
         voice.Say(combat.Draw() ? PartnerLine.WeaponReady : PartnerLine.Busy);
     }
 
@@ -736,6 +764,7 @@ public class PartnerCommands : MonoBehaviour
 
     private void Attack(ParsedCommand cmd, bool shoot)
     {
+        if (!combat.HasAnyWeapon) { voice.Say(PartnerLine.DontHaveThat); return; }   // nothing picked up yet
         if (TryWeapon(cmd, out int weapon) && !combat.SelectWeapon(weapon)) { voice.Say(PartnerLine.Busy); return; }
 
         if (!TryCombatTarget(cmd, out Health target)) return;
@@ -1481,6 +1510,14 @@ public class PartnerCommands : MonoBehaviour
         return found;
     }
 
+    // where she stands to take it: an item on a table / gurney is off the NavMesh (the furniture carves it),
+    // so the closest floor point, as PartnerInteractor walks there
+    private static Vector3 PickupStand(Pickup pickup)
+    {
+        Vector3 goal = pickup.InteractionPosition;
+        return NavMesh.SamplePosition(goal, out NavMeshHit hit, 2f, NavMesh.AllAreas) ? hit.position : goal;
+    }
+
     private bool PathExists(Vector3 destination)
     {
         if (!agent.isOnNavMesh) return false;
@@ -1507,7 +1544,7 @@ public class PartnerCommands : MonoBehaviour
         for (int i = 0; i < weaponHolder.LoadoutCount; i++)
         {
             Weapon w = weaponHolder.GetWeapon(i);
-            if (w != null && cmd.HasKey(w.name)) { index = i; return true; }
+            if (w != null && weaponHolder.Owns(i) && cmd.HasKey(w.name)) { index = i; return true; }
         }
         index = -1;
         return false;
@@ -1537,7 +1574,7 @@ public class PartnerCommands : MonoBehaviour
         for (int i = 0; i < weaponHolder.LoadoutCount; i++)
         {
             Weapon w = weaponHolder.GetWeapon(i);
-            if (w != null && w.TryGetComponent(out RangedWeapon _)) return i;
+            if (w != null && weaponHolder.Owns(i) && w.TryGetComponent(out RangedWeapon _)) return i;
         }
         return -1;
     }
