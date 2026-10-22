@@ -83,6 +83,9 @@ public class PartnerCommands : MonoBehaviour
     [Header("Combat moves")]
     [Tooltip("\"Back off\": she moves this far away from the threat (m).")]
     [SerializeField] private float backOffDistance = 3f;
+    [Tooltip("\"Advance\": how far she moves forward (m), and how close she gets to the threat at most (m).")]
+    [SerializeField] private float advanceDistance = 3f;
+    [SerializeField] private float advanceStopDistance = 2.5f;
     [Tooltip("Back off / take cover: spots this close to the walls are not used (m).")]
     [SerializeField] private float wallMargin = 0.7f;
     [Tooltip("Take cover: spots of the room tried on a grid this size (m).")]
@@ -233,6 +236,7 @@ public class PartnerCommands : MonoBehaviour
         {
             case CommandVerb.GoTo: GoTo(cmd); break;
             case CommandVerb.Examine: Examine(cmd); break;
+            case CommandVerb.Advance: Advance(); break;
             case CommandVerb.Stop: Stop(); break;
             case CommandVerb.PickUp: PickUp(cmd); break;
             case CommandVerb.Open: UseDoor(cmd, DoorAction.Open); break;
@@ -286,6 +290,7 @@ public class PartnerCommands : MonoBehaviour
             case CommandVerb.BackOff: case CommandVerb.TakeCover: case CommandVerb.Flee:
             case CommandVerb.HoldFire: case CommandVerb.FireAtWill:
             case CommandVerb.CombatStance: case CommandVerb.StandDown:
+            case CommandVerb.Advance:
                 return true;
             case CommandVerb.Use:
             case CommandVerb.PickUp:
@@ -307,7 +312,7 @@ public class PartnerCommands : MonoBehaviour
             case CommandVerb.Reload: case CommandVerb.Status: case CommandVerb.Draw: case CommandVerb.None:
             case CommandVerb.Dodge: case CommandVerb.Duck: case CommandVerb.StandUp: case CommandVerb.Stand:
             case CommandVerb.BackOff: case CommandVerb.TakeCover: case CommandVerb.HoldFire: case CommandVerb.FireAtWill:
-            case CommandVerb.CombatStance:
+            case CommandVerb.CombatStance: case CommandVerb.Advance:
                 return true;
             default:
                 return false;
@@ -662,7 +667,7 @@ public class PartnerCommands : MonoBehaviour
         if (cmd.Keys.Count == 0 && cmd.Pronoun && lastTarget is Pickup last && last.gameObject.activeInHierarchy) pickup = last;
         if (pickup == null) pickup = targets.FindPickup(cmd, transform.position, cmd.Keys.Count == 0, lastTarget);
         if (pickup == null) { voice.Say(targets.LastSearchOutOfReach ? PartnerLine.TooFar : PartnerLine.NothingThere); return; }
-        if (!PathExists(PickupStand(pickup))) { voice.Say(PartnerLine.CantGetThere); return; }
+        if (!interactor.FindStand(pickup, out _)) { voice.Say(PartnerLine.CantGetThere); return; }
         if (!interactor.PickUp(pickup)) { voice.Say(PartnerLine.Busy); return; }
         lastTarget = pickup;
         voice.Say(PartnerLine.Acknowledge);
@@ -768,6 +773,7 @@ public class PartnerCommands : MonoBehaviour
         if (TryWeapon(cmd, out int weapon) && !combat.SelectWeapon(weapon)) { voice.Say(PartnerLine.Busy); return; }
 
         if (!TryCombatTarget(cmd, out Health target)) return;
+        if (target != null && encounter != null) encounter.Provoke(target);   // attacking it starts the fight
 
         // "shoot" with a melee weapon in hand: the first firearm of the loadout
         if (shoot && !combat.SelectedIsRanged)
@@ -830,10 +836,10 @@ public class PartnerCommands : MonoBehaviour
     private void BackOff()
     {
         Health threat = Threat();
-        if (threat == null) { voice.Say(PartnerLine.NoThreat); return; }
-        Vector3 away = Flat(transform.position - threat.transform.position);
+        // away from the threat; with none, backward
+        Vector3 away = threat != null ? Flat(transform.position - threat.transform.position) : -Flat(transform.forward);
         away = away.sqrMagnitude > 0.01f ? away.normalized : -transform.forward;
-        Room room = encounter != null ? encounter.Area : null;
+        Room room = encounter != null && encounter.InCombat ? encounter.Area : targets.CurrentRoom(transform.position);
         foreach (float scale in new[] { 1f, 0.6f })
             foreach (float angle in new[] { 0f, 30f, -30f, 60f, -60f, 90f, -90f })
             {
@@ -843,6 +849,31 @@ public class PartnerCommands : MonoBehaviour
                 if (!PathExists(hit.position) || !interactor.MoveTo(hit.position)) continue;
                 CoverWhileMoving(threat);
                 voice.Say(PartnerLine.BackingOff);
+                return;
+            }
+        voice.Say(PartnerLine.CantGetThere);
+    }
+
+    // "advance" / "avança": a few meters forward (in a fight: toward the threat, not closer than advanceStopDistance),
+    // so she doesn't stay behind; armed with a gun, she keeps it on the threat while she walks
+    private void Advance()
+    {
+        Health threat = Threat();
+        Vector3 ahead = threat != null ? Flat(threat.transform.position - transform.position) : Flat(transform.forward);
+        float distance = ahead.magnitude;
+        ahead = ahead.sqrMagnitude > 0.01f ? ahead.normalized : Flat(transform.forward).normalized;
+        float step = threat != null ? Mathf.Min(advanceDistance, distance - advanceStopDistance) : advanceDistance;
+        if (step < 0.4f) { voice.Say(PartnerLine.CantGetThere); return; }   // already right on it
+        Room room = encounter != null && encounter.InCombat ? encounter.Area : targets.CurrentRoom(transform.position);
+        foreach (float scale in new[] { 1f, 0.6f, 0.35f })
+            foreach (float angle in new[] { 0f, 20f, -20f, 40f, -40f })
+            {
+                Vector3 wanted = transform.position + Quaternion.AngleAxis(angle, Vector3.up) * ahead * (step * scale);
+                if (!NavMesh.SamplePosition(wanted, out NavMeshHit hit, 0.8f, NavMesh.AllAreas)) continue;
+                if (room != null && !room.Contains(hit.position, -wallMargin * 0.5f)) continue;
+                if (!PathExists(hit.position) || !interactor.MoveTo(hit.position)) continue;
+                CoverWhileMoving(threat);
+                voice.Say(PartnerLine.Acknowledge);
                 return;
             }
         voice.Say(PartnerLine.CantGetThere);
@@ -1375,6 +1406,7 @@ public class PartnerCommands : MonoBehaviour
                      !cmd.Keys.Exists(k => !k.StartsWith(WeaponKeyPrefix, StringComparison.Ordinal));
         if (plain && Alive(aimTarget)) target = aimTarget;
         else if (plain && encounter != null && Alive(encounter.Focus)) target = encounter.Focus;
+        else if (plain && encounter != null && encounter.InCombat) target = encounter.Nearest(transform.position);   // "shoot": the closest one
         if (target == null) target = targets.FindShootable(cmd, transform.position, false, lastTarget);
         if (target == null && cmd.Pronoun && lastTarget is Health last && Alive(last)) target = last;
         return true;
@@ -1508,14 +1540,6 @@ public class PartnerCommands : MonoBehaviour
         bool found = NavMesh.SamplePosition(wanted, out NavMeshHit hit, 2.5f, NavMesh.AllAreas);
         destination = found ? hit.position : wanted;
         return found;
-    }
-
-    // where she stands to take it: an item on a table / gurney is off the NavMesh (the furniture carves it),
-    // so the closest floor point, as PartnerInteractor walks there
-    private static Vector3 PickupStand(Pickup pickup)
-    {
-        Vector3 goal = pickup.InteractionPosition;
-        return NavMesh.SamplePosition(goal, out NavMeshHit hit, 2f, NavMesh.AllAreas) ? hit.position : goal;
     }
 
     private bool PathExists(Vector3 destination)

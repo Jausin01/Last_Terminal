@@ -96,13 +96,61 @@ public class PartnerInteractor : MonoBehaviour
         height = itemHeight >= mediumHeight ? PickupHeight.Medium : PickupHeight.Low;
         reach = height == PickupHeight.Medium ? mediumReach : lowReach;
 
-        // the item may be on a table: walk to the closest floor point
-        Vector3 goal = pickup.InteractionPosition;
-        if (NavMesh.SamplePosition(goal, out NavMeshHit hit, 2f, NavMesh.AllAreas)) goal = hit.position;
+        // the item may be on a table: walk to a floor point she can reach (FindStand)
+        if (!FindStand(pickup, out Vector3 goal)) goal = pickup.InteractionPosition;
         agent.SetDestination(goal);
         step = Step.Approaching;
         PickupRequested?.Invoke();
         return true;
+    }
+
+    // Where she stands to take it: the closest floor point when she can walk there; otherwise (furniture around it
+    // leaves the closest point cut off: behind a gurney, between a cart and a wall) a point around the item, within
+    // arm's reach, that she can walk to. False = none.
+    public bool FindStand(Pickup pickup, out Vector3 stand)
+    {
+        stand = Vector3.zero;
+        if (pickup == null || !agent.isOnNavMesh) return false;
+        Vector3 item = pickup.InteractionPosition;
+        float grab = FlatDistanceLimit(pickup);
+        if (NavMesh.SamplePosition(item, out NavMeshHit hit, 2f, NavMesh.AllAreas) && Reachable(hit.position))
+        {
+            stand = hit.position;
+            return true;
+        }
+        float best = float.MaxValue;
+        bool found = false;
+        foreach (float r in StandRings)
+            for (int i = 0; i < 16; i++)
+            {
+                float a = i * Mathf.PI / 8f;
+                Vector3 p = new Vector3(item.x + Mathf.Cos(a) * r, transform.position.y, item.z + Mathf.Sin(a) * r);
+                if (!NavMesh.SamplePosition(p, out NavMeshHit h, 0.35f, NavMesh.AllAreas)) continue;
+                float d = FlatDistance(h.position, item);
+                if (d > grab || d >= best || !Reachable(h.position)) continue;
+                best = d;
+                stand = h.position;
+                found = true;
+            }
+        return found;
+    }
+
+    private static readonly float[] StandRings = { 0.45f, 0.65f, 0.85f };
+
+    // how far from the item she can stand and still take it (her reach + what the IK covers)
+    private float FlatDistanceLimit(Pickup pickup)
+    {
+        float itemHeight = pickup.GrabPosition.y - transform.position.y;
+        Vector2 r = itemHeight >= mediumHeight ? mediumReach : lowReach;
+        return r.magnitude + extraReach;
+    }
+
+    private NavMeshPath pathBuffer;
+
+    private bool Reachable(Vector3 point)
+    {
+        if (pathBuffer == null) pathBuffer = new NavMeshPath();
+        return NavMesh.CalculatePath(transform.position, point, NavMesh.AllAreas, pathBuffer) && pathBuffer.status == NavMeshPathStatus.PathComplete;
     }
 
     private void Update()

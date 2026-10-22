@@ -3,7 +3,8 @@ using UnityEngine;
 // Puts the selected weapon of the loadout in her hands, every frame after the animation (LateUpdate):
 // 1) the weapon is rigid in the right hand, in a frame built from the hand bones (independent of bone axes),
 //    blending the idle hold and the aim hold by how much she is aiming;
-// 2) two-handed weapons: the left arm is solved with two-bone IK so the left palm wraps the forend.
+// 2) two-handed weapons: the left arm is solved with two-bone IK so the left palm wraps the forend;
+// 3) the fingers closed on the weapon (its grip, Last Terminal/19), right hand and left hand on the forend.
 public class WeaponHolder : MonoBehaviour
 {
     public const string PartnerAnimatorField = nameof(partnerAnimator);
@@ -26,6 +27,7 @@ public class WeaponHolder : MonoBehaviour
     private Transform leftLowerArm;
     private Transform leftHand;
     private float leftWeight = 1f;   // left-hand IK: off while a reload clip moves the left arm
+    private Transform[] rightJoints, rightEnds, leftJoints, leftEnds;   // finger segments (WeaponGrip)
 
     public int LoadoutCount => loadout.Length;
     public int CurrentIndex => current;
@@ -48,6 +50,8 @@ public class WeaponHolder : MonoBehaviour
         leftUpperArm = partnerAnimator.GetBone(HumanBodyBones.LeftUpperArm);
         leftLowerArm = partnerAnimator.GetBone(HumanBodyBones.LeftLowerArm);
         leftHand = partnerAnimator.GetBone(HumanBodyBones.LeftHand);
+        if (!WeaponGrip.GetFingers(partnerAnimator.GetBone, true, out rightJoints, out rightEnds)) rightJoints = null;
+        if (!WeaponGrip.GetFingers(partnerAnimator.GetBone, false, out leftJoints, out leftEnds)) leftJoints = null;
     }
 
     public Weapon GetWeapon(int index) => index >= 0 && index < loadout.Length ? loadout[index] : null;
@@ -110,30 +114,24 @@ public class WeaponHolder : MonoBehaviour
     {
         Weapon w = Current;
         if (w == null || !w.gameObject.activeSelf) return;
-        if (!PlaceInRightHand(w)) return;
+        if (!partnerAnimator.TryGetRightHandFrame(out Vector3 origin, out Vector3 fingers, out Vector3 across, out Vector3 normal)) return;
+        WeaponGrip.PlaceInRightHand(w, origin, fingers, across, normal, partnerAnimator.AimBlend);
+        WeaponGrip.ApplyFingers(rightJoints, rightEnds, w.RightFingers, fingers, across, normal, 1f);
         float step = leftHandBlendTime > 0f ? Time.deltaTime / leftHandBlendTime : 1f;
         leftWeight = Mathf.MoveTowards(leftWeight, partnerAnimator.IsReloadPlaying ? 0f : 1f, step);
-        if (w.IsTwoHanded && leftWeight > 0f) PlaceLeftHand(w, leftWeight);
+        if (w.IsTwoHanded && leftWeight > 0f)
+        {
+            PlaceLeftHand(w, leftWeight);
+            if (partnerAnimator.TryGetLeftHandBasis(out _, out Vector3 lFingers, out Vector3 lAcross, out Vector3 lPalm))
+                WeaponGrip.ApplyFingers(leftJoints, leftEnds, w.LeftFingers, lFingers, lAcross, lPalm, leftWeight);
+        }
     }
 
     private bool PlaceInRightHand(Weapon w)
     {
         if (!partnerAnimator.TryGetRightHandFrame(out Vector3 origin, out Vector3 fingers, out Vector3 across, out Vector3 normal))
             return false;
-
-        w.GetHold(partnerAnimator.AimBlend, out Vector3 grip, out Vector3 barrel, out Vector3 up);
-        Vector3 FromFrame(Vector3 c) => fingers * c.x + across * c.y + normal * c.z;
-        Vector3 targetGrip = origin + FromFrame(grip);
-        Vector3 targetBarrel = FromFrame(barrel).normalized;
-        Vector3 targetUp = FromFrame(up).normalized;
-
-        // current directions of the model, from its markers
-        Transform t = w.transform;
-        Vector3 modelBarrel = (w.Muzzle.position - w.GripPoint.position).normalized;
-        Vector3 modelUp = (w.UpHint.position - w.GripPoint.position).normalized;
-        Quaternion delta = Quaternion.LookRotation(targetBarrel, targetUp) * Quaternion.Inverse(Quaternion.LookRotation(modelBarrel, modelUp));
-        t.rotation = delta * t.rotation;
-        t.position += targetGrip - w.GripPoint.position;
+        WeaponGrip.PlaceInRightHand(w, origin, fingers, across, normal, partnerAnimator.AimBlend);
         return true;
     }
 

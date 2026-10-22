@@ -21,6 +21,8 @@ public class Weapon : MonoBehaviour
     public const string IdleBarrelField = nameof(idleBarrel);
     public const string IdleUpField = nameof(idleUp);
     public const string TwoHandedField = nameof(twoHanded);
+    public const string RightFingersField = nameof(rightFingers);
+    public const string LeftFingersField = nameof(leftFingers);
 
     [SerializeField] private Transform gripPoint;
     [SerializeField] private Transform muzzle;
@@ -46,6 +48,12 @@ public class Weapon : MonoBehaviour
     [Tooltip("Forend radius + palm thickness (m).")]
     [SerializeField] private float leftPalmDepth = 0.04f;
 
+    [Header("Fingers closed on this weapon (Last Terminal/19)")]
+    [Tooltip("Direction of each finger segment in the right-hand frame (thumb, index, middle, ring, little x proximal / intermediate / distal). Empty = the clip's fingers.")]
+    [SerializeField] private Vector3[] rightFingers = new Vector3[0];
+    [Tooltip("Same for the left hand on the forend, in the left-hand basis (fingers, across, palm). Empty = the clip's fingers.")]
+    [SerializeField] private Vector3[] leftFingers = new Vector3[0];
+
     private float leftSlide;   // pump racked back (m): the left hand follows it
 
     public Transform GripPoint => gripPoint;
@@ -58,9 +66,22 @@ public class Weapon : MonoBehaviour
     public Vector3 LeftPalmDirection => leftPalmDirection;
     public Vector3 LeftFingersDirection => leftFingersDirection;
     public float LeftPalmDepth => leftPalmDepth;
+    public Vector3[] RightFingers => rightFingers;
+    public Vector3[] LeftFingers => leftFingers;
 
     // How far the forend is racked back right now (RangedWeapon pump).
     public void SetLeftSlide(float meters) => leftSlide = meters;
+
+#if UNITY_EDITOR
+    // the grip fitted to her hand (WeaponGrips): where the GripPoint sits in the hand (aim and idle) and the fingers
+    public void EditorSetGrip(Vector3 grip, Vector3[] right, Vector3[] left)
+    {
+        aimGrip = grip; idleGrip = grip;
+        rightFingers = right ?? new Vector3[0];
+        leftFingers = left ?? new Vector3[0];
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
+#endif
 
     // Hold for a given aim amount (0 = idle pose, 1 = aim pose), in the right-hand frame.
     public void GetHold(float aim, out Vector3 grip, out Vector3 barrel, out Vector3 up)

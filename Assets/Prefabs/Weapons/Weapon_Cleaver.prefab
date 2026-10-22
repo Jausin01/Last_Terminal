@@ -50,10 +50,10 @@ MonoBehaviour:
   muzzle: {fileID: 5107351037425314673}
   upHint: {fileID: 1220605938462491624}
   holdType: 2
-  aimGrip: {x: 0, y: 0, z: 0.02}
+  aimGrip: {x: 0.027, y: 0.014, z: 0.02}
   aimBarrel: {x: 0, y: -1, z: 0}
   aimUp: {x: 1, y: 0, z: 0}
-  idleGrip: {x: 0, y: 0, z: 0.02}
+  idleGrip: {x: 0.027, y: 0.014, z: 0.02}
   idleBarrel: {x: 0, y: -1, z: 0}
   idleUp: {x: 1, y: 0, z: 0}
   twoHanded: 0
@@ -61,6 +61,23 @@ MonoBehaviour:
   leftPalmDirection: {x: 0.45, y: 1, z: 0}
   leftFingersDirection: {x: 0.8, y: 0.3, z: 0.6}
   leftPalmDepth: 0.04
+  rightFingers:
+  - {x: 0.8535, y: 0.5115, z: -0.0995}
+  - {x: 0.7832, y: -0.2836, z: 0.5533}
+  - {x: 0.8365, y: -0.4868, z: 0.2517}
+  - {x: 0.8434, y: 0, z: 0.5372}
+  - {x: -0.0872, y: 0, z: 0.9962}
+  - {x: -0.766, y: 0, z: 0.6428}
+  - {x: 0.5373, y: 0, z: 0.8434}
+  - {x: -0.3007, y: 0.0001, z: 0.9537}
+  - {x: -0.9763, y: 0, z: 0.2164}
+  - {x: 0.5, y: 0.0001, z: 0.866}
+  - {x: -0.0872, y: 0, z: 0.9962}
+  - {x: -0.9063, y: 0, z: 0.4226}
+  - {x: 0.8433, y: 0.0001, z: 0.5374}
+  - {x: 0.2587, y: 0, z: 0.9659}
+  - {x: -0.2588, y: 0, z: 0.9659}
+  leftFingers: []
 --- !u!114 &1286707548124208186
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -30,6 +30,8 @@ public class Examinable : MonoBehaviour
     public float StandDistance => standDistance;
     public string SeenFlag => seenFlag;
     public Vector3 LookPoint => transform.position;
+    // she has looked at it at least once (its sparkle goes out)
+    public bool Seen { get; private set; }
 
     // the next line (cycles until the last, which repeats)
     public string NextLine(GameLanguage language, out AudioClip clip)
@@ -38,6 +40,7 @@ public class Examinable : MonoBehaviour
         string[] lines = pt ? linesPt : linesEn;
         AudioClip[] clips = pt ? clipsPt : clipsEn;
         clip = null;
+        Seen = true;
         if (lines.Length == 0) return "";
         int i = Mathf.Min(next, lines.Length - 1);
         next++;

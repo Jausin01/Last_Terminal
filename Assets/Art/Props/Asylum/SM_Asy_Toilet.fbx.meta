@@ -7,6 +7,11 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: M_Asy_Atlas
+    second: {fileID: 2100000, guid: 02764f94d2a543346badec77e0f5d853, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: M_Asy_Props
     second: {fileID: 2100000, guid: 44e3adbd8ddf71d4bb2310f8e5cb16ef, type: 2}
   materials:

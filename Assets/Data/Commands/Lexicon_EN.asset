@@ -494,6 +494,18 @@ MonoBehaviour:
     - have a look
     - read
     - search
+  - verb: 53
+    phrases:
+    - advance
+    - move forward
+    - go forward
+    - forward
+    - move up
+    - push forward
+    - get closer
+    - close in
+    - step forward
+    - keep going
   names:
   - key: Lobby
     phrases:

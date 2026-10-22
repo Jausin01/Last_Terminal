@@ -68,6 +68,7 @@ public enum CommandVerb
     Buy = 50,         // a prize at the counter
     ClearBets = 51,   // roulette: take the bets back
     Examine = 52,     // look at a thing and say something about it
+    Advance = 53,     // move forward (toward the threat in a fight)
 }
 
 // Which one, when several things match: "the other one", "the one on the left"...

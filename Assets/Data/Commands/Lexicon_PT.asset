@@ -585,6 +585,22 @@ MonoBehaviour:
     - procura
     - procure
     - vasculha
+  - verb: 53
+    phrases:
+    - avanca
+    - avance
+    - avancar
+    - vai pra frente
+    - va pra frente
+    - pra frente
+    - segue em frente
+    - anda pra frente
+    - chega mais perto
+    - se aproxima
+    - aproxima
+    - continua
+    - continue
+    - vai em frente
   names:
   - key: Lobby
     phrases:

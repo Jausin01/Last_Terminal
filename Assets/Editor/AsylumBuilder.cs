@@ -40,12 +40,13 @@ internal static class AsylumBuilder
     {
         public string En, Pt;
         public Rect Area;
-        public bool Padded;
+        public string Floor;      // PaddedFloor (a cell: padded walls too), Lino, Tiles, Concrete
         public Color Light;
         public float Intensity;
-        public RoomDef(string en, string pt, float x0, float z0, float x1, float z1, bool padded, Color light, float intensity)
+        public bool Padded => Floor == PaddedFloor;
+        public RoomDef(string en, string pt, float x0, float z0, float x1, float z1, string floor, Color light, float intensity)
         {
-            En = en; Pt = pt; Area = new Rect(x0, z0, x1 - x0, z1 - z0); Padded = padded; Light = light; Intensity = intensity;
+            En = en; Pt = pt; Area = new Rect(x0, z0, x1 - x0, z1 - z0); Floor = floor; Light = light; Intensity = intensity;
         }
     }
 
@@ -55,26 +56,27 @@ internal static class AsylumBuilder
     private static readonly Color Red = new Color(1f, 0.45f, 0.4f);
 
     private const float C1 = 4.67f, C2 = 9.33f;   // the walls between the cells
+    private const string PaddedFloor = "T_AsyPaddedFloor", Lino = "T_AsyFloor", Tiles = "T_AsyTiles", Concrete = "T_AsyConcrete";
 
     private static readonly RoomDef[] Rooms =
     {
-        new RoomDef("Cell 1", "Cela 1", 0f, -4f, C1, 0f, true, Cold, 0.8f),
-        new RoomDef("Cell 2", "Cela 2", C1, -4f, C2, 0f, true, Cold, 0.8f),
-        new RoomDef("Cell 3", "Cela 3", C2, -4f, 14f, 0f, true, Cold, 1.0f),
-        new RoomDef("Observation", "Observação", 14f, -4f, 18f, 0f, false, Sick, 1.2f),
-        new RoomDef("Isolation Wing", "Ala de Isolamento", 0f, -7f, 18f, -4f, false, Sick, 1.6f),
-        new RoomDef("Cell 4", "Cela 4", 0f, -11f, C1, -7f, true, Cold, 0.8f),
-        new RoomDef("Cell 5", "Cela 5", C1, -11f, C2, -7f, true, Cold, 1.3f),
-        new RoomDef("Cell 6", "Cela 6", C2, -11f, 14f, -7f, true, Cold, 0.8f),
-        new RoomDef("Nurses Station", "Enfermaria", 18f, -9f, 26f, -2f, false, Warm, 2.0f),
-        new RoomDef("Service Hall", "Corredor Interno", 22f, -23f, 25f, -9f, false, Sick, 1.5f),
-        new RoomDef("Linen Room", "Rouparia", 17f, -15f, 22f, -11f, false, Warm, 1.2f),
-        new RoomDef("Bathroom", "Banheiro", 16f, -21f, 22f, -16f, false, Sick, 1.2f),
-        new RoomDef("Therapy Room", "Sala de Terapia", 25f, -17f, 31f, -11f, false, Cold, 1.4f),
-        new RoomDef("Guard Post", "Guarita", 19f, -28f, 26f, -23f, false, Warm, 1.8f),
-        new RoomDef("Armory", "Arsenal", 16f, -28f, 19f, -24f, false, Warm, 1.2f),
-        new RoomDef("Service Corridor", "Corredor de Serviço", 26f, -27f, 48f, -24f, false, Red, 1.3f),
-        new RoomDef("Stairwell", "Escada", 48f, -28f, 52f, -23f, false, Sick, 1.2f),
+        new RoomDef("Cell 1", "Cela 1", 0f, -4f, C1, 0f, PaddedFloor, Cold, 0.8f),
+        new RoomDef("Cell 2", "Cela 2", C1, -4f, C2, 0f, PaddedFloor, Cold, 0.8f),
+        new RoomDef("Cell 3", "Cela 3", C2, -4f, 14f, 0f, PaddedFloor, Cold, 1.0f),
+        new RoomDef("Observation", "Observação", 14f, -4f, 18f, 0f, Lino, Sick, 1.2f),
+        new RoomDef("Isolation Wing", "Ala de Isolamento", 0f, -7f, 18f, -4f, Lino, Sick, 1.6f),
+        new RoomDef("Cell 4", "Cela 4", 0f, -11f, C1, -7f, PaddedFloor, Cold, 0.8f),
+        new RoomDef("Cell 5", "Cela 5", C1, -11f, C2, -7f, PaddedFloor, Cold, 1.3f),
+        new RoomDef("Cell 6", "Cela 6", C2, -11f, 14f, -7f, PaddedFloor, Cold, 0.8f),
+        new RoomDef("Nurses Station", "Enfermaria", 18f, -9f, 26f, -2f, Lino, Warm, 2.0f),
+        new RoomDef("Service Hall", "Corredor Interno", 22f, -23f, 25f, -9f, Lino, Sick, 1.5f),
+        new RoomDef("Linen Room", "Rouparia", 17f, -15f, 22f, -11f, Lino, Warm, 1.2f),
+        new RoomDef("Bathroom", "Banheiro", 16f, -21f, 22f, -16f, Tiles, Sick, 1.2f),
+        new RoomDef("Therapy Room", "Sala de Terapia", 25f, -17f, 31f, -11f, Lino, Cold, 1.4f),
+        new RoomDef("Guard Post", "Guarita", 19f, -28f, 26f, -23f, Concrete, Warm, 1.8f),
+        new RoomDef("Armory", "Arsenal", 16f, -28f, 19f, -24f, Concrete, Warm, 1.2f),
+        new RoomDef("Service Corridor", "Corredor de Serviço", 26f, -27f, 48f, -24f, Concrete, Red, 1.3f),
+        new RoomDef("Stairwell", "Escada", 48f, -28f, 52f, -23f, Concrete, Sick, 1.2f),
     };
 
     private struct DoorDef
@@ -150,6 +152,10 @@ internal static class AsylumBuilder
         return c;
     }
 
+    // a surface material of the asylum (its texture in Art/Props/Asylum)
+    private static Material Env(string texture, float smooth) =>
+        FacilityBuilder.MaterialFor($"{ArtFolder}/Materials/M_{texture.Substring(2)}.mat", $"{ArtFolder}/{texture}.png", smooth, HelenaSetupMenu.DefaultLitShader(), ArtFolder);
+
     // what the cutscenes need from the content (filled while building it)
     private class Refs
     {
@@ -179,18 +185,22 @@ internal static class AsylumBuilder
         var geometry = new GameObject("Geometry").transform;   // baked into the NavMesh
         geometry.SetParent(root.transform, false);
 
-        string env = FacilityBuilder.EnvFolder;
-        Material wall = FacilityBuilder.MaterialFor($"{env}/Materials/M_Wall.mat", $"{env}/T_Wall.png", 0.1f, lit, env);
-        Material floor = FacilityBuilder.MaterialFor($"{env}/Materials/M_Floor.mat", $"{env}/T_Floor.png", 0.25f, lit, env);
-        Material padded = FacilityBuilder.MaterialFor($"{env}/Materials/M_PaddedWall.mat", $"{env}/T_PaddedWall.png", 0.05f, lit, env);
-        Material paddedFloor = FacilityBuilder.MaterialFor($"{env}/Materials/M_PaddedFloor.mat", $"{env}/T_PaddedFloor.png", 0.05f, lit, env);
+        // the asylum's own surfaces (Art/Props/Asylum): two-tone hospital wall, padding, the floors
+        Material wall = Env("T_AsyWall", 0.08f);
+        Material padded = Env("T_AsyPadded", 0.04f);
+        var floors = new Dictionary<string, Material>
+        {
+            { PaddedFloor, Env(PaddedFloor, 0.04f) }, { Lino, Env(Lino, 0.35f) }, { Tiles, Env(Tiles, 0.45f) }, { Concrete, Env(Concrete, 0.12f) },
+        };
+        EnsureSparkleAssets();
+        sparkles.Clear();
 
         // rooms + floors + lights
         var rooms = new GameObject("Rooms").transform;
         rooms.SetParent(root.transform, false);
         foreach (RoomDef r in Rooms)
         {
-            Room room = FacilityBuilder.AddRoom(rooms, geometry, r.Padded ? paddedFloor : floor, r.En, r.Pt, r.Area, r.Light, r.Intensity);
+            Room room = FacilityBuilder.AddRoom(rooms, geometry, floors[r.Floor], r.En, r.Pt, r.Area, r.Light, r.Intensity);
             level.Rooms.Add(room);
             refs.Rooms[r.En] = room;
         }
@@ -267,14 +277,8 @@ internal static class AsylumBuilder
             Prefab = "Enemy_Zombie", Position = new Vector3(45.4f, 0f, -25.5f), Yaw = 90f, Mode = EnemyStartMode.Feeding, SaveId = "asy_corridor_feeder",
         });
 
-        // dim, cold light
-        RenderSettings.ambientMode = AmbientMode.Flat;
-        RenderSettings.ambientLight = new Color(0.12f, 0.13f, 0.15f);
-        var sun = new GameObject("Directional Light").AddComponent<Light>();
-        sun.type = LightType.Directional;
-        sun.intensity = 0.25f;
-        sun.shadows = LightShadows.Soft;
-        sun.transform.rotation = Quaternion.Euler(62f, -30f, 0f);
+        // closed rooms lit by their ceiling lamps (some failing), fog, the color grade
+        AtmosphereBuilder.Apply(root.transform, level.Rooms, lit, AtmosphereBuilder.Asylum);
 
         content.Level = level;
         content.Finish = rig => Finish(rig, refs);
@@ -406,24 +410,32 @@ internal static class AsylumBuilder
     }
 
     // ------------------------------------------------------------------ props
-    // a model (FBX), placed, with a box collider; solid ones carve the NavMesh (never baked: the bake has walls only)
-    private static GameObject Prop(Transform parent, string folder, string model, Vector3 pos, float yaw, bool solid = true, Vector3? tilt = null)
+    // A model (FBX) of Art/Props/Asylum: its "Mesh" is what shows; its "Col_n" boxes are the collision (box colliders,
+    // NavMesh carving when solid), their renderers removed. Models without Col boxes are decor (no collision).
+    private static GameObject Prop(Transform parent, string model, Vector3 pos, float yaw, bool solid = true, Vector3? tilt = null)
     {
-        var asset = AssetDatabase.LoadAssetAtPath<GameObject>($"{folder}/{model}.fbx");
-        if (asset == null) { Debug.LogWarning($"[Asylum] {folder}/{model}.fbx missing: not placed."); return null; }
+        var asset = AssetDatabase.LoadAssetAtPath<GameObject>($"{ArtFolder}/{model}.fbx");
+        if (asset == null) { Debug.LogWarning($"[Asylum] {ArtFolder}/{model}.fbx missing: not placed."); return null; }
         var go = (GameObject)PrefabUtility.InstantiatePrefab(asset, parent);
+        PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+        go.name = model.Replace("SM_Asy_", "");
         go.transform.SetPositionAndRotation(pos, Quaternion.Euler(tilt?.x ?? 0f, yaw, tilt?.z ?? 0f));
-        OperatorRoomBuilder.FitCollider(go);
-        if (solid && go.TryGetComponent(out BoxCollider box)) Carve(go, box.center, box.size);
-        GameObjectUtility.SetStaticEditorFlags(go, StaticEditorFlags.BatchingStatic);
+        foreach (MeshFilter mf in go.GetComponentsInChildren<MeshFilter>(true).ToArray())
+        {
+            if (!mf.name.StartsWith("Col_") || mf.sharedMesh == null) continue;
+            Bounds b = mf.sharedMesh.bounds;
+            GameObject c = mf.gameObject;
+            Object.DestroyImmediate(c.GetComponent<MeshRenderer>());
+            Object.DestroyImmediate(mf);
+            var box = c.AddComponent<BoxCollider>();
+            box.center = b.center;
+            box.size = b.size;
+            if (solid) Carve(c, b.center, b.size);
+        }
+        foreach (MeshRenderer r in go.GetComponentsInChildren<MeshRenderer>(true))
+            GameObjectUtility.SetStaticEditorFlags(r.gameObject, StaticEditorFlags.BatchingStatic);
         return go;
     }
-
-    private static GameObject Asy(Transform parent, string model, Vector3 pos, float yaw, bool solid = true) =>
-        Prop(parent, ArtFolder, model, pos, yaw, solid);
-
-    private static GameObject Op(Transform parent, string model, Vector3 pos, float yaw, bool solid = true, Vector3? tilt = null) =>
-        Prop(parent, OperatorRoomBuilder.ArtFolder, model, pos, yaw, solid, tilt);
 
     private static void Carve(GameObject go, Vector3 center, Vector3 size)
     {
@@ -435,37 +447,9 @@ internal static class AsylumBuilder
         obstacle.carveOnlyStationary = true;
     }
 
-    // a plain box (blockout furniture), solid
-    private static GameObject Box(Transform parent, string name, Vector3 center, Vector3 size, Color color)
-    {
-        GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        go.name = name;
-        go.transform.SetParent(parent, false);
-        go.transform.position = center;
-        go.transform.localScale = size;
-        Material m = Flat("M_Asy_" + name, color);
-        if (m != null) go.GetComponent<Renderer>().sharedMaterial = m;
-        var obstacle = go.AddComponent<NavMeshObstacle>();
-        obstacle.shape = NavMeshObstacleShape.Box;
-        obstacle.size = Vector3.one;
-        obstacle.carving = true;
-        obstacle.carveOnlyStationary = true;
-        return go;
-    }
-
-    private static Material Flat(string name, Color color)
-    {
-        Shader lit = HelenaSetupMenu.DefaultLitShader();
-        if (lit == null) return null;
-        HelenaSetupMenu.EnsureFolder(ArtFolder, "Materials");
-        Material m = HelenaSetupMenu.MakeMaterial($"{ArtFolder}/Materials/{name}.mat", null, 0.2f, false, lit);
-        m.SetColor("_BaseColor", color);
-        EditorUtility.SetDirty(m);
-        return m;
-    }
-
-    // a flat picture (blood on a wall or the floor, a poster): a quad seen from `facing`
-    private static GameObject Decal(Transform parent, string name, string texture, Vector3 pos, Vector3 facing, Vector2 size, bool clip, Shader lit)
+    // a flat picture (blood, stains, a poster, a sign): a quad seen from `facing`
+    private static GameObject Decal(Transform parent, string name, string texture, Vector3 pos, Vector3 facing, Vector2 size, bool clip, Shader lit,
+                                    float spin = 0f)
     {
         var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/{texture}.png");
         if (tex == null) { Debug.LogWarning($"[Asylum] {ArtFolder}/{texture}.png missing."); return null; }
@@ -476,7 +460,7 @@ internal static class AsylumBuilder
         go.name = name;
         go.transform.SetParent(parent, false);
         Vector3 up = Mathf.Abs(Vector3.Dot(facing.normalized, Vector3.up)) > 0.9f ? Vector3.forward : Vector3.up;
-        go.transform.SetPositionAndRotation(pos, Quaternion.LookRotation(-facing, up));   // a quad shows its face toward -z
+        go.transform.SetPositionAndRotation(pos, Quaternion.LookRotation(-facing, up) * Quaternion.Euler(0f, 0f, spin));   // a quad shows -z
         go.transform.localScale = new Vector3(size.x, size.y, 1f);
         var r = go.GetComponent<MeshRenderer>();
         r.sharedMaterial = m;
@@ -484,17 +468,75 @@ internal static class AsylumBuilder
         return go;
     }
 
-    private static float TopOf(GameObject go, float fallback)
+    // a decal on the inside face of one of a room's walls: side N / S / E / W, `along` = world x (N, S) or z (E, W)
+    private static int decalCount;
+    private static GameObject WallDecal(Transform parent, string room, char side, float along, float y, Vector2 size, string texture, Shader lit)
     {
-        if (go == null) return fallback;
-        var renderers = go.GetComponentsInChildren<Renderer>();
-        if (renderers.Length == 0) return fallback;
-        float top = float.MinValue;
-        foreach (Renderer r in renderers) top = Mathf.Max(top, r.bounds.max.y);
-        return top;
+        RoomDef def = Rooms.First(r => r.En == room);
+        Rect a = def.Area;
+        float inner = FacilityBuilder.WallThickness * 0.5f + (def.Floor == PaddedFloor ? FacilityBuilder.PaddingThickness : 0f) + 0.006f + 0.001f * (decalCount++ % 5);
+        Vector3 pos, facing;
+        switch (side)
+        {
+            case 'N': pos = new Vector3(along, y, a.yMax - inner); facing = Vector3.back; break;
+            case 'S': pos = new Vector3(along, y, a.yMin + inner); facing = Vector3.forward; break;
+            case 'E': pos = new Vector3(a.xMax - inner, y, along); facing = Vector3.left; break;
+            default: pos = new Vector3(a.xMin + inner, y, along); facing = Vector3.right; break;
+        }
+        return Decal(parent, "Decal_" + texture.Replace("T_Asy_", ""), texture, pos, facing, size, true, lit);
     }
 
-    // something she can look at; stand = where she stands for it (null: in front of it, on her side)
+    private static GameObject FloorDecal(Transform parent, string texture, float x, float z, float size, Shader lit, float spin = 0f) =>
+        Decal(parent, "Floor_" + texture.Replace("T_Asy_", ""), texture, new Vector3(x, 0.011f + 0.0006f * (decalCount++ % 8), z), Vector3.up,
+              new Vector2(size, size), true, lit, spin);
+
+    // water stains, grime and cracks on the walls / floor of a room (seeded: the same every build), away from its doors
+    private static void Weather(Transform parent, string room, int seed, Shader lit, int wallStains = 3, int floorStains = 2, bool cracks = true)
+    {
+        var rnd = new System.Random(seed);
+        RoomDef def = Rooms.First(r => r.En == room);
+        Rect a = def.Area;
+        char[] sides = { 'N', 'S', 'E', 'W' };
+        int placed = 0, tries = 0;
+        while (placed < wallStains && tries++ < 40)
+        {
+            char side = sides[rnd.Next(4)];
+            bool alongX = side == 'N' || side == 'S';
+            float min = (alongX ? a.xMin : a.yMin) + 0.8f, max = (alongX ? a.xMax : a.yMax) - 0.8f;
+            if (max <= min) continue;
+            float along = min + (float)rnd.NextDouble() * (max - min);
+            if (NearDoor(a, side, along)) continue;
+            bool top = rnd.NextDouble() < 0.6;
+            string tex = top ? "T_Asy_StainWater" : "T_Asy_StainGrime";
+            float s = 0.9f + (float)rnd.NextDouble() * 0.9f;
+            WallDecal(parent, room, side, along, top ? 2.4f : 0.4f, new Vector2(s, s), tex, lit);
+            if (cracks && placed == 0) WallDecal(parent, room, side, along + (alongX ? 0.4f : -0.4f), 1.4f, new Vector2(0.8f, 0.8f), "T_Asy_Crack", lit);
+            placed++;
+        }
+        for (int i = 0; i < floorStains; i++)
+        {
+            float x = a.xMin + 0.6f + (float)rnd.NextDouble() * (a.width - 1.2f);
+            float z = a.yMin + 0.6f + (float)rnd.NextDouble() * (a.height - 1.2f);
+            FloorDecal(parent, "T_Asy_StainGrime", x, z, 1.2f + (float)rnd.NextDouble(), lit, (float)rnd.NextDouble() * 360f);
+        }
+    }
+
+    private static bool NearDoor(Rect a, char side, float along)
+    {
+        float line = side == 'N' ? a.yMax : side == 'S' ? a.yMin : side == 'E' ? a.xMax : a.xMin;
+        bool alongX = side == 'N' || side == 'S';
+        foreach (DoorDef d in Doors)
+        {
+            bool doorAlongX = Mathf.Approximately(d.Yaw, 0f);
+            if (doorAlongX != alongX) continue;
+            float onLine = alongX ? d.Position.z : d.Position.x;
+            float at = alongX ? d.Position.x : d.Position.z;
+            if (Mathf.Abs(onLine - line) < 0.05f && Mathf.Abs(at - along) < 1.4f) return true;
+        }
+        return false;
+    }
+
+    // something she can look at (with its sparkle); stand = where she stands for it (null: in front of it, on her side)
     private static Examinable Look(Transform parent, HelenaSetupMenu.LocationContent content, string key, Vector3 pos, Vector3? stand,
                                    string[] en, string[] pt, string flag = "")
     {
@@ -511,7 +553,76 @@ internal static class AsylumBuilder
             HelenaSetupMenu.SetReference(x, Examinable.StandPointField, s);
         }
         content.Examinables.Add(x);
+        Sparkle(go.transform, Vector3.up * 0.12f, x);
         return x;
+    }
+
+    private static Pickup Take(HelenaSetupMenu.LocationContent content, Pickup p)
+    {
+        if (p == null) return null;
+        content.Pickups.Add(p);
+        Sparkle(p.transform, Vector3.up * 0.15f, null);
+        return p;
+    }
+
+    // the twinkling white star (InteractSparkle): a child of the thing; its camera is wired once the rig exists
+    private static Sprite sparkleSprite;
+    private static Material sparkleMaterial;
+    private static readonly List<InteractSparkle> sparkles = new List<InteractSparkle>();
+
+    private static void EnsureSparkleAssets()
+    {
+        string path = $"{ArtFolder}/T_Asy_Sparkle.png";
+        if (AssetImporter.GetAtPath(path) is TextureImporter ti &&
+            (ti.textureType != TextureImporterType.Sprite || !ti.alphaIsTransparency || ti.mipmapEnabled))
+        {
+            ti.textureType = TextureImporterType.Sprite;
+            ti.spriteImportMode = SpriteImportMode.Single;
+            ti.spritePixelsPerUnit = 64f;
+            ti.alphaIsTransparency = true;
+            ti.mipmapEnabled = false;
+            ti.SaveAndReimport();
+        }
+        sparkleSprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        if (sparkleSprite == null) Debug.LogWarning($"[Asylum] {path} missing: no sparkles.");
+        Shader sprites = Shader.Find("Sprites/Default");   // editor time: saved in the material asset
+        if (sprites == null) return;
+        HelenaSetupMenu.EnsureFolder(ArtFolder, "Materials");
+        string matPath = $"{ArtFolder}/Materials/M_Asy_Sparkle.mat";
+        sparkleMaterial = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+        if (sparkleMaterial == null)
+        {
+            sparkleMaterial = new Material(sprites);
+            AssetDatabase.CreateAsset(sparkleMaterial, matPath);
+        }
+        sparkleMaterial.shader = sprites;
+        sparkleMaterial.renderQueue = 3100;   // over the decals
+        EditorUtility.SetDirty(sparkleMaterial);
+    }
+
+    private static void Sparkle(Transform parent, Vector3 offset, Examinable examinable)
+    {
+        if (sparkleSprite == null) return;
+        var root = new GameObject("Sparkle");
+        root.transform.SetParent(parent, false);
+        root.transform.localPosition = offset;
+        var stars = new List<Transform>();
+        foreach (Vector3 at in new[] { Vector3.zero, new Vector3(0.08f, 0.06f, 0f) })
+        {
+            var star = new GameObject("Star").transform;
+            star.SetParent(root.transform, false);
+            star.localPosition = at;
+            var sr = star.gameObject.AddComponent<SpriteRenderer>();
+            sr.sprite = sparkleSprite;
+            if (sparkleMaterial != null) sr.sharedMaterial = sparkleMaterial;
+            sr.shadowCastingMode = ShadowCastingMode.Off;
+            sr.receiveShadows = false;
+            stars.Add(star);
+        }
+        var sparkle = root.AddComponent<InteractSparkle>();
+        HelenaSetupMenu.SetReferenceArray(sparkle, InteractSparkle.StarsField, stars);
+        if (examinable != null) HelenaSetupMenu.SetReference(sparkle, InteractSparkle.ExaminableField, examinable);
+        sparkles.Add(sparkle);
     }
 
     private static Transform Mark(Refs refs, string name, Vector3 pos, float yaw)
@@ -522,27 +633,40 @@ internal static class AsylumBuilder
         return t;
     }
 
+    private static Transform Group(Transform props, string name)
+    {
+        var t = new GameObject(name).transform;
+        t.SetParent(props, false);
+        return t;
+    }
+
     // ------------------------------------------------------------------ the cells
+    private const float BedTop = 0.5f, DeskTop = 0.8f, TableTop = 0.8f, GurneyTop = 0.85f, CartTop = 0.935f;
+
     private static void BuildCells(Transform props, Transform looks, Shader lit, HelenaSetupMenu.LocationContent content, Refs refs)
     {
-        // every cell: a bed against the far wall, a steel toilet in the corner
+        // every cell: a bed against the far wall, a steel toilet in the corner, stains
         (string room, float cx, bool south)[] cells =
         {
             ("Cell 1", D1, false), ("Cell 2", D2, false), ("Cell 3", D3, false), ("Cell 4", D1, true), ("Cell 5", D2, true), ("Cell 6", D3, true),
         };
         float inner = FacilityBuilder.WallThickness * 0.5f + FacilityBuilder.PaddingThickness;
+        int seed = 10;
         foreach (var c in cells)
         {
+            Transform g = Group(props, c.room.Replace(" ", ""));
             Rect a = Rooms.First(r => r.En == c.room).Area;
             float farWall = c.south ? a.yMin + inner : a.yMax - inner;
             float bedZ = c.south ? farWall + BedDepth * 0.5f + 0.03f : farWall - BedDepth * 0.5f - 0.03f;
             if (c.room == "Cell 5") bedZ = Start.z - 0.35f - BedDepth * 0.5f;   // where her clips put her
-            Asy(props, "SM_Asy_Bed", new Vector3(c.cx, 0f, bedZ), c.south ? 0f : 180f);
-            float toiletX = a.xMin + inner + 0.35f;
+            Prop(g, "SM_Asy_Bed", new Vector3(c.cx, 0f, bedZ), c.south ? 0f : 180f);
             float toiletZ = c.south ? farWall + 0.32f : farWall - 0.32f;
-            if (c.room != "Cell 5") Asy(props, "SM_Asy_Toilet", new Vector3(toiletX, 0f, toiletZ), c.south ? 0f : 180f);
-            else Asy(props, "SM_Asy_Toilet", new Vector3(a.xMax - inner - 0.35f, 0f, toiletZ), 0f);   // hers: under the camera
+            float toiletX = c.room == "Cell 5" ? a.xMax - inner - 0.35f : a.xMin + inner + 0.35f;   // hers: under the camera
+            Prop(g, "SM_Asy_Toilet", new Vector3(toiletX, 0f, toiletZ), c.south ? 0f : 180f);
+            Weather(g, c.room, seed++, lit, 2, 2, false);
         }
+        Prop(Group(props, "Cell3Mess"), "SM_Asy_Papers", new Vector3(D3 + 0.4f, 0f, -2.2f), 30f);
+        FloorDecal(props, "T_Asy_StainBlood", D3 - 0.5f, -3.0f, 1.3f, lit, 40f);
 
         // her cell: the blood on the west wall, its English / Portuguese version
         float wallX = C1 + FacilityBuilder.WallThickness * 0.5f + FacilityBuilder.PaddingThickness + 0.005f;
@@ -568,7 +692,7 @@ internal static class AsylumBuilder
             new[] { "\"A senha está na soma\"... escrito com sangue. Que ótimo.",
                     "Soma do quê? Não tem um número nessa cela...",
                     "Ei, você é quem tem a câmera. Tá vendo alguma coisa que eu não tô?" });
-        Look(looks, content, "x_bed", new Vector3(D2, 0.5f, Start.z - 0.35f - BedDepth * 0.5f), null,
+        Look(looks, content, "x_bed", new Vector3(D2, BedTop, Start.z - 0.35f - BedDepth * 0.5f), null,
             new[] { "The bed I woke up on. Bolted to the floor, so nobody uses it as a weapon.",
                     "Three nights on that thing. My back's going to make me pay for it." },
             new[] { "A cama onde eu acordei. Parafusada no chão, pra ninguém usar de arma.",
@@ -597,6 +721,7 @@ internal static class AsylumBuilder
         {
             Vector3 pos = new Vector3(b.x, 0f, b.z);
             EnemyBuilder.PlaceCorpse(props, "Body_" + b.room.Replace(" ", ""), pos, b.yaw, b.back);
+            FloorDecal(props, "T_Asy_StainBlood", b.x + 0.2f, b.z, 1.5f, lit, b.yaw);
             float doorX = b.room == "Cell 1" || b.room == "Cell 4" ? D1 : b.room == "Cell 2" ? D2 : D3;
             bool topRow = b.room == "Cell 1" || b.room == "Cell 2";
             Look(looks, content, "x_body", pos + Vector3.up * 0.3f, new Vector3(doorX, 0f, topRow ? -4.75f : -6.25f), b.en, b.pt);
@@ -606,26 +731,39 @@ internal static class AsylumBuilder
             new[] { "Forced from the inside. Whoever was in there walked out... or crawled." },
             new[] { "Forçada por dentro. Quem tava aí saiu andando... ou rastejando." });
 
-        // the wing: a blood trail toward the nurses station
-        var wing = new GameObject("Wing").transform;
-        wing.SetParent(props, false);
-        Decal(wing, "BloodTrail", "T_Asy_BloodPool", new Vector3(15.6f, 0.012f, -5.6f), Vector3.up, new Vector2(1.6f, 1.6f), true, lit);
-        Decal(wing, "BloodTrail", "T_Asy_BloodPool", new Vector3(13.1f, 0.012f, -5.3f), Vector3.up, new Vector2(0.9f, 0.9f), true, lit);
+        // the wing: a bench, a wheelchair, an IV stand, posters, the blood trail toward the nurses station
+        Transform wing = Group(props, "Wing");
+        Prop(wing, "SM_Asy_Bench", new Vector3(4.67f, 0f, -4.3f), 180f);
+        Prop(wing, "SM_Asy_Wheelchair", new Vector3(9.3f, 0f, -6.45f), 25f);
+        Prop(wing, "SM_Asy_IVStand", new Vector3(13.6f, 0f, -6.6f), 0f);
+        Prop(wing, "SM_Asy_TrashBin", new Vector3(0.4f, 0f, -4.4f), 0f);
+        Prop(wing, "SM_Asy_Papers", new Vector3(5.2f, 0f, -5.8f), 80f);
+        WallDecal(wing, "Isolation Wing", 'N', 9.3f, 1.5f, new Vector2(0.55f, 0.75f), "T_Asy_PosterSilence", lit);
+        WallDecal(wing, "Isolation Wing", 'S', 14.8f, 1.5f, new Vector2(0.55f, 0.75f), "T_Asy_PosterRules", lit);
+        WallDecal(wing, "Isolation Wing", 'W', -5.5f, 2.1f, new Vector2(0.9f, 0.23f), "T_Asy_SignIsolation", lit);
+        WallDecal(wing, "Isolation Wing", 'E', -4.55f, 2.1f, new Vector2(0.9f, 0.23f), "T_Asy_SignNurses", lit);
+        WallDecal(wing, "Isolation Wing", 'N', 14.7f, 2.1f, new Vector2(0.9f, 0.23f), "T_Asy_SignObservation", lit);
+        Weather(wing, "Isolation Wing", 3, lit, 4, 3);
+        FloorDecal(wing, "T_Asy_StainBlood", 15.6f, -5.6f, 1.4f, lit, 10f);
+        FloorDecal(wing, "T_Asy_StainBlood", 13.1f, -5.3f, 0.8f, lit, 70f);
+        FloorDecal(wing, "T_Asy_StainBlood", 10.8f, -5.5f, 0.6f, lit, 200f);
         Look(looks, content, "x_blood", new Vector3(15.6f, 0.05f, -5.6f), null,
             new[] { "A blood trail... heading to the nurses station. Of course it is." },
             new[] { "Um rastro de sangue... indo pra enfermaria. Claro que vai." });
 
-        // observation: monitors of the cells (dead), a chair knocked over
-        var obs = new GameObject("Observation").transform;
-        obs.SetParent(props, false);
-        GameObject desk = Op(obs, "SM_OpDesk", new Vector3(16f, 0f, -0.65f), 180f);
-        float top = TopOf(desk, 0.75f);
-        Op(obs, "SM_OperatorPC", new Vector3(16f, top, -0.55f), 180f, false);
-        Op(obs, "SM_OpChair", new Vector3(15.3f, 0.3f, -1.9f), 40f, false, new Vector3(0f, 0f, 90f));
-        Look(looks, content, "x_monitors", new Vector3(16f, top + 0.3f, -0.55f), null,
+        // observation: monitors of the cells (dead), a chair knocked over, files
+        Transform obs = Group(props, "Observation");
+        Prop(obs, "SM_Asy_Table", new Vector3(16f, 0f, -0.5f), 180f);
+        Prop(obs, "SM_Asy_Monitors", new Vector3(16f, TableTop, -0.42f), 180f, false);
+        Prop(obs, "SM_Asy_Chair", new Vector3(15.2f, 0.23f, -1.8f), 40f, false, new Vector3(0f, 0f, 90f));
+        Prop(obs, "SM_Asy_FilingCabinet", new Vector3(17.6f, 0f, -1.4f), 270f);
+        Prop(obs, "SM_Asy_Papers", new Vector3(15.6f, 0f, -2.7f), 10f);
+        Prop(obs, "SM_Asy_Clock", new Vector3(16f, 2.3f, -0.13f), 180f, false);
+        Weather(obs, "Observation", 5, lit, 2, 2);
+        Look(looks, content, "x_monitors", new Vector3(16f, TableTop + 0.3f, -0.42f), null,
             new[] { "Monitors for the cells. All dead... someone used to watch us sleep." },
             new[] { "Monitores das celas. Tudo apagado... alguém ficava vendo a gente dormir." });
-        Look(looks, content, "x_chair", new Vector3(15.3f, 0.3f, -1.9f), null,
+        Look(looks, content, "x_chair", new Vector3(15.2f, 0.3f, -1.8f), null,
             new[] { "Knocked over. Whoever sat here left in a hurry." },
             new[] { "Derrubada. Quem sentava aqui saiu com pressa." });
     }
@@ -633,42 +771,49 @@ internal static class AsylumBuilder
     // ------------------------------------------------------------------ the nurses station
     private static void BuildNurses(Transform props, Transform looks, Transform pickups, Shader lit, HelenaSetupMenu.LocationContent content)
     {
-        var room = new GameObject("NursesStation").transform;
-        room.SetParent(props, false);
-        GameObject desk = Op(room, "SM_OpDesk", new Vector3(21.5f, 0f, -2.65f), 180f);
-        float deskTop = TopOf(desk, 0.75f);
-        Op(room, "SM_OpChair", new Vector3(21.5f, 0f, -3.5f), 10f);
-        Op(room, "SM_OpPapers", new Vector3(21.0f, deskTop, -2.6f), 160f, false);
-        Asy(room, "SM_Asy_Cabinet", new Vector3(25.65f, 0f, -4.2f), 270f);
-        Asy(room, "SM_Asy_Sink", new Vector3(18.3f, 0f, -8.2f), 90f);
-        GameObject gurney = Asy(room, "SM_Asy_Gurney", new Vector3(24.2f, 0f, -7.5f), 0f);
-        float gurneyTop = TopOf(gurney, 0.85f);
+        Transform room = Group(props, "NursesStation");
+        // the counter (its high front toward the room), the nurse's chair behind it, files, the medicine cabinet, the cart
+        Prop(room, "SM_Asy_NurseDesk", new Vector3(21.5f, 0f, -3.3f), 180f);
+        Prop(room, "SM_Asy_Chair", new Vector3(21.5f, 0f, -2.55f), 180f);
+        Prop(room, "SM_Asy_FilingCabinet", new Vector3(19.0f, 0f, -2.45f), 180f);
+        Prop(room, "SM_Asy_Cabinet", new Vector3(25.65f, 0f, -4.2f), 270f);
+        Prop(room, "SM_Asy_MedCart", new Vector3(25.4f, 0f, -6.0f), 270f);
+        Prop(room, "SM_Asy_Gurney", new Vector3(24.6f, 0f, -7.6f), 90f);
+        Prop(room, "SM_Asy_Sink", new Vector3(18.3f, 0f, -8.2f), 90f);
+        Prop(room, "SM_Asy_IVStand", new Vector3(19.3f, 0f, -7.3f), 0f);
+        Prop(room, "SM_Asy_Wheelchair", new Vector3(20.3f, 0f, -8.35f), 200f);
+        Prop(room, "SM_Asy_TrashBin", new Vector3(18.35f, 0f, -3.1f), 0f);
+        Prop(room, "SM_Asy_Bottles", new Vector3(25.45f, CartTop, -5.85f), 0f, false);
+        Prop(room, "SM_Asy_Papers", new Vector3(22.6f, 0f, -5.4f), 140f);
+        Prop(room, "SM_Asy_Clock", new Vector3(23.6f, 2.3f, -2.13f), 180f, false);
         float wallFace = -2f - FacilityBuilder.WallThickness * 0.5f - 0.01f;
-        Decal(room, "WardMap", "T_Asy_WardMap", new Vector3(19.4f, 1.6f, wallFace), Vector3.back, new Vector2(1.2f, 0.9f), false, lit);
+        Decal(room, "WardMap", "T_Asy_WardMap", new Vector3(24.3f, 1.6f, wallFace), Vector3.back, new Vector2(1.2f, 0.9f), false, lit);
+        WallDecal(room, "Nurses Station", 'W', -6.9f, 1.5f, new Vector2(0.55f, 0.75f), "T_Asy_PosterHands", lit);
+        WallDecal(room, "Nurses Station", 'W', -4.4f, 2.1f, new Vector2(0.9f, 0.23f), "T_Asy_SignIsolation", lit);
+        Weather(room, "Nurses Station", 7, lit, 3, 3);
+        FloorDecal(room, "T_Asy_StainBlood", 23.6f, -7.8f, 1.0f, lit, 120f);
 
-        // the knife on the gurney (her first weapon), a medkit on the desk
-        Pickup knife = HelenaSetupMenu.PlaceWeaponPickup(pickups, "KitchenKnife", new Vector3(24.0f, gurneyTop, -7.45f), 20f);
-        if (knife != null) content.Pickups.Add(knife);
-        Pickup medkit = HelenaSetupMenu.PlaceItemPickup(pickups, "Medkit", 1, new Vector3(22.3f, deskTop, -2.55f), 0f, new Color(0.2f, 0.75f, 0.3f));
-        if (medkit != null) content.Pickups.Add(medkit);
+        // the knife on the gurney (her first weapon), a medkit on the cart
+        Take(content, HelenaSetupMenu.PlaceWeaponPickup(pickups, "KitchenKnife", new Vector3(24.6f, GurneyTop, -7.3f), 110f));
+        Take(content, HelenaSetupMenu.PlaceItemPickup(pickups, "Medkit", 1, new Vector3(25.35f, CartTop, -6.2f), 0f, new Color(0.2f, 0.75f, 0.3f)));
 
-        Look(looks, content, "x_desk", new Vector3(21.0f, deskTop, -2.6f), null,
+        Look(looks, content, "x_desk", new Vector3(21.2f, DeskTop, -3.25f), null,
             new[] { "Patient files... mine's here. \"Patient 2716. Persecutory delusions.\" At least the cover held.",
                     "\"Believes she is being watched at all times.\" ...Well." },
             new[] { "Prontuários... o meu tá aqui. \"Paciente 2716. Delírios persecutórios.\" Pelo menos o disfarce colou.",
                     "\"Acredita que está sendo observada o tempo todo.\" ...Pois é." });
-        Look(looks, content, "x_map", new Vector3(19.4f, 1.6f, wallFace), new Vector3(19.4f, 0f, -3.1f),
+        Look(looks, content, "x_map", new Vector3(24.3f, 1.6f, wallFace), new Vector3(24.3f, 0f, -3.0f),
             new[] { "Map of the wing. The way out is the stairwell, past the guard post and the service corridor.",
                     "The armory is next to the guard post. That's where the real guns are." },
             new[] { "Mapa da ala. A saída é pela escada, passando pela guarita e pelo corredor de serviço.",
                     "O arsenal fica do lado da guarita. É lá que estão as armas de verdade." });
         Look(looks, content, "x_cabinet", new Vector3(25.65f, 1.2f, -4.2f), null,
-            new[] { "Medicine cabinet. Empty. Someone cleaned it out before me." },
-            new[] { "Armário de remédios. Vazio. Alguém limpou tudo antes de mim." });
+            new[] { "Medicine cabinet. Empty bottles. Someone cleaned it out before me." },
+            new[] { "Armário de remédios. Só frasco vazio. Alguém limpou tudo antes de mim." });
         Look(looks, content, "x_sink", new Vector3(18.3f, 0.9f, -8.2f), null,
-            new[] { "The water comes out brown. I'll stay thirsty, thanks." },
-            new[] { "A água sai marrom. Prefiro ficar com sede." });
-        Look(looks, content, "x_gurney", new Vector3(24.2f, gurneyTop, -7.5f), null,
+            new[] { "The water comes out brown. I'll stay thirsty, thanks.", "...That mirror. I look like an actual patient." },
+            new[] { "A água sai marrom. Prefiro ficar com sede.", "...Esse espelho. Eu pareço uma paciente de verdade." });
+        Look(looks, content, "x_gurney", new Vector3(24.6f, GurneyTop, -7.9f), null,
             new[] { "A gurney with leather straps... and somebody left a knife on it." },
             new[] { "Uma maca com correias de couro... e alguém deixou uma faca em cima." });
     }
@@ -676,27 +821,40 @@ internal static class AsylumBuilder
     // ------------------------------------------------------------------ service hall, linen, bathroom, therapy
     private static void BuildServiceRooms(Transform props, Transform looks, Transform pickups, Shader lit, HelenaSetupMenu.LocationContent content)
     {
-        var hall = new GameObject("ServiceHall").transform;
-        hall.SetParent(props, false);
-        Asy(hall, "SM_Asy_Gurney", new Vector3(24.4f, 0f, -17.5f), 90f);
-        Decal(hall, "Blood", "T_Asy_BloodPool", new Vector3(23.3f, 0.012f, -19.5f), Vector3.up, new Vector2(1.2f, 1.2f), true, lit);
-        Look(looks, content, "x_gurney", new Vector3(24.4f, 0.85f, -17.5f), null,
+        Transform hall = Group(props, "ServiceHall");
+        Prop(hall, "SM_Asy_Gurney", new Vector3(24.55f, 0f, -17.2f), 90f);
+        Prop(hall, "SM_Asy_Wheelchair", new Vector3(22.5f, 0f, -20.9f), 160f);
+        Prop(hall, "SM_Asy_MopBucket", new Vector3(22.4f, 0f, -15.6f), 70f);
+        Prop(hall, "SM_Asy_TrashBin", new Vector3(24.6f, 0f, -10.0f), 0f);
+        Prop(hall, "SM_Asy_Papers", new Vector3(23.4f, 0f, -12.0f), 200f);
+        WallDecal(hall, "Service Hall", 'W', -11.9f, 1.9f, new Vector2(0.9f, 0.23f), "T_Asy_SignLinen", lit);
+        WallDecal(hall, "Service Hall", 'W', -19.6f, 1.9f, new Vector2(0.9f, 0.23f), "T_Asy_SignBath", lit);
+        WallDecal(hall, "Service Hall", 'E', -15.1f, 1.9f, new Vector2(0.9f, 0.23f), "T_Asy_SignTherapy", lit);
+        WallDecal(hall, "Service Hall", 'S', 22.5f, 1.9f, new Vector2(0.7f, 0.18f), "T_Asy_SignGuard", lit);
+        Weather(hall, "Service Hall", 11, lit, 4, 4);
+        FloorDecal(hall, "T_Asy_StainBlood", 23.3f, -19.5f, 1.2f, lit, 15f);
+        Look(looks, content, "x_gurney", new Vector3(24.55f, GurneyTop, -17.2f), null,
             new[] { "Another gurney. Straps torn. Whoever was tied here got loose." },
             new[] { "Outra maca. As correias arrebentadas. Quem tava amarrado aqui se soltou." });
 
-        var linen = new GameObject("LinenRoom").transform;
-        linen.SetParent(props, false);
-        Asy(linen, "SM_Asy_Shelf", new Vector3(17.35f, 0f, -12.2f), 90f);
-        Asy(linen, "SM_Asy_Shelf", new Vector3(17.35f, 0f, -13.8f), 90f);
+        Transform linen = Group(props, "LinenRoom");
+        Prop(linen, "SM_Asy_Shelf", new Vector3(17.35f, 0f, -12.2f), 90f);
+        Prop(linen, "SM_Asy_Shelf", new Vector3(17.35f, 0f, -13.8f), 90f);
+        Prop(linen, "SM_Asy_Shelf", new Vector3(19.5f, 0f, -14.7f), 0f);
+        Prop(linen, "SM_Asy_Boxes", new Vector3(19.6f, 0f, -11.4f), 180f);
+        Prop(linen, "SM_Asy_MopBucket", new Vector3(21.2f, 0f, -14.4f), 200f);
+        Weather(linen, "Linen Room", 13, lit, 2, 2);
         Look(looks, content, "x_shelf", new Vector3(17.35f, 1.0f, -13.0f), null,
             new[] { "Clean sheets, folded. The only clean thing in this building." },
             new[] { "Lençóis limpos, dobrados. A única coisa limpa nesse prédio." });
 
-        var bath = new GameObject("Bathroom").transform;
-        bath.SetParent(props, false);
-        for (int i = 0; i < 3; i++) Asy(bath, "SM_Asy_Toilet", new Vector3(17.0f + i * 1.3f, 0f, -20.6f), 0f);
-        for (int i = 0; i < 2; i++) Asy(bath, "SM_Asy_Sink", new Vector3(16.3f, 0f, -17.2f - i * 1.1f), 90f);
-        Decal(bath, "Blood", "T_Asy_BloodPool", new Vector3(19.5f, 0.012f, -18.6f), Vector3.up, new Vector2(1.4f, 1.4f), true, lit);
+        Transform bath = Group(props, "Bathroom");
+        for (int i = 0; i < 3; i++) Prop(bath, "SM_Asy_Toilet", new Vector3(17.0f + i * 1.3f, 0f, -20.6f), 0f);
+        for (int i = 0; i < 2; i++) Prop(bath, "SM_Asy_Sink", new Vector3(16.3f, 0f, -17.2f - i * 1.1f), 90f);
+        Prop(bath, "SM_Asy_TrashBin", new Vector3(21.5f, 0f, -16.45f), 0f);
+        WallDecal(bath, "Bathroom", 'N', 19.2f, 1.5f, new Vector2(0.55f, 0.75f), "T_Asy_PosterHands", lit);
+        Weather(bath, "Bathroom", 17, lit, 3, 3);
+        FloorDecal(bath, "T_Asy_StainBlood", 19.5f, -18.6f, 1.3f, lit, 60f);
         Look(looks, content, "x_toilet", new Vector3(18.3f, 0.45f, -20.6f), null,
             new[] { "Shared bathroom. Smells worse than my cell. Didn't think that was possible." },
             new[] { "Banheiro coletivo. Cheira pior que a minha cela. Achei que não dava." });
@@ -704,28 +862,30 @@ internal static class AsylumBuilder
             new[] { "Somebody washed blood off their hands here. Not very well." },
             new[] { "Alguém lavou sangue das mãos aqui. Não muito bem." });
 
-        // therapy: the chair with the straps, a desk with a tape recorder, the guard (the keycard by him)
-        var therapy = new GameObject("TherapyRoom").transform;
-        therapy.SetParent(props, false);
-        Op(therapy, "SM_OpChair", new Vector3(28.4f, 0f, -14.2f), 250f);
-        GameObject desk = Op(therapy, "SM_OpDesk", new Vector3(29.6f, 0f, -11.65f), 180f);
-        float deskTop = TopOf(desk, 0.75f);
-        GameObject tape = Box(therapy, "TapeRecorder", new Vector3(29.2f, deskTop + 0.04f, -11.6f), new Vector3(0.25f, 0.08f, 0.16f), new Color(0.15f, 0.15f, 0.17f));
-        Object.DestroyImmediate(tape.GetComponent<NavMeshObstacle>());
+        // therapy: the chair with the straps, a table with a tape recorder, the guard (the keycard by him)
+        Transform therapy = Group(props, "TherapyRoom");
+        Prop(therapy, "SM_Asy_TherapyChair", new Vector3(28.3f, 0f, -14.0f), 270f);
+        Prop(therapy, "SM_Asy_Table", new Vector3(29.8f, 0f, -11.45f), 180f);
+        Prop(therapy, "SM_Asy_TapeRecorder", new Vector3(29.4f, TableTop, -11.4f), 170f, false);
+        Prop(therapy, "SM_Asy_Tray", new Vector3(30.2f, TableTop, -11.45f), 10f, false);
+        Prop(therapy, "SM_Asy_Chair", new Vector3(29.8f, 0f, -12.25f), 0f);
+        Prop(therapy, "SM_Asy_Cabinet", new Vector3(30.65f, 0f, -15.6f), 270f);
+        Prop(therapy, "SM_Asy_IVStand", new Vector3(27.3f, 0f, -12.4f), 0f);
+        Prop(therapy, "SM_Asy_Screen", new Vector3(26.2f, 0f, -11.3f), 0f);
+        Weather(therapy, "Therapy Room", 19, lit, 3, 2);
         Vector3 guard = new Vector3(26.6f, 0f, -15.6f);
         EnemyBuilder.PlaceCorpse(therapy, "Body_Guard", guard, 60f, true);
-        Decal(therapy, "Blood", "T_Asy_BloodPool", guard + new Vector3(0.2f, 0.012f, 0.2f), Vector3.up, new Vector2(1.8f, 1.8f), true, lit);
-        Pickup card = HelenaSetupMenu.PlaceItemPickup(pickups, "Keycard", 1, new Vector3(27.5f, 0f, -15.0f), 35f, new Color(0.25f, 0.45f, 0.9f));
-        if (card != null) content.Pickups.Add(card);
+        FloorDecal(therapy, "T_Asy_StainBlood", guard.x + 0.2f, guard.z + 0.2f, 1.8f, lit, 30f);
+        Take(content, HelenaSetupMenu.PlaceItemPickup(pickups, "Keycard", 1, new Vector3(27.5f, 0f, -15.0f), 35f, new Color(0.25f, 0.45f, 0.9f)));
         Look(looks, content, "x_body", guard + Vector3.up * 0.3f, null,
             new[] { "A guard. He put up a fight... someone did this with their bare hands.",
                     "His keycard fell out of his belt. I'll need it for the armory." },
             new[] { "Um guarda. Ele lutou... alguém fez isso com as mãos.",
                     "O cartão de acesso dele caiu do cinto. Vou precisar disso pro arsenal." });
-        Look(looks, content, "x_chair", new Vector3(28.4f, 0.6f, -14.2f), null,
+        Look(looks, content, "x_chair", new Vector3(28.3f, 0.7f, -14.0f), null,
             new[] { "A \"therapy\" chair. With straps. And electrodes. That's not therapy." },
             new[] { "Uma cadeira de \"terapia\". Com correias. E eletrodos. Isso não é terapia." });
-        Look(looks, content, "x_tape", new Vector3(29.2f, deskTop + 0.05f, -11.6f), null,
+        Look(looks, content, "x_tape", new Vector3(29.4f, TableTop + 0.05f, -11.4f), null,
             new[] { "A tape recorder. \"Session 47. The patient keeps saying she's being watched.\"",
                     "...They had me on tape. Session 47 was yesterday." },
             new[] { "Um gravador. \"Sessão 47. A paciente continua dizendo que está sendo observada.\"",
@@ -735,35 +895,36 @@ internal static class AsylumBuilder
     // ------------------------------------------------------------------ guard post, armory
     private static void BuildGuardPost(Transform props, Transform looks, Transform pickups, Shader lit, HelenaSetupMenu.LocationContent content)
     {
-        var post = new GameObject("GuardPost").transform;
-        post.SetParent(props, false);
-        GameObject desk = Op(post, "SM_OpDesk", new Vector3(21.0f, 0f, -23.65f), 180f);
-        float deskTop = TopOf(desk, 0.75f);
-        Op(post, "SM_OperatorPC", new Vector3(21.3f, deskTop, -23.55f), 180f, false);
-        Op(post, "SM_OpChair", new Vector3(21.0f, 0f, -24.5f), 200f);
-        Asy(post, "SM_Asy_Cabinet", new Vector3(25.65f, 0f, -26.6f), 270f);
+        Transform post = Group(props, "GuardPost");
+        Prop(post, "SM_Asy_Table", new Vector3(21.0f, 0f, -23.45f), 180f);
+        Prop(post, "SM_Asy_Monitors", new Vector3(21.0f, TableTop, -23.35f), 180f, false);
+        Prop(post, "SM_Asy_Chair", new Vector3(21.0f, 0f, -24.25f), 0f);
+        Prop(post, "SM_Asy_Locker", new Vector3(21.0f, 0f, -27.65f), 0f);
+        Prop(post, "SM_Asy_Bench", new Vector3(25.65f, 0f, -27.1f), 270f);
+        Prop(post, "SM_Asy_Boxes", new Vector3(19.55f, 0f, -27.5f), 90f);
+        Prop(post, "SM_Asy_Clock", new Vector3(19.9f, 2.3f, -23.13f), 180f, false);
+        WallDecal(post, "Guard Post", 'W', -24.8f, 1.9f, new Vector2(0.9f, 0.23f), "T_Asy_SignArmory", lit);
+        Weather(post, "Guard Post", 23, lit, 3, 2);
         SaveStation save = HelenaSetupMenu.PlaceSavePoint(post, "SavePoint_Terminal", new Vector3(23.6f, 0f, -26.6f), 0f);
         if (save != null) content.Stations.Add(save);
-        Look(looks, content, "x_monitors", new Vector3(21.3f, deskTop + 0.3f, -23.55f), null,
+        Look(looks, content, "x_monitors", new Vector3(21.0f, TableTop + 0.3f, -23.35f), null,
             new[] { "The guard monitors. Static on every one... you're the only camera that works in here, huh." },
             new[] { "Os monitores da guarita. Estática em todos... você é a única câmera que funciona aqui, hein." });
-        Look(looks, content, "x_desk", new Vector3(20.6f, deskTop, -23.6f), null,
+        Look(looks, content, "x_desk", new Vector3(20.5f, TableTop, -23.5f), null,
             new[] { "Shift log. The last entry: \"They're not sleeping anymore. Don't open the cells.\"" },
             new[] { "Registro de turnos. A última anotação: \"Eles não estão mais dormindo. Não abram as celas.\"" });
-        Look(looks, content, "x_cabinet", new Vector3(25.65f, 1.2f, -26.6f), null,
+        Look(looks, content, "x_cabinet", new Vector3(21.0f, 1.2f, -27.65f), null,
             new[] { "Guard lockers. A uniform, a photo of somebody's kids... nothing I can use." },
             new[] { "Armários dos guardas. Um uniforme, a foto dos filhos de alguém... nada que eu possa usar." });
 
-        // the armory: a rack, a table with the pistol and a box of rounds
-        var armory = new GameObject("Armory").transform;
-        armory.SetParent(props, false);
-        Asy(armory, "SM_Asy_Shelf", new Vector3(16.35f, 0f, -27.1f), 90f);
-        GameObject table = Box(armory, "ArmoryTable", new Vector3(17.2f, 0.425f, -24.9f), new Vector3(1.4f, 0.85f, 0.6f), new Color(0.28f, 0.3f, 0.32f));
-        float tableTop = TopOf(table, 0.85f);
-        Pickup pistol = HelenaSetupMenu.PlaceWeaponPickup(pickups, "Pistol1911", new Vector3(16.9f, tableTop, -24.9f), 80f);
-        if (pistol != null) content.Pickups.Add(pistol);
-        Pickup ammo = HelenaSetupMenu.PlaceItemPickup(pickups, "HandgunAmmo", 14, new Vector3(17.6f, tableTop, -24.95f), 10f, new Color(0.85f, 0.7f, 0.2f));
-        if (ammo != null) content.Pickups.Add(ammo);
+        // the armory: a rack, lockers, a table with the pistol and a box of rounds
+        Transform armory = Group(props, "Armory");
+        Prop(armory, "SM_Asy_Shelf", new Vector3(16.35f, 0f, -27.1f), 90f);
+        Prop(armory, "SM_Asy_Locker", new Vector3(17.9f, 0f, -27.65f), 0f);
+        Prop(armory, "SM_Asy_Table", new Vector3(17.2f, 0f, -24.45f), 180f);
+        Weather(armory, "Armory", 29, lit, 2, 1);
+        Take(content, HelenaSetupMenu.PlaceWeaponPickup(pickups, "Pistol1911", new Vector3(16.9f, TableTop, -24.4f), 80f));
+        Take(content, HelenaSetupMenu.PlaceItemPickup(pickups, "HandgunAmmo", 14, new Vector3(17.6f, TableTop, -24.45f), 10f, new Color(0.85f, 0.7f, 0.2f)));
         Look(looks, content, "x_shelf", new Vector3(16.35f, 1.0f, -27.1f), null,
             new[] { "Empty racks. Somebody got here first and took almost everything." },
             new[] { "Prateleiras vazias. Alguém chegou antes e levou quase tudo." });
@@ -772,23 +933,28 @@ internal static class AsylumBuilder
     // ------------------------------------------------------------------ service corridor, stairwell
     private static void BuildCorridor(Transform props, Transform looks, Shader lit, HelenaSetupMenu.LocationContent content)
     {
-        var corridor = new GameObject("ServiceCorridor").transform;
-        corridor.SetParent(props, false);
+        Transform corridor = Group(props, "ServiceCorridor");
         // the body the first enemy is feeding on, the blood around it
         EnemyBuilder.PlaceCorpse(corridor, "Body_Corridor", new Vector3(46.3f, 0f, -25.6f), 300f, true);
-        Decal(corridor, "Blood", "T_Asy_BloodPool", new Vector3(46.0f, 0.012f, -25.5f), Vector3.up, new Vector2(2.2f, 2.2f), true, lit);
-        Decal(corridor, "Blood", "T_Asy_BloodPool", new Vector3(38.0f, 0.012f, -25.0f), Vector3.up, new Vector2(1.0f, 1.0f), true, lit);
-        Box(corridor, "Crates", new Vector3(33.0f, 0.4f, -26.55f), new Vector3(1.2f, 0.8f, 0.8f), new Color(0.35f, 0.3f, 0.24f));
+        FloorDecal(corridor, "T_Asy_StainBlood", 46.0f, -25.5f, 2.2f, lit, 0f);
+        FloorDecal(corridor, "T_Asy_StainBlood", 38.0f, -25.0f, 1.0f, lit, 90f);
+        Prop(corridor, "SM_Asy_Boxes", new Vector3(33.0f, 0f, -26.5f), 0f);
+        Prop(corridor, "SM_Asy_Boxes", new Vector3(29.5f, 0f, -24.5f), 180f);
+        Prop(corridor, "SM_Asy_TrashBin", new Vector3(37.5f, 0f, -24.4f), 0f);
+        Prop(corridor, "SM_Asy_MopBucket", new Vector3(28.0f, 0f, -26.6f), 30f);
+        Prop(corridor, "SM_Asy_Wheelchair", new Vector3(41.0f, 0f, -24.55f), 100f);
+        Prop(corridor, "SM_Asy_Papers", new Vector3(35.5f, 0f, -25.4f), 300f);
+        WallDecal(corridor, "Service Corridor", 'E', -24.45f, 2.0f, new Vector2(0.7f, 0.18f), "T_Asy_SignStairs", lit);
+        Weather(corridor, "Service Corridor", 31, lit, 6, 5);
         Look(looks, content, "x_body", new Vector3(46.3f, 0.3f, -25.6f), null,
             new[] { "...I'm not looking at that any longer than I have to." },
             new[] { "...Eu não vou olhar pra isso mais do que o necessário." });
 
-        // stairwell: steps up (blockout), the way to the rest of the asylum
-        var stairs = new GameObject("Stairwell").transform;
-        stairs.SetParent(props, false);
-        for (int i = 0; i < 8; i++)
-            Box(stairs, "Step", new Vector3(50.9f, (i + 1) * 0.1f, -26.5f + i * 0.28f), new Vector3(1.8f, (i + 1) * 0.2f, 0.28f), new Color(0.4f, 0.4f, 0.42f));
-        Look(looks, content, "x_stairs", new Vector3(50.9f, 0.8f, -25.5f), null,
+        // stairwell: the stairs up, the way to the rest of the asylum
+        Transform stairs = Group(props, "Stairwell");
+        Prop(stairs, "SM_Asy_Stairs", new Vector3(50.9f, 0f, -27.6f), 180f);
+        Weather(stairs, "Stairwell", 37, lit, 2, 2);
+        Look(looks, content, "x_stairs", new Vector3(50.9f, 0.8f, -26.2f), new Vector3(49.6f, 0f, -26.0f),
             new[] { "The stairs. The rest of the asylum is up there." },
             new[] { "A escada. O resto do hospício é lá em cima." });
     }
@@ -797,6 +963,9 @@ internal static class AsylumBuilder
     private static void Finish(HelenaSetupMenu.LocationRig rig, Refs refs)
     {
         foreach (LanguageVariant v in refs.Variants) HelenaSetupMenu.SetReference(v, LanguageVariant.SettingsField, rig.Settings);
+        // the sparkles face the operator's view
+        if (rig.ViewCamera != null)
+            foreach (InteractSparkle s in sparkles) if (s != null) HelenaSetupMenu.SetReference(s, InteractSparkle.ViewCameraField, rig.ViewCamera.transform);
         CutsceneDirector d = rig.Director;
         if (d == null) { Debug.LogWarning("[Asylum] No cutscene director: no cutscenes."); return; }
         CutsceneActor h = d.Helena;
@@ -930,15 +1099,22 @@ internal static class AsylumBuilder
 
         // 9. the service corridor: the first enemy (the combat tutorial)
         {
-            var steps = New(root, d, "Cutscene_Corridor", "asy_corridor", CutsceneTrigger.When.HelenaEntersRoom, refs.Rooms["Service Corridor"], "", 0.2f, out Cutscene c);
+            // as she steps through the door (the enemy is still far: no fight yet, the cutscene can start)
+            var steps = New(root, d, "Cutscene_Corridor", "asy_corridor", CutsceneTrigger.When.HelenaEntersArea, null, "", 0f, out Cutscene c);
+            c.transform.position = new Vector3(26.7f, 0f, -25.5f);
+            var area = new SerializedObject(c.GetComponent<CutsceneTrigger>());
+            area.FindProperty(CutsceneTrigger.AreaSizeField).vector3Value = new Vector3(1.4f, 2f, 3f);
+            area.ApplyModifiedPropertiesWithoutUndo();
             SecurityCamera far = rig.CameraSystem != null ? rig.CameraSystem.Cameras.FirstOrDefault(x => x != null && x.Room == refs.Rooms["Service Corridor"] && x.transform.position.x > 40f) : null;
             Add(steps, new CameraCutStep { camera = far != null ? far : Cam("Service Corridor") });
             Add(steps, Line(h, "Tem alguém no fim do corredor...", "There's someone at the end of the corridor..."));
             Add(steps, Line(h, "Ei! Você tá bem?", "Hey! Are you okay?"));
             Add(steps, new WaitStep { seconds = 1.5f });
             Add(steps, Line(h, "...Ele tá comendo. Ele tá COMENDO alguém.", "...He's eating. He's EATING someone."));
-            Add(steps, new ThoughtStep { textPt = "Combate: \"saca a pistola\", \"atira\". Se chegar perto: \"desvia\", \"recua\". \"Recarrega\" quando acabar.",
-                                         textEn = "Combat: \"draw the pistol\", \"shoot\". If it gets close: \"dodge\", \"back off\". \"Reload\" when it's empty." });
+            Add(steps, new ThoughtStep { textPt = "Ele tá longe. \"Avança\" pra chegar mais perto, \"saca a pistola\", \"atira\".",
+                                         textEn = "It's far. \"Advance\" to get closer, \"draw the pistol\", \"shoot\"." });
+            Add(steps, new ThoughtStep { textPt = "Se chegar perto: \"recua\", \"desvia\". \"Recarrega\" quando acabar a munição.",
+                                         textEn = "If it gets close: \"back off\", \"dodge\". \"Reload\" when it's empty." });
             Commit(c);
         }
 

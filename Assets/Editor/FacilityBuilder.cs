@@ -272,6 +272,8 @@ internal static class FacilityBuilder
         sun.intensity = 0.35f;
         sun.shadows = LightShadows.Soft;
         sun.transform.rotation = Quaternion.Euler(62f, -30f, 0f);
+        sun.intensity = 0.1f;   // under the ceilings: the lamps light the rooms
+        AtmosphereBuilder.Apply(root.transform, level.Rooms, lit, AtmosphereBuilder.Facility);
         return level;
     }
 

@@ -724,6 +724,7 @@ public static class HelenaSetupMenu
         public StoryProgress Story;
         public CommandTargets Targets;
         public PartnerVoice Voice;
+        public Camera ViewCamera;     // the operator's view (sits on the active CCTV camera)
         public readonly List<EnemyBrain> Enemies = new List<EnemyBrain>();
     }
 
@@ -1035,6 +1036,7 @@ public static class HelenaSetupMenu
                 var encounter = targets.gameObject.AddComponent<CombatEncounter>();
                 SetReference(encounter, CombatEncounter.TargetsField, targets);
                 SetReference(encounter, CombatEncounter.PartnerField, helena.transform);
+                SetReference(encounter, CombatEncounter.PartnerHealthField, helena.GetComponent<Health>());
 
                 var voiceSource = helena.AddComponent<AudioSource>();   // her radio: 2D, heard the same from any camera
                 voiceSource.playOnAwake = false;
@@ -1197,7 +1199,7 @@ public static class HelenaSetupMenu
                     var located = new LocationRig
                     {
                         Scene = scene, Helena = helena, Director = cutsceneDirector, CameraSystem = cameraSystem, Settings = camSettings,
-                        Story = story, Targets = targets, Voice = voice,
+                        Story = story, Targets = targets, Voice = voice, ViewCamera = viewCamera,
                     };
                     located.Enemies.AddRange(enemies);
                     content.Finish(located);
@@ -1498,6 +1500,7 @@ public static class HelenaSetupMenu
         so.FindProperty(Weapon.IdleUpField).vector3Value = def.IdleUp;
         so.FindProperty(Weapon.TwoHandedField).boolValue = def.TwoHanded;
         so.ApplyModifiedPropertiesWithoutUndo();
+        WeaponGrips.Apply(weapon, def.Name);   // her hands fitted to this weapon (grip point + fingers)
 
         AddCombatComponent(root, def, items);
 
