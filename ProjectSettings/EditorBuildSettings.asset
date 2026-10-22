@@ -17,5 +17,11 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Asylum_IsolationWing.unity
     guid: f46a120e144e2e44484defb5852e2dca
+  - enabled: 1
+    path: Assets/Scenes/Operator.unity
+    guid: 1bc77a8047eeb734c931a00bf340b424
+  - enabled: 1
+    path: Assets/Scenes/Cutscene01_Iniciacao.unity
+    guid: 3f3d5f4f93155dd43afe4be45d85307c
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

@@ -39,6 +39,8 @@ internal static class IniciacaoBuilder
     private const string ArmsControllerPath = "Assets/Art/FirstPerson/FPArms.controller";
     private const string SceneFolder = "Assets/Scenes";
     private const string ScenePath = SceneFolder + "/Cutscene01_Iniciacao.unity";
+    // where the cutscene ends: his room (Operator.unity, made by hand; Last Terminal/16 sets it up)
+    internal const string OperatorSceneName = "Operator";
     private const float ArmsEye = 1.7432f;
 
     private static readonly Vector3 HouseOrigin = Vector3.zero;
@@ -126,8 +128,10 @@ internal static class IniciacaoBuilder
         var van = BuildVan(camGo.transform);
 
         // the cast
-        CutsceneActor mary = Actor("Mary", "MARY", new Color(0.95f, 0.55f, 0.62f), MaryController(ctrl), house.Find("Spot_MaryDoor"));
-        CutsceneActor michael = Actor("Michael", "MICHAEL", new Color(0.55f, 0.78f, 1f), ctrl, office.Find("Spot_MichaelStart"));
+        // the new Mary / Michael (Meshy, rigged on Helena's skeleton) when they are there, else the Mixamo ones
+        CutsceneActor mary = Actor(CastModel("Mary"), "MARY", new Color(0.95f, 0.55f, 0.62f), MaryController(ctrl), house.Find("Spot_MaryDoor"));
+        string michaelModel = CastModel("Michael");
+        CutsceneActor michael = Actor(michaelModel, "MICHAEL", new Color(0.55f, 0.78f, 1f), ctrl, office.Find("Spot_MichaelStart"));
         CutsceneActor pig = Actor("PigDriver", "???", new Color(0.8f, 0.4f, 0.4f), ctrl, van.Find("Spot_Pig"));
         CutsceneActor arms = ArmsActor(van);
 
@@ -139,10 +143,25 @@ internal static class IniciacaoBuilder
 
         AssetDatabase.SaveAssets();
         EditorSceneManager.SaveScene(scene, ScenePath);
+        HelenaSetupMenu.AddToBuild(ScenePath);
+        AddOperatorToBuild();
         Selection.activeGameObject = cutscene.gameObject;
         if (missing.Count > 0)
             Debug.LogWarning("[Iniciação] Built with placeholders, missing: " + string.Join(", ", missing.Distinct()));
         Debug.Log($"[Iniciação] {ScenePath} built. Play: the whole cutscene runs (Esc skips). Steps: select Cutscene_01_Iniciacao.", cutscene);
+    }
+
+    // the operator room's scene in the build profile (the cutscene's last step loads it by name)
+    internal static void AddOperatorToBuild()
+    {
+        foreach (string guid in AssetDatabase.FindAssets($"{OperatorSceneName} t:Scene"))
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            if (System.IO.Path.GetFileNameWithoutExtension(path) != OperatorSceneName) continue;
+            HelenaSetupMenu.AddToBuild(path);
+            return;
+        }
+        Debug.LogWarning($"[Iniciação] {OperatorSceneName}.unity not found: the cutscene ends on black (it loads it by name).");
     }
 
     // ================================================================== assets
@@ -236,7 +255,7 @@ internal static class IniciacaoBuilder
     private static void PrepareCast()
     {
         HelenaSetupMenu.EnsureFolder(CastFolder, "Materials");
-        foreach (string name in new[] { "Mary", "Michael", "PigDriver" })
+        foreach (string name in new[] { "Mary", "Mary2", "Michael", "Michael2", "PigDriver" })
         {
             // the first package had them re-exported from Blender (broken skinning): those go
             if (AssetDatabase.LoadMainAssetAtPath($"{CastFolder}/{name}.fbx") != null)
@@ -246,7 +265,7 @@ internal static class IniciacaoBuilder
             }
             string path = $"{CastModelFolder}/{name}.fbx";
             var mi = AssetImporter.GetAtPath(path) as ModelImporter;
-            if (mi == null) { missing.Add(path); continue; }
+            if (mi == null) { if (!name.EndsWith("2")) missing.Add(path); continue; }
             var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{CastFolder}/T_{name}.png");
             Material m = HelenaSetupMenu.MakeMaterial($"{CastMatFolder}/M_{name}.mat", tex, 0.12f, false, lit);
             // whatever the file calls its material: ours
@@ -524,22 +543,35 @@ internal static class IniciacaoBuilder
         // the ground all around the street piece (no edge of the world)
         Box(root, "GroundAround", new Vector3(0f, -0.42f, 0f), new Vector3(500f, 0.1f, 500f), Mat("Grass"), 0.25f, 0f, false);
 
-        // Mary's car at the curb, its rear right door open toward the path
-        GameObject car = Ini(root, "Nissan", new Vector3(0.6f, -0.31f, 6.25f), 90f);
+        // Mary's car at the curb, its rear right door open toward the path: the sedan (Meshy, low poly, closed inside),
+        // the old Nissan if it is missing
+        GameObject car = Ini(root, "Sedan", new Vector3(0.6f, -0.31f, 6.25f), 90f);
+        bool sedan = car != null;
+        if (!sedan) car = Ini(root, "Nissan", new Vector3(0.6f, -0.31f, 6.25f), 90f);
         if (car != null)
         {
             car.name = "Car_Mary";
-            // inside of the shell (the model is hollow): floor, seats, dash, roof lining
             Material inside = Flat("CarInside", new Color(0.09f, 0.09f, 0.1f));
-            Box(car.transform, "InFloor", new Vector3(0f, 0.32f, 0f), new Vector3(1.8f, 0.06f, 3.6f), inside);
-            Box(car.transform, "InRearSeat", new Vector3(0f, 0.5f, -0.75f), new Vector3(1.6f, 0.28f, 0.6f), inside);
-            Box(car.transform, "InRearBack", new Vector3(0f, 0.85f, -1.12f), new Vector3(1.6f, 0.6f, 0.16f), inside);
-            Box(car.transform, "InFrontSeats", new Vector3(0f, 0.55f, 0.45f), new Vector3(1.5f, 0.3f, 0.55f), inside);
-            Box(car.transform, "InFrontBacks", new Vector3(0f, 0.9f, 0.12f), new Vector3(1.5f, 0.6f, 0.14f), inside);
-            Box(car.transform, "InDash", new Vector3(0f, 0.85f, 1.15f), new Vector3(1.7f, 0.3f, 0.5f), inside);
-            Box(car.transform, "InRoof", new Vector3(0f, 1.36f, -0.2f), new Vector3(1.7f, 0.04f, 2.4f), inside);
-            Box(car.transform, "InFront", new Vector3(0f, 0.7f, 1.45f), new Vector3(1.8f, 0.7f, 0.06f), inside);
-            Box(car.transform, "InBack", new Vector3(0f, 0.8f, -1.7f), new Vector3(1.8f, 0.6f, 0.06f), inside);
+            if (sedan)
+            {
+                SedanMaterials(car);
+                // seats and dash (the cabin floor is 0.2 m over the ground, the roof lining at 1.38)
+                Box(car.transform, "InFloor", new Vector3(0f, 0.17f, -0.2f), new Vector3(1.6f, 0.06f, 2.8f), inside);
+                CarPart(car.transform, "CarBench", new Vector3(0f, 0.2f, -0.95f), Vector3.one * 0.9f);
+                foreach (float x in new[] { -0.38f, 0.38f }) CarPart(car.transform, "CarSeatFront", new Vector3(x, 0.2f, 0.1f), Vector3.one * 0.85f);
+                CarPart(car.transform, "CarDash", new Vector3(0f, 0.2f, 0.39f), Vector3.one);
+            }
+            else
+            {
+                // inside of the Nissan's shell (the model is hollow): floor, seats, dash, roof lining
+                Box(car.transform, "InFloor", new Vector3(0f, 0.32f, 0f), new Vector3(1.8f, 0.06f, 3.6f), inside);
+                CarPart(car.transform, "CarBench", new Vector3(0f, 0.35f, -0.85f), Vector3.one * 0.9f);
+                foreach (float x in new[] { -0.4f, 0.4f }) CarPart(car.transform, "CarSeatFront", new Vector3(x, 0.35f, 0.4f), Vector3.one * 0.85f);
+                CarPart(car.transform, "CarDash", new Vector3(0f, 0.4f, 0.76f), Vector3.one);
+                Box(car.transform, "InRoof", new Vector3(0f, 1.36f, -0.2f), new Vector3(1.7f, 0.04f, 2.4f), inside);
+                Box(car.transform, "InFront", new Vector3(0f, 0.7f, 1.45f), new Vector3(1.8f, 0.7f, 0.06f), inside);
+                Box(car.transform, "InBack", new Vector3(0f, 0.8f, -1.7f), new Vector3(1.8f, 0.6f, 0.06f), inside);
+            }
             Transform door = HelenaSetupMenu.FindDeep(car.transform, "RearDoorR");
             if (door != null)
             {
@@ -550,31 +582,93 @@ internal static class IniciacaoBuilder
                 open.SetParent(car.transform, false);
                 open.SetPositionAndRotation(door.position, Quaternion.AngleAxis(-65f, Vector3.up) * door.rotation);
                 door.SetPositionAndRotation(open.position, open.rotation);   // waiting open
-                // where Mary's hand holds it: the top of its free end
-                var mf = door.GetComponentInChildren<MeshFilter>();
-                if (mf != null && mf.sharedMesh != null)
-                {
-                    Bounds b = mf.sharedMesh.bounds;
-                    float z = Mathf.Abs(b.min.z) > Mathf.Abs(b.max.z) ? b.min.z + 0.08f : b.max.z - 0.08f;
-                    var grip = new GameObject("DoorGrip").transform;
-                    grip.SetParent(door, false);
-                    grip.position = mf.transform.TransformPoint(new Vector3(b.center.x, b.max.y - 0.33f, z));
-                }
+                // where Mary's hand holds it: on the top of the window frame, near its free end, palm down, the fingers
+                // over the edge (the wrist inside the car: the hand rests on the frame instead of going through it)
+                DoorGrip(door, sedan);
             }
-            else missing.Add("SM_Ini_Nissan RearDoorR");
+            else missing.Add("SM_Ini_Sedan RearDoorR");
         }
 
         // where Mary waits (left hand on the open door), the shots of the walk from the porch
-        Spot(root, "Spot_MaryDoor", new Vector3(-0.6f, -0.31f, 4.7f), new Vector3(0.3f, 0f, -1f));
+        // (the sedan's door frame top is ~0.25 m further back than the Nissan's: she stands back with it)
+        Spot(root, "Spot_MaryDoor", new Vector3(-0.95f, -0.31f, 4.8f), new Vector3(0.3f, 0f, -1f));
         Mark(root, "Shot_Door", new Vector3(0.05f, 2.42f, -9.55f), new Vector3(0.4f, 0.9f, 6f));   // just out of his front door
         Mark(root, "Move_Porch", new Vector3(0.05f, 2.42f, -8.3f), new Vector3(0.3f, 0.9f, 6f));
         Mark(root, "Move_Path", new Vector3(0.05f, 1.86f, -2.2f), new Vector3(-0.4f, 1.3f, 4.75f));
         // his eyes ~1.68 m over the ground (sidewalk -0.21, street -0.31)
-        Mark(root, "Shot_Mary", new Vector3(-0.15f, 1.47f, 3.2f), new Vector3(-0.6f, 1.25f, 4.7f));
+        Mark(root, "Shot_Mary", new Vector3(-0.15f, 1.47f, 3.2f), new Vector3(-0.95f, 1.25f, 4.8f));
         Mark(root, "Shot_Glance", new Vector3(-0.15f, 1.47f, 3.2f), new Vector3(-2.2f, 0.1f, 3.2f));
         Mark(root, "Shot_DoorOpen", new Vector3(0.25f, 1.4f, 3.6f), new Vector3(0.05f, 0.75f, 5.6f));
         Mark(root, "Move_Enter", new Vector3(0.05f, 0.95f, 5.0f), new Vector3(0.05f, 0.85f, 7.5f));
         return root;
+    }
+
+    // Mary's hand on the open rear door: the top corner of the window frame at its free end (door space: outside = +x,
+    // the free end at -z), measured on each car's door; the wrist a little inside and over it, 5 cm in from the end, the
+    // fingers over the edge at 45 deg (tested on her hand: it rests on the frame, ~6 mm off)
+    private static readonly Vector3 SedanDoorTopCorner = new Vector3(-0.476f, 1.071f, -0.865f);
+    private static readonly Vector3 NissanDoorTopCorner = new Vector3(-0.329f, 1.186f, -0.752f);
+    private static void DoorGrip(Transform door, bool sedan)
+    {
+        var grip = new GameObject("DoorGrip").transform;
+        grip.SetParent(door, false);
+        grip.localPosition = sedan ? SedanDoorTopCorner + new Vector3(-0.05f, 0.01f, 0.05f) : NissanDoorTopCorner + new Vector3(-0.08f, 0.03f, 0.05f);
+        grip.localRotation = Quaternion.LookRotation(new Vector3(0.7071f, -0.7071f, 0f), new Vector3(0.7071f, 0.7071f, 0f));
+    }
+
+    // the sedan's own materials: windows (transparent, seen from both sides) and the lining of its inside
+    private static void SedanMaterials(GameObject car)
+    {
+        Material glass = Glass("Sedan", new Color(0.32f, 0.4f, 0.46f, 0.32f));
+        glass.SetFloat("_Cull", (float)CullMode.Off);
+        EditorUtility.SetDirty(glass);
+        Material lining = Flat("SedanInside", new Color(0.13f, 0.13f, 0.14f), 0.05f);
+        foreach (Renderer r in car.GetComponentsInChildren<Renderer>(true))
+        {
+            Material[] mats = r.sharedMaterials;
+            for (int i = 0; i < mats.Length; i++)
+            {
+                if (mats[i] == null) continue;
+                if (mats[i].name.StartsWith("SedanGlass")) mats[i] = glass;
+                else if (mats[i].name.StartsWith("SedanInside")) mats[i] = lining;
+            }
+            r.sharedMaterials = mats;
+            if (r.gameObject.name == "Glass") r.shadowCastingMode = ShadowCastingMode.Off;
+        }
+    }
+
+    // a car interior piece (SM_Ini_<name>: origin on the floor at its center, facing +Z)
+    private const float FrontSeatScale = 0.91f;
+    private static GameObject CarPart(Transform parent, string name, Vector3 pos, Vector3 scale)
+    {
+        GameObject go = Ini(parent, name, pos, 0f);
+        if (go != null) go.transform.localScale = scale;
+        return go;
+    }
+
+    // the dash's steering wheel (dash model space, fitted to its rim): center, radius of the rim, tilt (the top leans forward)
+    private static readonly Vector3 WheelCenter = new Vector3(-0.372f, 0.476f, 0.024f);
+    private const float WheelRadius = 0.188f;
+    private const float WheelTilt = 20f;
+
+    // where a wrist holds the wheel at an angle (0 = right, 90 = top): the palm on the rim, the fingers along it toward
+    // the top, the back of the hand out and toward the driver (the target's rotation, for HandTargetStep.orient)
+    private static Transform WheelGrip(Transform dash, string name, float angle, bool left)
+    {
+        float t = WheelTilt * Mathf.Deg2Rad, a = angle * Mathf.Deg2Rad;
+        var up = new Vector3(0f, Mathf.Cos(t), Mathf.Sin(t));
+        var toDriver = new Vector3(0f, Mathf.Sin(t), -Mathf.Cos(t));
+        Vector3 radial = Mathf.Cos(a) * Vector3.right + Mathf.Sin(a) * up;
+        Vector3 along = -Mathf.Sin(a) * Vector3.right + Mathf.Cos(a) * up;
+        if (Vector3.Dot(along, up) < 0f) along = -along;
+        Vector3 fingers = dash.TransformVector(along).normalized;
+        Vector3 back = Vector3.ProjectOnPlane(dash.TransformVector(radial * 0.5f + toDriver * 0.85f), fingers).normalized;
+        Vector3 thumb = left ? Vector3.Cross(back, fingers) : Vector3.Cross(fingers, back);
+        var g = new GameObject(name).transform;
+        g.SetParent(dash, false);
+        g.position = dash.TransformPoint(WheelCenter + WheelRadius * radial) + back * 0.055f - fingers * 0.07f - thumb * 0.02f;
+        g.rotation = Quaternion.LookRotation(fingers, back);
+        return g;
     }
 
     // ================================================================== 2 - inside the car (it doesn't move: the world does)
@@ -583,36 +677,60 @@ internal static class IniciacaoBuilder
         Transform root = Root("Set2_CarInside", CarOrigin);
         Material seat = Flat("CarSeat", new Color(0.22f, 0.2f, 0.19f), 0.05f), dark = Flat("CarTrim", new Color(0.12f, 0.12f, 0.13f)), glass = Glass("Car", new Color(0.55f, 0.65f, 0.7f, 0.18f));
         Slab(root, "Floor", -0.8f, 0.8f, -0.05f, 0f, -1.7f, 1.3f, dark);
-        foreach (float x in new[] { -0.38f, 0.38f })
+        // the pieces (Meshy, low poly): front seats, the rear bench (his seat), the dash with its wheel, door panels
+        foreach (float x in new[] { -0.35f, 0.35f })
+            if (CarPart(root, "CarSeatFront", new Vector3(x, 0f, 0.2f), Vector3.one * FrontSeatScale) == null)
+                Box(root, "FrontSeat" + (x < 0f ? "L" : "R"), new Vector3(x, 0.24f, 0.2f), new Vector3(0.5f, 0.12f, 0.5f), seat, 2f);
+        if (CarPart(root, "CarBench", new Vector3(0f, 0f, -0.9f), Vector3.one) == null)
+            Box(root, "RearSeat", new Vector3(0f, 0.26f, -0.9f), new Vector3(1.4f, 0.14f, 0.5f), seat, 2f);
+        // the dash: a bit narrower and taller than the file (the wheel in front of her seat, its top at 1 m)
+        // the car around them: the sedan, 1.1x (a roomier cabin), its ground 0.22 under the cabin floor; closed all
+        // around (lined inside), the road only through the windows. Without it: the old slabs.
+        GameObject shell = Ini(root, "Sedan", new Vector3(0f, -0.22f, 0f), 0f);
+        if (shell != null)
         {
-            string side = x < 0f ? "L" : "R";
-            Box(root, "FrontSeat" + side, new Vector3(x, 0.24f, 0.2f), new Vector3(0.5f, 0.12f, 0.5f), seat, 2f);
-            var back = Box(root, "FrontBack" + side, new Vector3(x, 0.62f, -0.08f), new Vector3(0.5f, 0.68f, 0.12f), seat, 2f);
-            back.transform.localRotation = Quaternion.Euler(-12f, 0f, 0f);
-            Box(root, "Headrest" + side, new Vector3(x, 1.03f, -0.16f), new Vector3(0.26f, 0.16f, 0.1f), seat, 2f);
+            shell.name = "CarShell";
+            shell.transform.localScale = Vector3.one * 1.1f;
+            SedanMaterials(shell);
+            // no shadow from its roof on the cabin (the scene's sun: the inside stays readable)
+            foreach (Renderer r in shell.GetComponentsInChildren<Renderer>(true)) r.shadowCastingMode = ShadowCastingMode.Off;
         }
-        Box(root, "RearSeat", new Vector3(0f, 0.26f, -0.9f), new Vector3(1.4f, 0.14f, 0.5f), seat, 2f);
-        var rb = Box(root, "RearBack", new Vector3(0f, 0.66f, -1.18f), new Vector3(1.4f, 0.7f, 0.12f), seat, 2f);
-        rb.transform.localRotation = Quaternion.Euler(-14f, 0f, 0f);
-        Box(root, "Dashboard", new Vector3(0f, 0.72f, 1.08f), new Vector3(1.5f, 0.3f, 0.5f), dark);
-        Prim(PrimitiveType.Cylinder, root, "SteeringColumn", new Vector3(-0.38f, 0.76f, 0.82f), new Vector3(0.05f, 0.18f, 0.05f), dark, new Vector3(65f, 0f, 0f));
-        Transform carWheel = SteeringWheel(root, new Vector3(-0.38f, 0.83f, 0.66f), dark);
-        carWheel.Find("GripL").name = "CarGripL";
-        carWheel.Find("GripR").name = "CarGripR";
-        Slab(root, "Roof", -0.82f, 0.82f, 1.25f, 1.3f, -1.6f, 1.2f, Flat("Headliner", new Color(0.55f, 0.53f, 0.5f)));
+        // the dash: a bit narrower and taller than the file, its top at the bottom of the windshield, the wheel in front of her
+        GameObject dash = CarPart(root, "CarDash", new Vector3(0f, 0f, 0.43f), new Vector3(0.95f, 1.1f, 1.1f));
+        if (dash != null)
+        {
+            WheelGrip(dash.transform, "CarGripL", 150f, true);   // 10 o'clock
+            WheelGrip(dash.transform, "CarGripR", 30f, false);    // 2 o'clock
+        }
+        else
+        {
+            Box(root, "Dashboard", new Vector3(0f, 0.72f, 1.08f), new Vector3(1.5f, 0.3f, 0.5f), dark);
+            Transform carWheel = SteeringWheel(root, new Vector3(-0.38f, 0.83f, 0.66f), dark);
+            carWheel.Find("GripL").name = "CarGripL";
+            carWheel.Find("GripR").name = "CarGripR";
+        }
         foreach (float x in new[] { -0.8f, 0.8f })
         {
             string side = x < 0f ? "L" : "R";
-            Slab(root, "DoorPanel" + side, x - 0.03f, x + 0.03f, 0f, 0.74f, -1.6f, 1.2f, dark);
+            // door panels, front and rear door (the file is the left one: mirrored on the right), against the shell
+            float sx = x < 0f ? 1f : -1f;
+            if (CarPart(root, "CarDoorPanel", new Vector3(x * 1.1f, 0f, 0.42f), new Vector3(sx, 1f, 1f)) == null)
+                Slab(root, "DoorPanel" + side, x - 0.03f, x + 0.03f, 0f, 0.74f, -1.6f, 1.2f, dark);
+            else CarPart(root, "CarDoorPanel", new Vector3(x * 1.1f, 0f, -0.75f), new Vector3(sx, 1f, 0.9f));
+            if (shell != null) continue;
             foreach (float z in new[] { 1.15f, -0.35f, -1.5f })
                 Slab(root, $"Pillar{side}{z:0.0}", x - 0.03f, x + 0.03f, 0.74f, 1.25f, z - 0.05f, z + 0.05f, dark);
             Slab(root, "Window" + side, x - 0.005f, x + 0.005f, 0.74f, 1.25f, -1.5f, 1.15f, glass);
         }
-        var ws = Box(root, "Windshield", new Vector3(0f, 1.0f, 1.32f), new Vector3(1.56f, 0.6f, 0.01f), glass);
-        ws.transform.localRotation = Quaternion.Euler(-35f, 0f, 0f);
-        var rw = Box(root, "RearWindow", new Vector3(0f, 1.0f, -1.62f), new Vector3(1.56f, 0.5f, 0.01f), glass);
-        rw.transform.localRotation = Quaternion.Euler(35f, 0f, 0f);
-        Box(root, "Mirror", new Vector3(0.05f, 1.15f, 1.05f), new Vector3(0.22f, 0.06f, 0.03f), dark);
+        if (shell == null)
+        {
+            Slab(root, "Roof", -0.82f, 0.82f, 1.25f, 1.3f, -1.6f, 1.2f, Flat("Headliner", new Color(0.55f, 0.53f, 0.5f)));
+            var ws = Box(root, "Windshield", new Vector3(0f, 1.0f, 1.32f), new Vector3(1.56f, 0.6f, 0.01f), glass);
+            ws.transform.localRotation = Quaternion.Euler(-35f, 0f, 0f);
+            var rw = Box(root, "RearWindow", new Vector3(0f, 1.0f, -1.62f), new Vector3(1.56f, 0.5f, 0.01f), glass);
+            rw.transform.localRotation = Quaternion.Euler(35f, 0f, 0f);
+            Box(root, "Mirror", new Vector3(0.05f, 1.15f, 1.05f), new Vector3(0.22f, 0.06f, 0.03f), dark);
+        }
 
         // the land all around (still: it looks the same going by), the road going by
         Box(root, "GroundAround", new Vector3(0f, -0.38f, 0f), new Vector3(600f, 0.1f, 600f), Mat("Grass"), 0.25f, 0f, false);
@@ -646,9 +764,10 @@ internal static class IniciacaoBuilder
             Box(scenery, $"House{i}", new Vector3(i % 2 == 0 ? -17f : 18f, 2.5f, -70f + i * 29f), new Vector3(8f, 5.6f, 9f), Mat("Brick"), 0.5f);
 
         Loop(root, "Engine", "EngineLoop", 0.5f);
-        Spot(root, "Spot_MaryDriver", new Vector3(-0.38f, 0f, 0.18f), Vector3.forward);
-        Mark(root, "Shot_CarPOV", new Vector3(0.36f, 1.03f, -0.86f), new Vector3(-0.25f, 0.95f, 1.4f));
-        Mark(root, "Shot_CarLook", new Vector3(0.34f, 1.03f, -0.84f), new Vector3(-0.38f, 0.98f, 0.2f));   // he looks at her
+        Spot(root, "Spot_MaryDriver", new Vector3(-0.35f, 0f, 0.17f), Vector3.forward);
+        // his eyes on the rear bench (cushion 0.34 + sitting eye height)
+        Mark(root, "Shot_CarPOV", new Vector3(0.36f, 1.0f, -0.86f), new Vector3(-0.25f, 1.0f, 1.4f));
+        Mark(root, "Shot_CarLook", new Vector3(0.3f, 1.0f, -0.84f), new Vector3(-0.35f, 0.98f, 0.17f));   // he looks at her
         return root;
     }
 
@@ -760,7 +879,9 @@ internal static class IniciacaoBuilder
 
         // the desk (a crescent around his chair), his chair, things on it, the flags
         Ini(root, "GovDesk", new Vector3(0f, 0f, 2.7f), 180f);
-        Ini(root, "OfficeChair", new Vector3(0f, 0f, 2.95f), 90f);   // the model faces +X: turned to face the visitor
+        // the model faces +X: turned to face the visitor; lowered (seat 0.57 -> 0.47 m) so he sits on it, not in it
+        GameObject govChair = Ini(root, "OfficeChair", new Vector3(0f, 0f, 2.95f), 90f);
+        if (govChair != null) govChair.transform.localScale = new Vector3(1f, 0.82f, 1f);
         Model(root, $"{OpFolder}/SM_OpPapers.fbx", new Vector3(0.5f, 0.76f, 1.75f), 15f);
         Model(root, $"{OpFolder}/SM_OpStapler.fbx", new Vector3(-0.55f, 0.76f, 1.8f), -30f);
         Prim(PrimitiveType.Cylinder, root, "LampBase", new Vector3(-0.85f, 0.78f, 2.05f), new Vector3(0.14f, 0.02f, 0.14f), Mat("Metal"));
@@ -839,7 +960,11 @@ internal static class IniciacaoBuilder
         Spot(root, "Spot_MichaelGreet", new Vector3(1.35f, 0f, 1.0f), new Vector3(-1.5f, 0f, -0.55f));
         Spot(root, "Spot_MichaelAround1", new Vector3(1.85f, 0f, 2.35f), Vector3.forward);
         Spot(root, "Spot_MichaelAround2", new Vector3(0.95f, 0f, 3.3f), Vector3.left);
-        Spot(root, "Spot_MichaelChair", new Vector3(0f, 0f, 2.88f), Vector3.back);
+        // to his chair around its right side (clear of the desk's tip and the armrests), in front of it, then he
+        // sits while sliding back onto it (8 cm up: the seated clip's feet on the floor)
+        Spot(root, "Spot_MichaelSide", new Vector3(0.95f, 0f, 2.45f), Vector3.left);
+        Spot(root, "Spot_MichaelFront", new Vector3(0f, 0f, 2.42f), Vector3.back);
+        Spot(root, "Spot_MichaelChair", new Vector3(0f, 0.08f, 2.88f), Vector3.back);
         Vector3 seated = new Vector3(-0.2f, 1.17f, 0.5f), face = new Vector3(0f, 1.18f, 2.8f);
         Mark(root, "Shot_Corridor", new Vector3(-0.8f, 1.65f, -6.5f), new Vector3(-0.8f, 1.35f, -4f));
         Mark(root, "Shot_MaryTalk", new Vector3(-0.65f, 1.6f, -5.7f), new Vector3(-1.6f, 1.5f, -4.75f));
@@ -967,10 +1092,11 @@ internal static class IniciacaoBuilder
         glassOpen.localPosition = new Vector3(0.12f, 1.025f, -0.05f);
         // the cab behind it, the windshield, the night road going by
         Slab(root, "CabFloor", -0.8f, 0.8f, -0.15f, -0.1f, 0f, 1.7f, metal);
-        Box(root, "CabSeatL", new Vector3(-0.4f, 0.25f, 0.55f), new Vector3(0.5f, 0.12f, 0.5f), seat, 2f);
-        Box(root, "CabSeatR", new Vector3(0.4f, 0.25f, 0.55f), new Vector3(0.5f, 0.12f, 0.5f), seat, 2f);
+        // seat tops at 0.21 (the cab floor is at -0.1): the pig's seated clip puts him there, not into the cushion
+        Box(root, "CabSeatL", new Vector3(-0.4f, 0.15f, 0.55f), new Vector3(0.5f, 0.12f, 0.5f), seat, 2f);
+        Box(root, "CabSeatR", new Vector3(0.4f, 0.15f, 0.55f), new Vector3(0.5f, 0.12f, 0.5f), seat, 2f);
         Box(root, "CabDash", new Vector3(0f, 0.65f, 1.45f), new Vector3(1.55f, 0.3f, 0.4f), metal);
-        Box(root, "CabSeatBackL", new Vector3(-0.4f, 0.6f, 0.25f), new Vector3(0.5f, 0.6f, 0.1f), seat, 2f);
+        Box(root, "CabSeatBackL", new Vector3(-0.4f, 0.55f, 0.25f), new Vector3(0.5f, 0.7f, 0.1f), seat, 2f);
         Transform vanWheel = SteeringWheel(root, new Vector3(-0.38f, 0.73f, 1.03f), metal);
         vanWheel.Find("GripL").name = "VanGripL";
         vanWheel.Find("GripR").name = "VanGripR";
@@ -1005,6 +1131,12 @@ internal static class IniciacaoBuilder
     }
 
     // ================================================================== the cast and the arms
+    // <name>2.fbx (the Meshy remake) when it is in the cast's models, else <name>.fbx
+    private static string CastModel(string name)
+    {
+        return AssetDatabase.LoadAssetAtPath<GameObject>($"{CastModelFolder}/{name}2.fbx") != null ? name + "2" : name;
+    }
+
     private static CutsceneActor Actor(string model, string display, Color color, RuntimeAnimatorController ctrl, Transform spot)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{CastModelFolder}/{model}.fbx");
@@ -1016,7 +1148,7 @@ internal static class IniciacaoBuilder
             go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             Object.DestroyImmediate(go.GetComponent<Collider>());
         }
-        go.name = model;
+        go.name = model.EndsWith("2") ? model.Substring(0, model.Length - 1) : model;
         if (spot != null) go.transform.SetPositionAndRotation(spot.position, spot.rotation);
         Animator animator = go.GetComponent<Animator>();
         if (animator == null) animator = go.AddComponent<Animator>();
@@ -1090,7 +1222,9 @@ internal static class IniciacaoBuilder
     }
 
     // ================================================================== the screen + director
-    private static CutsceneDirector BuildScreenAndDirector(Camera cam, CameraSettings settings, out GameObject canvasGo)
+    // the cinema screen (bars, subtitles, thoughts, prompt, fade, loading, scare), the operator's line input and the
+    // director (cinema mode, this camera) - also the operator room's wake-up (OperatorWakeBuilder)
+    internal static CutsceneDirector BuildScreenAndDirector(Camera cam, CameraSettings settings, out GameObject canvasGo)
     {
         canvasGo = new GameObject("UI", typeof(RectTransform));
         canvasGo.layer = LayerMask.NameToLayer("UI");
@@ -1336,7 +1470,7 @@ internal static class IniciacaoBuilder
         Add(Think("Mike...", "Mike..."));
         Add(Move(F(house, "Shot_Mary"), 0.9f));
         Add(State(mary, "HoldDoorL", 0.5f));
-        Add(new HandTargetStep { actor = mary, left = F(house, "DoorGrip"), blend = 0.5f });
+        Add(new HandTargetStep { actor = mary, left = F(house, "DoorGrip"), blend = 0.5f, orient = true });
         Add(Wait(0.4f));
         Add(Say(mary, "Por favor.", "Please."));
         Add(Move(F(house, "Shot_DoorOpen"), 1.4f));
@@ -1353,7 +1487,7 @@ internal static class IniciacaoBuilder
         // ---------------------------------------------------------- CENA 2 - in the car
         Add(Tele(mary, F(car, "Spot_MaryDriver")));
         Add(State(mary, "Driving", 0f));
-        Add(new HandTargetStep { actor = mary, left = F(car, "CarGripL"), right = F(car, "CarGripR"), blend = 0f });
+        Add(new HandTargetStep { actor = mary, left = F(car, "CarGripL"), right = F(car, "CarGripR"), blend = 0f, orient = car.Find("CarDash") != null });
         Add(Shot(F(car, "Shot_CarPOV"), 62f));
         Add(Hand(1.3f));
         Add(Fade(false, 1.2f));
@@ -1402,8 +1536,9 @@ internal static class IniciacaoBuilder
         Add(Together(Say(michael, "Tá. Você nunca foi de comemorar.", "Right. You never were one for celebrating."),
                      Walk(michael, F(office, "Spot_MichaelAround1"), true, false)));
         Add(Together(Walk(michael, F(office, "Spot_MichaelAround2"), true, false), Move(F(office, "Move_Sit"), 1.8f)));
-        Add(Walk(michael, F(office, "Spot_MichaelChair")));
-        Add(State(michael, "SitDown", 0.3f, 2.0f));
+        Add(Walk(michael, F(office, "Spot_MichaelSide"), true, false));
+        Add(Walk(michael, F(office, "Spot_MichaelFront")));
+        Add(Together(State(michael, "SitDown", 0.3f, 2.0f), Xform(michael.transform, F(office, "Spot_MichaelChair"), 1.5f, false)));
         Add(State(michael, "SeatedTalk", 0.5f));
         Add(Say(michael, "Vou direto ao ponto. Preciso de você de volta. Como operador.", "I'll get straight to the point. I need you back. As an operator."));
         Add(State(michael, "SeatedIdle", 0.5f));
@@ -1483,8 +1618,8 @@ internal static class IniciacaoBuilder
         Add(new ScareStep { sound = Clip("PigScream"), volume = 1f, seconds = 1.3f, flashColor = new Color(1f, 0.12f, 0.08f), flash = 0.85f, noise = true, shake = 3f, zoomKick = -14f, endOnBlack = true });
         Add(Engine(vanEngine, false));
         Add(Wait(2f));
-        // -> he wakes up in the operator room: put that scene's name here (it must be in the build profile)
-        Add(new LoadSceneStep { sceneName = "" });
+        // -> he wakes up in the operator room (its scene in the build profile: AddOperatorToBuild)
+        Add(new LoadSceneStep { sceneName = OperatorSceneName });
 
         so.ApplyModifiedPropertiesWithoutUndo();
         return cutscene;

@@ -8,6 +8,9 @@ using UnityEngine;
 // to their bone keeping where they are, so they follow her head / hips.
 // Textures: Assets/Characters/Helena/Textures/Outfits/T_Helena_<Outfit>_<Part>.png,
 // accessories: Assets/Art/Props/Outfits/SM_Helena_<Outfit>Accessories.fbx + its texture. Called by Last Terminal/4.
+// Helena 2 (one body material): each outfit also swaps M_Helena2_Body for T_Helena2_<Outfit>.png (her texture with the
+// outfit painted on), and her accessories are SM_Helena2_<Outfit>Accessories.fbx (fitted to her body). An outfit asset
+// carries both sets: whichever model wears it finds its own materials.
 public static class OutfitBuilder
 {
     private const string TextureFolder = HelenaImport.Folder + "Textures/Outfits";
@@ -17,6 +20,7 @@ public static class OutfitBuilder
     private const string DataFolder = "Assets/Data/Outfits";
     private const string MeshFolder = HelenaImport.Folder + "Meshes";
     private static readonly string[] ArmBones = { "LeftShoulder", "LeftArm", "LeftForeArm", "RightShoulder", "RightArm", "RightForeArm" };
+    private static readonly int BumpMapId = Shader.PropertyToID("_BumpMap");
 
     private struct Outfit
     {
@@ -28,6 +32,8 @@ public static class OutfitBuilder
         public string accessoryModel, accessoryTexture;                   // optional
         public (string name, HumanBodyBones bone)[] accessories;
         public string[] smoothArms;                                       // parts reshaped: cloth folds of the arms smoothed
+        public string helena2Texture;                                     // Helena 2: her body texture for this outfit
+        public float helena2Smooth;
     }
 
     // holster, belt and pouch (they belong to the suit)
@@ -55,6 +61,7 @@ public static class OutfitBuilder
             // a painted one would show twice); its digits add up to the code of her cell's keypad (FacilityBuilder)
             accessoryModel = "SM_Helena_PrisonAccessories", accessoryTexture = "T_Helena_Prison_Tag",
             accessories = new[] { ("PrisonTag", HumanBodyBones.UpperChest), ("PrisonBack", HumanBodyBones.UpperChest) },
+            helena2Texture = "T_Helena2_Prison", helena2Smooth = 0.15f,
         },
         // the asylum: she got herself committed as a patient. The tag on her chest (PATIENT 2716 / BED 103) adds up to
         // the code of her cell (2819, AsylumBuilder): she doesn't see it, the operator does ("look at me")
@@ -72,6 +79,7 @@ public static class OutfitBuilder
             hidden = Gear,
             accessoryModel = "SM_Helena_PatientAccessories", accessoryTexture = "T_Helena_Patient_Tag",
             accessories = new[] { ("PatientTag", HumanBodyBones.UpperChest) },
+            helena2Texture = "T_Helena2_Patient", helena2Smooth = 0.12f,
         },
         new Outfit
         {
@@ -84,6 +92,7 @@ public static class OutfitBuilder
                 ("sneakers", "T_Helena_Pajama_Slippers", 0.05f),
             },
             hidden = Gear,
+            helena2Texture = "T_Helena2_Pajama", helena2Smooth = 0.2f,
         },
         // the top prize of the casino
         new Outfit
@@ -100,6 +109,7 @@ public static class OutfitBuilder
             accessoryModel = "SM_Helena_BunnyAccessories", accessoryTexture = "T_Helena_Bunny_Accessories",
             accessories = new[] { ("BunnyEars", HumanBodyBones.Head), ("BunnyTail", HumanBodyBones.Hips) },
             smoothArms = new[] { "top.002" },   // bare arms: no sleeve folds on the shoulders / elbows
+            helena2Texture = "T_Helena2_Bunny", helena2Smooth = 0.45f,
         },
     };
 
@@ -114,6 +124,7 @@ public static class OutfitBuilder
         var result = new List<OutfitDefinition>();
         HelenaSetupMenu.EnsureFolder(HelenaImport.Folder + "Materials", "Outfits");
         HelenaSetupMenu.EnsureFolder("Assets/Data", "Outfits");
+        bool helena2 = IsHelena2(helena);
         foreach (Outfit o in Outfits)
         {
             var swaps = new List<(Material original, Material replacement)>();
@@ -124,14 +135,18 @@ public static class OutfitBuilder
                 var texture = AssetDatabase.LoadAssetAtPath<Texture2D>($"{TextureFolder}/{s.texture}.png");
                 if (original == null || texture == null)
                 {
-                    Debug.LogWarning($"[Outfits] {o.asset}: missing {(original == null ? "material " + s.original + " (run menu 1)" : "texture " + TextureFolder + "/" + s.texture + ".png")}.");
+                    if (!helena2) Debug.LogWarning($"[Outfits] {o.asset}: missing {(original == null ? "material " + s.original + " (run menu 1)" : "texture " + TextureFolder + "/" + s.texture + ".png")}.");
                     ok = false;
                     continue;
                 }
                 Material m = HelenaSetupMenu.MakeMaterial($"{MaterialFolder}/M_{s.texture.Substring(2)}.mat", texture, s.smooth, false, lit);
                 swaps.Add((original, m));
             }
-            if (!ok) continue;
+            if (!ok) swaps.Clear();   // the old model's set is all or nothing
+            (Material original, Material replacement)? h2 = Helena2Swap(o, lit);
+            if (h2.HasValue) swaps.Add(h2.Value);
+            else if (helena2) Debug.LogWarning($"[Outfits] {o.asset}: Helena 2's version missing ({TextureFolder}/{o.helena2Texture}.png or {HelenaCompareBuilder.BodyMaterialPath}: menu 18).");
+            if (!ok && !h2.HasValue) continue;
 
             string path = $"{DataFolder}/{o.asset}.asset";
             var outfit = AssetDatabase.LoadAssetAtPath<OutfitDefinition>(path);
@@ -156,7 +171,7 @@ public static class OutfitBuilder
             }
             SetStrings(so.FindProperty(OutfitDefinition.HiddenPartsField), o.hidden);
             var meshes = new List<(string part, Mesh mesh)>();
-            if (o.smoothArms != null)
+            if (o.smoothArms != null && !helena2)
                 foreach (string part in o.smoothArms)
                 {
                     Mesh m = SmoothedMesh(helena, part, o.asset);
@@ -179,6 +194,32 @@ public static class OutfitBuilder
         }
         AssetDatabase.SaveAssets();
         return result;
+    }
+
+    // Helena 2 wears an outfit as her body texture with the outfit painted on (plus her normal map: the folds)
+    private static (Material original, Material replacement)? Helena2Swap(Outfit o, Shader lit)
+    {
+        if (string.IsNullOrEmpty(o.helena2Texture)) return null;
+        var original = AssetDatabase.LoadAssetAtPath<Material>(HelenaCompareBuilder.BodyMaterialPath);
+        var texture = AssetDatabase.LoadAssetAtPath<Texture2D>($"{TextureFolder}/{o.helena2Texture}.png");
+        if (original == null || texture == null) return null;
+        Material m = HelenaSetupMenu.MakeMaterial($"{MaterialFolder}/M_{o.helena2Texture.Substring(2)}.mat", texture, o.helena2Smooth, false, lit);
+        var normal = AssetDatabase.LoadAssetAtPath<Texture2D>(HelenaCompareBuilder.NormalPath);
+        if (normal != null)
+        {
+            m.SetTexture(BumpMapId, normal);
+            m.EnableKeyword("_NORMALMAP");
+            EditorUtility.SetDirty(m);
+        }
+        return (original, m);
+    }
+
+    // the model is Helena 2 (her body is one part: Helena2_Body)
+    private static bool IsHelena2(GameObject helena)
+    {
+        foreach (SkinnedMeshRenderer r in helena.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            if (r.gameObject.name == "Helena2_Body") return true;
+        return false;
     }
 
     // her part with the arm folds smoothed, saved as a mesh asset (rebuilt every time)
@@ -226,7 +267,11 @@ public static class OutfitBuilder
     // had in the bind pose (from the bind poses of her skinned parts), so it fits whatever pose the prefab is in.
     private static void AddAccessories(Outfit o, Transform helena, Animator animator, Shader lit, List<Renderer> extras)
     {
-        var model = AssetDatabase.LoadAssetAtPath<GameObject>($"{AccessoryFolder}/{o.accessoryModel}.fbx");
+        // Helena 2: her own set (fitted to her body), else Helena's
+        GameObject model = IsHelena2(helena.gameObject)
+            ? AssetDatabase.LoadAssetAtPath<GameObject>($"{AccessoryFolder}/{o.accessoryModel.Replace("SM_Helena_", "SM_Helena2_")}.fbx")
+            : null;
+        if (model == null) model = AssetDatabase.LoadAssetAtPath<GameObject>($"{AccessoryFolder}/{o.accessoryModel}.fbx");
         var texture = AssetDatabase.LoadAssetAtPath<Texture2D>($"{AccessoryFolder}/{o.accessoryTexture}.png");
         if (model == null || texture == null || animator == null)
         {

@@ -7,6 +7,8 @@ using UnityEngine.Playables;
 // every clip of hers one after the other. Right / Left = next / previous clip, Space = pause the automatic advance,
 // Q / E = turn both, R = facing the camera, Up / Down = speed, P = report of this frame (PoseReport, for Claude).
 // Weapon clips show the weapon in her hand like the game does (WeaponGrip: placement + fingers closed on it).
+// Last Terminal/21 uses it to compare a clip with its adjusted copy: the last model plays lastModelClips, nothing is
+// changed after the clips (only the weapon placed), so what you see is what the clips do.
 public class ModelCompare : MonoBehaviour
 {
     [SerializeField] private Animator[] animators;
@@ -20,6 +22,8 @@ public class ModelCompare : MonoBehaviour
     [SerializeField] private int weaponCount;
     [SerializeField] private int[] clipWeapon = new int[0];    // per clip: weapon index, -1 = none
     [SerializeField] private bool[] clipAim = new bool[0];     // per clip: aim hold (else idle hold)
+    [SerializeField] private AnimationClip[] lastModelClips = new AnimationClip[0];   // per clip: what the last model plays instead (empty = the same)
+    [SerializeField] private bool closeFingers = true;         // fingers closed on the weapon after the clip (the game's WeaponHolder)
 
     private PlayableGraph[] graphs;
     private AnimationClipPlayable[] players;
@@ -72,7 +76,7 @@ public class ModelCompare : MonoBehaviour
             Weapon held = wi >= 0 ? Slot(k, wi) : null;
             if (held == null || !WeaponGrip.TryRightFrame(animators[k], out Vector3 o, out Vector3 f, out Vector3 a, out Vector3 n)) continue;
             WeaponGrip.PlaceInRightHand(held, o, f, a, n, aim ? 1f : 0f);
-            WeaponGrip.ApplyFingers(fingerJoints[k], fingerEnds[k], held.RightFingers, f, a, n, 1f);
+            if (closeFingers) WeaponGrip.ApplyFingers(fingerJoints[k], fingerEnds[k], held.RightFingers, f, a, n, 1f);
         }
         if (before == null) return;
         reportPending = false;
@@ -135,10 +139,16 @@ public class ModelCompare : MonoBehaviour
         for (int k = 0; k < animators.Length; k++)
         {
             if (graphs[k].IsValid()) graphs[k].Destroy();
-            players[k] = AnimationPlayableUtilities.PlayClip(animators[k], clips[index], out graphs[k]);
+            players[k] = AnimationPlayableUtilities.PlayClip(animators[k], ClipOf(k), out graphs[k]);
             players[k].SetApplyFootIK(true);
             players[k].Pause();   // the time is set by hand (both in step)
         }
+    }
+
+    private AnimationClip ClipOf(int model)
+    {
+        bool last = model == animators.Length - 1 && index < lastModelClips.Length && lastModelClips[index] != null;
+        return last ? lastModelClips[index] : clips[index];
     }
 
     private void OnGUI()
@@ -166,10 +176,12 @@ public class ModelCompare : MonoBehaviour
 
 #if UNITY_EDITOR
     public void EditorSet(Animator[] models, string[] names, AnimationClip[] list, Camera cam,
-                          Weapon[] displayWeapons, int perModel, int[] weaponOfClip, bool[] aimOfClip)
+                          Weapon[] displayWeapons, int perModel, int[] weaponOfClip, bool[] aimOfClip,
+                          AnimationClip[] lastClips = null, bool fingers = true)
     {
         animators = models; labels = names; clips = list; view = cam;
         weapons = displayWeapons; weaponCount = perModel; clipWeapon = weaponOfClip; clipAim = aimOfClip;
+        lastModelClips = lastClips ?? new AnimationClip[0]; closeFingers = fingers;
         UnityEditor.EditorUtility.SetDirty(this);
     }
 #endif

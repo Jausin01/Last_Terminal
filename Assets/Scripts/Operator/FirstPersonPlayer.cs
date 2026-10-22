@@ -289,6 +289,22 @@ public class FirstPersonPlayer : MonoBehaviour
         done?.Invoke();
     }
 
+    // puts him somewhere at once (the end of a cutscene: he got up there), his view at his eyes, level
+    public void PlaceAt(Vector3 position, float yawDegrees)
+    {
+        bool was = controller.enabled;
+        controller.enabled = false;
+        transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yawDegrees, 0f));
+        controller.enabled = was;
+        yaw = yawDegrees;
+        pitch = 0f;
+        fallSpeed = 0f;
+        blending = false;
+        awayFromHome = false;
+        view.transform.localPosition = EyeLocal;
+        view.transform.localRotation = Quaternion.identity;
+    }
+
     // places the view right away (a scene that starts at the PC)
     public void SnapViewTo(Vector3 position, Quaternion rotation)
     {

@@ -17,6 +17,7 @@ using UnityEngine.UI;
 // are kept); what this menu makes itself is named "[Gen] ..." (children of his objects) or lives in:
 // - RoomSystems: rebuilt every time - him (first person + arms), his screen (HUD, thoughts, evidence panel, keypad
 //   overlay, the fake OS), the station, settings, story, the room's invisible walls.
+// - RoomSystems/WakeUp: the cutscene of his first time here, waking up on the cot (OperatorWakeBuilder).
 // - RoomLights / RoomExtras: the ceiling lamps and the new props - made only when missing (move them freely; delete
 //   the root to get it made again).
 // The camera program (Helena, the CCTV) is linked in the next step (additive scenes).
@@ -114,7 +115,12 @@ internal static class OperatorSceneSetup
         SetUpLights(ceiling);
         PinballMachine pinball = SetUpExtras();
 
+        // waking up on the cot, the first time in the room (after cutscene 01)
+        Cutscene wake = OperatorWakeBuilder.Build(sys, Find("SM_OpRoom_Cot"), roomCenter, pc, Find("Door_Metal"), settings, story, out Transform wakeEnd);
+
         var so = new SerializedObject(station);
+        so.FindProperty(OperatorStation.WakeCutsceneField).objectReferenceValue = wake;
+        so.FindProperty(OperatorStation.WakeEndField).objectReferenceValue = wakeEnd;
         so.FindProperty(OperatorStation.PlayerField).objectReferenceValue = player;
         so.FindProperty(OperatorStation.HudField).objectReferenceValue = hud;
         so.FindProperty(OperatorStation.DesktopField).objectReferenceValue = os;
@@ -130,6 +136,7 @@ internal static class OperatorSceneSetup
         AssetDatabase.SaveAssets();
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
+        HelenaSetupMenu.AddToBuild(scene.path);   // cutscene 01 ends by loading it
         Selection.activeGameObject = station.gameObject;
         string miss = missing.Count > 0 ? "\nNot found (skipped): " + string.Join(", ", missing) : "";
         Debug.Log($"[Operator] Room set up in {scene.name}: press Play. The PC starts OFF (button on the case). Login password: in OperatorOS (RoomSystems/RoomUI). Keypad code: RoomKeypad on Keypad.{miss}");
@@ -831,8 +838,8 @@ internal static class OperatorSceneSetup
 
         // under the window: a cot, a side table with the radio
         Flavor(Prop(root, "SM_OpRoom_Cot", At(-2.4f, 4.42f), 180f), "Cot", "Catre",
-            new[] { "Someone slept here. Not me.", "The blanket smells like smoke.", "...the pillow is still warm." },
-            new[] { "Alguém dormiu aqui. Não fui eu.", "O cobertor tem cheiro de fumaça.", "...o travesseiro ainda está morno." }, OperatorSounds.Kind.Paper, OperatorInteractable.HandMotion.None);
+            new[] { "This is where I woke up.", "The blanket smells like smoke.", "...the pillow is still warm. From me." },
+            new[] { "Foi aqui que eu acordei.", "O cobertor tem cheiro de fumaça.", "...o travesseiro ainda está morno. De mim." }, OperatorSounds.Kind.Paper, OperatorInteractable.HandMotion.None);
         Prop(root, "SM_OpRoom_SideTable", At(-0.95f, 4.55f), 180f, collider: true);
         GameObject radio = Prop(root, "SM_OpRoom_Radio", At(-0.95f, 4.6f) + Vector3.up * 0.6f, 195f);
         if (radio != null)

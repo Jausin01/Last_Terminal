@@ -19,7 +19,10 @@ using UnityEngine.Rendering.Universal;
 public static class HelenaSetupMenu
 {
     private const string Root = "Assets/Characters/Helena";
-    private const string ModelPath = Root + "/Animations/HelenaIdle.fbx";
+    private const string ModelPath = Root + "/Animations/HelenaIdle.fbx";   // the old Helena: her clips' avatar (the idle clip)
+    // the character in the scenes: Helena 2 (Model2/Helena2.fbx, menus 18 + 21) when she is there, else the old model
+    internal static bool UseHelena2 => AssetDatabase.LoadAssetAtPath<GameObject>(HelenaCompareBuilder.ModelPath) != null;
+    internal static string CharacterModelPath => UseHelena2 ? HelenaCompareBuilder.ModelPath : ModelPath;
     private const string WalkPath = Root + "/Animations/HelenaWalking.fbx";
     private const string TurnLeftPath = Root + "/Animations/HelenaTurnLeft.fbx";
     private const string TurnRightPath = Root + "/Animations/HelenaTurnRight.fbx";
@@ -809,7 +812,9 @@ public static class HelenaSetupMenu
     internal static void BuildLocation(string scenePath, string navMeshPath, System.Func<Scene, Shader, LocationContent> buildContent)
     {
         var ctrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(ControllerPath);
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterModelPath);
+        if (UseHelena2 && AssetDatabase.LoadAssetAtPath<Material>(HelenaCompareBuilder.BodyMaterialPath) == null)
+            Debug.LogWarning("[Helena] Helena 2's materials are missing: run menu 18 (and 21 for her adjusted weapon clips, then 2).");
         if (ctrl == null || prefab == null)
         {
             Debug.LogError("[Helena] Missing controller or model. Run menus 0, 1 and 2 first.");
@@ -1224,7 +1229,7 @@ public static class HelenaSetupMenu
     // idle clip, its outfits set up like hers (PartnerOutfit wears the outfit at start), no Animator (it stays posed).
     internal static GameObject BuildMannequin(Transform parent, Shader lit, OutfitDefinition outfit)
     {
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterModelPath);
         if (prefab == null) { Debug.LogWarning("[Helena] Model missing: run menus 0 and 1."); return null; }
         var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
         PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
@@ -1354,15 +1359,23 @@ public static class HelenaSetupMenu
             .OfType<AnimationClip>()
             .FirstOrDefault(c => !c.name.StartsWith("__preview__"));
         if (clip == null) MissingClips.Add(path);
-        return clip;
+        return Adjusted(clip);
     }
 
     // one of several clips cut from the same file (HelenaImport)
     private static AnimationClip LoadClip(string path, string clipName)
     {
-        return AssetDatabase.LoadAllAssetsAtPath(path)
+        return Adjusted(AssetDatabase.LoadAllAssetsAtPath(path)
             .OfType<AnimationClip>()
-            .FirstOrDefault(c => c.name == clipName);
+            .FirstOrDefault(c => c.name == clipName));
+    }
+
+    // with Helena 2: her copy of the clip adjusted to her (weapon clips, Last Terminal/21) when there is one
+    private static AnimationClip Adjusted(AnimationClip clip)
+    {
+        if (clip == null || !UseHelena2) return clip;
+        var copy = AssetDatabase.LoadAssetAtPath<AnimationClip>($"{HelenaClipBaker.OutFolder}/{clip.name}{HelenaClipBaker.Suffix}.anim");
+        return copy != null ? copy : clip;
     }
 
     // asset name -> item; creates the test items once, never overwrites tuned ones
@@ -2023,7 +2036,7 @@ public static class HelenaSetupMenu
         return button;
     }
 
-    private static void AddToBuild(string scenePath)
+    internal static void AddToBuild(string scenePath)
     {
         var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
         if (scenes.Exists(s => s.path == scenePath)) return;

@@ -18,6 +18,8 @@ using UnityEngine.UI;
 // save of another scene, a restart) starts in the camera program (GameSession).
 // Every switch turns the operator's things (camera system, inputs, his UI, the CCTV filter, the view camera) on or
 // off together; the room has its own camera and listener.
+// Waking up: the first time in the room (until its cutscene has been seen) he wakes up on the cot - a cinema
+// cutscene with its own camera; at its end (or Esc) he stands where it left him (Wake End) and walks around.
 public class OperatorStation : MonoBehaviour
 {
     public const string PlayerField = nameof(player);
@@ -38,6 +40,8 @@ public class OperatorStation : MonoBehaviour
     public const string SessionField = nameof(session);
     public const string SettingsField = nameof(settings);
     public const string IntroCutsceneField = nameof(introCutscene);
+    public const string WakeCutsceneField = nameof(wakeCutscene);
+    public const string WakeEndField = nameof(wakeEnd);
     public const string SeatViewField = nameof(seatView);
     public const string ScreenViewField = nameof(screenView);
     public const string PinballField = nameof(pinball);
@@ -92,6 +96,13 @@ public class OperatorStation : MonoBehaviour
     [Tooltip("Optional: the cutscene of the first time at the cameras. Until it has played, sitting at the PC " +
              "doesn't get her up (the cutscene does).")]
     [SerializeField] private Cutscene introCutscene;
+
+    [Header("Waking up")]
+    [Tooltip("Optional: the cutscene of his first time in the room (he wakes up on the cot). Played when the room " +
+             "starts, until it has been seen. Its director's Cinema Camera shows it.")]
+    [SerializeField] private Cutscene wakeCutscene;
+    [Tooltip("Where he stands when it ends (on the floor; the blue arrow = where he looks).")]
+    [SerializeField] private Transform wakeEnd;
 
     [Header("Close dialog")]
     [SerializeField] private CanvasGroup dialog;
@@ -161,7 +172,40 @@ public class OperatorStation : MonoBehaviour
         {
             Apply(Mode.Room);
             if (partnerRest != null) partnerRest.Rest(true);   // she waits in her cell
+            if (wakeCutscene != null && !wakeCutscene.HasPlayed) BeginWake();
         }
+    }
+
+    // ------------------------------------------------------------------ waking up (cinema cutscene)
+    private void BeginWake()
+    {
+        CutsceneDirector director = wakeCutscene.Director;
+        Camera cinema = director != null ? director.CinemaCamera : null;
+        if (cinema == null) return;
+        transitioning = true;
+        player.SetControl(false);
+        player.SetArmsVisible(false);
+        hud.SetVisible(false);
+        roomCamera.enabled = false;
+        if (roomListener != null) roomListener.enabled = false;
+        cinema.enabled = true;
+        if (cinema.TryGetComponent(out AudioListener ears)) ears.enabled = true;
+        LockCursor(true);
+        director.Finished += OnWakeFinished;
+        if (!wakeCutscene.Play()) OnWakeFinished(wakeCutscene);
+    }
+
+    private void OnWakeFinished(Cutscene cutscene)
+    {
+        if (cutscene != wakeCutscene) return;
+        CutsceneDirector director = wakeCutscene.Director;
+        director.Finished -= OnWakeFinished;
+        Camera cinema = director.CinemaCamera;
+        cinema.enabled = false;
+        if (cinema.TryGetComponent(out AudioListener ears)) ears.enabled = false;
+        if (wakeEnd != null) player.PlaceAt(wakeEnd.position, wakeEnd.eulerAngles.y);
+        transitioning = false;
+        Apply(Mode.Room);
     }
 
     private bool HasOperator => cameraSystem != null && viewCamera != null;

@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 [Serializable, CutsceneStepInfo("Fala/Pensamento (balão)", 23)]
 public class ThoughtStep : CutsceneStep
 {
-    [Tooltip("What the protagonist thinks (shown in the thought balloon, not said).")]
+    [Tooltip("What the protagonist thinks (shown in the thoughts block, top-left, not said).")]
     [TextArea(2, 4)] public string textPt = "";
     [TextArea(2, 4)] public string textEn = "";
     [Tooltip("Wait until it fades before the next step.")]
@@ -44,6 +44,8 @@ public class HandTargetStep : CutsceneStep
     [Range(0f, 1f)] public float weight = 1f;
     [Tooltip("Seconds to get there.")]
     public float blend = 0.4f;
+    [Tooltip("The hand also turns to the target's rotation (blue arrow = where the fingers point, green = the back of the hand).")]
+    public bool orient;
 
     public override string Summary => left == null && right == null ? $"{N(actor)} solta as mãos" : $"{N(actor)} põe as mãos em {N(left)} / {N(right)}";
 
@@ -51,14 +53,14 @@ public class HandTargetStep : CutsceneStep
     {
         if (actor == null) yield break;
         d.Use(actor);
-        actor.SetHandTargets(left, right, weight, blend);
+        actor.SetHandTargets(left, right, weight, blend, orient);
     }
 
     public override void Finish(CutsceneDirector d)
     {
         if (actor == null) return;
         d.Use(actor);
-        actor.SetHandTargets(left, right, weight, 0f);
+        actor.SetHandTargets(left, right, weight, 0f, orient);
     }
 }
 

@@ -7,7 +7,8 @@ using UnityEngine.AI;
 // A character other than Helena that plays clips needs CutsceneA / CutsceneB states in its controller and the two
 // empty clips here (Last Terminal/11 adds them to a controller).
 // Hands on targets (a steering wheel, a door): SetHandTargets moves the hands there by IK, blended in / out (the
-// Animator's layer needs IK Pass on).
+// Animator's layer needs IK Pass on). With orient, the hand also turns to the target's rotation after the animation
+// (forward = where the fingers point, up = the back of the hand), so it can rest on an edge instead of going through it.
 public class CutsceneActor : MonoBehaviour
 {
     public const string DisplayNameField = nameof(displayName);
@@ -46,6 +47,7 @@ public class CutsceneActor : MonoBehaviour
     private int restState;      // another character: the state it was in when the cutscene began
     private Transform ikLeft, ikRight;
     private float ikWeight, ikGoal, ikSpeed = 4f;
+    private bool ikOrient;
 
     public bool IsResting => rest != null && rest.IsResting;
     public string DisplayName => displayName;
@@ -140,9 +142,9 @@ public class CutsceneActor : MonoBehaviour
 
     // ------------------------------------------------------------------ hands (IK)
     // left / right: where the hands go (null = that hand free); weight 0..1; blend: seconds to get there
-    public void SetHandTargets(Transform left, Transform right, float weight, float blend)
+    public void SetHandTargets(Transform left, Transform right, float weight, float blend, bool orient = false)
     {
-        if (left != null || right != null) { ikLeft = left; ikRight = right; }
+        if (left != null || right != null) { ikLeft = left; ikRight = right; ikOrient = orient; }
         ikGoal = (left != null || right != null) ? Mathf.Clamp01(weight) : 0f;
         ikSpeed = blend > 0f ? 1f / blend : 1000f;
         if (blend <= 0f) ikWeight = ikGoal;
@@ -159,6 +161,31 @@ public class CutsceneActor : MonoBehaviour
     {
         animator.SetIKPositionWeight(goal, target != null ? ikWeight : 0f);
         if (target != null) animator.SetIKPosition(goal, target.position);
+    }
+
+    // after the animation and its IK: the hands turned onto their targets (orient)
+    private void LateUpdate()
+    {
+        if (!ikOrient || animator == null || ikWeight <= 0f) return;
+        Orient(true, ikLeft);
+        Orient(false, ikRight);
+    }
+
+    // the hand's frame from its bones (fingers = wrist -> index knuckle, the thumb gives the palm side: it works on
+    // rigs with only a thumb and an index too) turned onto the target's
+    private void Orient(bool left, Transform target)
+    {
+        if (target == null) return;
+        Transform hand = animator.GetBoneTransform(left ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand);
+        Transform index = animator.GetBoneTransform(left ? HumanBodyBones.LeftIndexProximal : HumanBodyBones.RightIndexProximal);
+        Transform thumb = animator.GetBoneTransform(left ? HumanBodyBones.LeftThumbProximal : HumanBodyBones.RightThumbProximal);
+        if (hand == null || index == null || thumb == null) return;
+        Vector3 fingers = (index.position - hand.position).normalized;
+        Vector3 side = Vector3.ProjectOnPlane(thumb.position - hand.position, fingers).normalized;
+        Vector3 back = (left ? 1f : -1f) * Vector3.Cross(fingers, side);
+        if (fingers.sqrMagnitude < 1e-6f || back.sqrMagnitude < 1e-6f) return;
+        Quaternion fix = Quaternion.LookRotation(target.forward, target.up) * Quaternion.Inverse(Quaternion.LookRotation(fingers, back));
+        hand.rotation = Quaternion.Slerp(Quaternion.identity, fix, ikWeight) * hand.rotation;
     }
 
     private void Update()

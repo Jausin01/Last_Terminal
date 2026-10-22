@@ -25,9 +25,9 @@ MonoBehaviour:
     replacement: {fileID: 2100000, guid: 559b62ef419ac024595860e5a103cef1, type: 2}
   - original: {fileID: 2100000, guid: 580c04ce562fc8b4a97c446efe09ac99, type: 2}
     replacement: {fileID: 2100000, guid: 14fab8c4d4452de43b33c820501c93c5, type: 2}
-  meshSwaps:
-  - part: top.002
-    mesh: {fileID: 4300000, guid: fa592b2a7ea2bdb47bbd877e46a6d619, type: 2}
+  - original: {fileID: 2100000, guid: 1372be6184ba57645adca5d274b3b8ba, type: 2}
+    replacement: {fileID: 2100000, guid: 31b16e78c5fe0b14b8fc1eaf9844acee, type: 2}
+  meshSwaps: []
   hiddenParts:
   - Plane.001
   - retop.001

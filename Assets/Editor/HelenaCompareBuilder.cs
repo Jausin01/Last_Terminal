@@ -11,16 +11,17 @@ using UnityEngine.Rendering;
 internal static class HelenaCompareBuilder
 {
     private const string Folder = "Assets/Characters/Helena/Model2";
-    private const string ModelPath = Folder + "/Helena2.fbx";
+    internal const string ModelPath = Folder + "/Helena2.fbx";
     private const string BasePath = Folder + "/T_Helena2_Base.png";
-    private const string NormalPath = Folder + "/T_Helena2_Normal.png";
+    internal const string NormalPath = Folder + "/T_Helena2_Normal.png";
+    internal const string BodyMaterialPath = Folder + "/Materials/M_Helena2_Body.mat";   // made by menu 18
     private const string MetalSmoothPath = Folder + "/T_Helena2_MetalSmooth.png";
     private const string HairPath = Folder + "/T_Helena2_Hair.png";
-    private const string OldModelPath = "Assets/Characters/Helena/Animations/HelenaIdle.fbx";
+    internal const string OldModelPath = "Assets/Characters/Helena/Animations/HelenaIdle.fbx";
     private const string AnimFolder = "Assets/Characters/Helena/Animations";
     private const string CastAnimFolder = "Assets/Characters/Cast/Animations";
     private const string ScenePath = "Assets/Scenes/HelenaCompare.unity";
-    private const string WeaponPrefabFolder = "Assets/Prefabs/Weapons";
+    internal const string WeaponPrefabFolder = "Assets/Prefabs/Weapons";
     private const float BodySmoothness = 0.7f;   // x the map (Meshy roughness)
     private const float HairCutoff = 0.35f;      // lower = fuller locks
 
@@ -50,7 +51,7 @@ internal static class HelenaCompareBuilder
 
         AnimationClip[] clips = Clips();
         WeaponGrips.ApplyAll();   // the weapon prefabs get her grips (shown on the weapon clips)
-        BuildScene(oldModel, model, clips);
+        BuildScene(ScenePath, oldModel, "Antiga", model, "Nova", clips, null, true);
         Debug.Log($"[Helena2] Compare scene: {ScenePath}, {clips.Length} clips. Play: Right / Left = clip, Space = pause, Q / E = turn.");
     }
 
@@ -128,7 +129,7 @@ internal static class HelenaCompareBuilder
     }
 
     // every clip of hers: her animation files + the bed clips of the asylum
-    private static AnimationClip[] Clips()
+    internal static AnimationClip[] Clips()
     {
         var clips = new List<AnimationClip>();
         var paths = AssetDatabase.FindAssets("t:Model", new[] { AnimFolder }).Select(AssetDatabase.GUIDToAssetPath).ToList();
@@ -140,7 +141,9 @@ internal static class HelenaCompareBuilder
     }
 
     // ------------------------------------------------------------------ scene
-    private static void BuildScene(GameObject oldModel, GameObject newModel, AnimationClip[] clips)
+    // two models side by side playing the clips (the right one plays rightClips[i] instead when set)
+    internal static void BuildScene(string scenePath, GameObject leftModel, string leftLabel, GameObject rightModel, string rightLabel,
+                                    AnimationClip[] clips, AnimationClip[] rightClips, bool closeFingers)
     {
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -174,8 +177,8 @@ internal static class HelenaCompareBuilder
         camGo.transform.position = new Vector3(0f, 1.25f, -4.4f);
         camGo.transform.LookAt(new Vector3(0f, 0.95f, 0f));
 
-        Animator oldA = Place(oldModel, "Helena (old)", -0.65f);
-        Animator newA = Place(newModel, "Helena2 (new)", 0.65f);
+        Animator oldA = Place(leftModel, "Helena " + leftLabel, -0.65f);
+        Animator newA = Place(rightModel, "Helena " + rightLabel, 0.65f);
 
         // weapons: a display copy of each weapon prefab per model (only its Weapon component: no combat logic here)
         var weaponRoot = new GameObject("Weapons").transform;
@@ -187,20 +190,21 @@ internal static class HelenaCompareBuilder
         for (int i = 0; i < clips.Length; i++)
         {
             weaponOfClip[i] = WeaponFor(clips[i].name);
-            aimOfClip[i] = clips[i].name.Contains("Aim") || clips[i].name.Contains("Gunplay");
+            aimOfClip[i] = IsAim(clips[i].name);
         }
 
         var compare = new GameObject("Compare").AddComponent<ModelCompare>();
-        compare.EditorSet(new[] { oldA, newA }, new[] { "Antiga", "Nova" }, clips, cam,
-                          display.ToArray(), ShownWeapons.Length, weaponOfClip, aimOfClip);
+        compare.EditorSet(new[] { oldA, newA }, new[] { leftLabel, rightLabel }, clips, cam,
+                          display.ToArray(), ShownWeapons.Length, weaponOfClip, aimOfClip, rightClips, closeFingers);
 
         HelenaSetupMenu.EnsureFolder("Assets", "Scenes");
-        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), ScenePath);
+        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), scenePath);
     }
 
     // the weapon shown on a clip, from its name (index in ShownWeapons, -1 = none)
-    private static readonly string[] ShownWeapons = { "Pistol1911", "ShotgunMossberg", "KitchenKnife", "Bat" };
-    private static int WeaponFor(string clip)
+    internal static readonly string[] ShownWeapons = { "Pistol1911", "ShotgunMossberg", "KitchenKnife", "Bat" };
+    internal static bool IsAim(string clip) => clip.Contains("Aim") || clip.Contains("Gunplay");
+    internal static int WeaponFor(string clip)
     {
         if (clip.Contains("Shotgun")) return 1;
         if (clip.Contains("Pistol")) return 0;
