@@ -126,3 +126,6 @@ Português em `Assets/Audio/Voice/Helena/PT/`, inglês em `Assets/Audio/Voice/He
 | `NoCounter_01` | Mandaram trocar fichas / comprar fora do cassino. | Não tem balcão de prêmios aqui. | There's no prize counter here. |
 | `OperatorAway_01` | O operador fechou o programa das câmeras (ela fica sozinha numa zona segura, senta no chão). | Tá... eu espero aqui. Não demora. | Okay... I'll wait here. Don't take too long. |
 | `OperatorBack_01` | O operador voltou para as câmeras; ela se levanta. | Aí está você. Vamos continuar. | There you are. Let's keep going. |
+| `TagPatient_01` | Perguntaram o que tá escrito na plaquinha (roupa de paciente). Ela olha pro peito e lê devagar: 2716 dígito por dígito (two-seven-one-six / dois, sete, um, seis), leito 103 (one-oh-three / cento e três). | Tá escrito... paciente 2716. Leito 103. | It says... patient 2716. Bed 103. |
+| `TagPrison_01` | Perguntaram o que tá escrito na plaquinha (uniforme de prisão). Ela lê o número dígito por dígito (zero-nine-one-seven / zero, nove, um, sete), meio incomodada. | 0917. Só isso. | 0917. That's all it says. |
+| `NoTag_01` | Perguntaram o número da plaquinha, mas a roupa dela não tem nenhuma. | Eu não tô com plaquinha nenhuma. | I'm not wearing a tag. |

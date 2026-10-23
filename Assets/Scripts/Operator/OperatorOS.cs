@@ -9,8 +9,9 @@ using UnityEngine.UI;
 // - Power (PcPower): off = black; pressed = BIOS lines, the logo (the jingle plays on the case), then the login.
 // - Login: user OPERADOR, the password set here (empty = just Enter); a hint after a few wrong tries.
 // - Desktop: Cameras (CCTV.EXE: the camera program, or "no signal" when no location is linked), My Computer
-//   (file explorer: folders of OperatorFiles, text and picture viewers), E-mail (OperatorEmails, unread until opened),
-//   Recycle Bin; Start menu (the same + Run..., Stand up, Shut down). Run "cmd" opens the hidden terminal.
+//   (file explorer: folders of OperatorFiles, text and picture viewers), E-mail (OperatorEmails, unread until opened;
+//   a voice player when the sender recorded it), Recycle Bin, Settings (SettingsWindow); Start menu (the same + Run...,
+//   Stand up, Shut down). Run "cmd" opens the hidden terminal.
 // Files and e-mails appear with their story flags (StoryProgress). Windows drag by their title bar; Esc closes the
 // top one, then gets him up. Every text follows the game language (CameraSettings).
 public class OperatorOS : DesktopScreen
@@ -34,6 +35,7 @@ public class OperatorOS : DesktopScreen
     public const string MailField = nameof(mail);
     public const string TerminalField = nameof(terminal);
     public const string DialogsField = nameof(dialogs);
+    public const string SettingsWindowField = nameof(settingsWindow);
 
     // a fixed text of the UI in both languages (icon names, menu entries, buttons)
     [Serializable]
@@ -85,6 +87,7 @@ public class OperatorOS : DesktopScreen
         public Button mail;
         public TMP_Text mailLabel;
         public Button recycle;
+        public Button settings;
         public Button start;
         public CanvasGroup startMenu;
         public Button startCameras;
@@ -92,6 +95,7 @@ public class OperatorOS : DesktopScreen
         public Button startMail;
         public Button startRecycle;
         public Button startRun;
+        public Button startSettings;
         public Button startStand;
         public Button startShutdown;
         public TMP_Text clock;
@@ -131,6 +135,17 @@ public class OperatorOS : DesktopScreen
         public ScrollRect bodyScroll;
         public Button attachment;
         public TMP_Text attachmentLabel;
+        [Header("Voice player")]
+        public GameObject voiceBar;
+        public Button voicePlay;
+        public RawImage voiceIcon;
+        public Texture2D playTexture;
+        public Texture2D pauseTexture;
+        [Tooltip("Stretched from the left: its right edge = how much was played.")]
+        public RectTransform voiceFill;
+        public TMP_Text voiceLabel;
+        public TMP_Text voiceTime;
+        public AudioSource voiceSource;
     }
 
     [Serializable]
@@ -191,6 +206,8 @@ public class OperatorOS : DesktopScreen
     [SerializeField] private MailRefs mail = new MailRefs();
     [SerializeField] private TerminalRefs terminal = new TerminalRefs();
     [SerializeField] private DialogRefs dialogs = new DialogRefs();
+    [Tooltip("The game settings (the gear on the desktop).")]
+    [SerializeField] private SettingsWindow settingsWindow;
 
     private const string RecycleKey = "\u0001recycle";
     private const int TerminalMaxChars = 6000;
@@ -240,16 +257,19 @@ public class OperatorOS : DesktopScreen
         Wire(desktop.computer, () => OpenExplorer(null));
         Wire(desktop.mail, OpenMail);
         Wire(desktop.recycle, () => OpenExplorer(RecycleKey));
+        Wire(desktop.settings, OpenSettings);
         Wire(desktop.start, ToggleStart);
         Wire(desktop.startCameras, OnCameras);
         Wire(desktop.startFiles, () => OpenExplorer(null));
         Wire(desktop.startMail, OpenMail);
         Wire(desktop.startRecycle, () => OpenExplorer(RecycleKey));
         Wire(desktop.startRun, OpenRun);
+        Wire(desktop.startSettings, OpenSettings);
         Wire(desktop.startStand, OnStand);
         Wire(desktop.startShutdown, OnShutdown);
 
         Wire(mail.attachment, OpenAttachment);
+        if (mail.voicePlay != null) mail.voicePlay.onClick.AddListener(ToggleVoice);
         Wire(dialogs.runOk, SubmitRun);
         Wire(dialogs.runCancel, () => dialogs.run.Close());
         Wire(dialogs.messageOk, () => dialogs.message.Close());
@@ -291,7 +311,7 @@ public class OperatorOS : DesktopScreen
     {
         open = value;
         Show(group, value);
-        if (!value) { SetStartMenu(false); return; }
+        if (!value) { SetStartMenu(false); StopVoice(); if (settingsWindow != null) settingsWindow.Close(); return; }
         Refresh();
         if (stage == Stage.Login) FocusPassword();
     }
@@ -299,6 +319,7 @@ public class OperatorOS : DesktopScreen
     public override bool CloseTopWindow()
     {
         if (stage != Stage.Desktop) return false;
+        if (settingsWindow != null && settingsWindow.IsOpen) { settingsWindow.Close(); Click(); return true; }
         if (startOpen) { SetStartMenu(false); return true; }
         OsWindow top = null;
         foreach (OsWindow w in windows)
@@ -437,6 +458,12 @@ public class OperatorOS : DesktopScreen
         RaiseStand();
     }
 
+    private void OpenSettings()
+    {
+        CloseStart();
+        if (settingsWindow != null) settingsWindow.Open();
+    }
+
     private void OnShutdown()
     {
         CloseStart();
@@ -468,6 +495,7 @@ public class OperatorOS : DesktopScreen
 
     private void Refresh()
     {
+        if (mail.voiceSource != null && mail.voiceSource.clip != null && mail.voiceSource.clip != MailVoice) StopVoice();   // the language changed
         foreach (LabelRef l in labels)
             if (l != null && l.text != null) l.text.text = Pt && !string.IsNullOrEmpty(l.pt) ? l.pt : l.en;
         CollectFiles();
@@ -629,7 +657,8 @@ public class OperatorOS : DesktopScreen
         {
             OperatorEmail e = m;
             bool unread = !IsRead(OperatorEmail.ReadPrefix + m.Id);
-            string label = (unread ? $"<b><color=#C08A00>{T("NEW", "NOVO")}</color> " : "") + m.FromName + "  |  " + m.Subject(Language) + (unread ? "</b>" : "");
+            string voice = mail.voiceBar != null ? $"<color=#555555>[{T("VOICE", "VOZ")}]</color> " : "";
+            string label = voice + (unread ? $"<b><color=#C08A00>{T("NEW", "NOVO")}</color> " : "") + m.FromName + "  |  " + m.Subject(Language) + (unread ? "</b>" : "");
             if (m == mailOpen) label = "<u>" + label + "</u>";
             mailRows.Add(Row(mail.list, label, () => { Click(); ReadMail(e); }));
         }
@@ -638,6 +667,7 @@ public class OperatorOS : DesktopScreen
 
     private void ReadMail(OperatorEmail m)
     {
+        if (m != mailOpen) StopVoice();
         mailOpen = m;
         ShowMailBody(m);
         MarkRead(OperatorEmail.ReadPrefix + m.Id);   // rebuilds the list (FlagSet)
@@ -654,6 +684,60 @@ public class OperatorOS : DesktopScreen
         bool attached = m != null && m.Attachment != null;
         if (mail.attachment != null) mail.attachment.gameObject.SetActive(attached);
         if (attached && mail.attachmentLabel != null) mail.attachmentLabel.text = T("Attachment: ", "Anexo: ") + m.Attachment.FileName(Language);
+        if (mail.voiceBar != null) mail.voiceBar.SetActive(m != null);
+        ShowVoice();
+    }
+
+    // ------------------------------------------------------------------ the voice of an e-mail
+    private AudioClip MailVoice => mailOpen != null ? mailOpen.Voice(Language) : null;
+
+    private void ToggleVoice()
+    {
+        if (mail.voiceSource == null || mailOpen == null) return;
+        AudioClip clip = MailVoice;
+        if (clip == null)
+        {
+            OperatorSounds.Play(audioSource, OperatorSounds.Kind.Denied, 0.4f);
+            return;
+        }
+        if (mail.voiceSource.isPlaying) mail.voiceSource.Pause();
+        else
+        {
+            if (mail.voiceSource.clip != clip) { mail.voiceSource.clip = clip; mail.voiceSource.time = 0f; }
+            else if (mail.voiceSource.time >= clip.length - 0.05f) mail.voiceSource.time = 0f;
+            mail.voiceSource.Play();
+        }
+        ShowVoice();
+    }
+
+    private void StopVoice()
+    {
+        if (mail.voiceSource == null) return;
+        mail.voiceSource.Stop();
+        mail.voiceSource.clip = null;
+        ShowVoice();
+    }
+
+    private void ShowVoice()
+    {
+        if (mail.voiceBar == null || mailOpen == null) return;
+        AudioClip clip = MailVoice;
+        AudioSource src = mail.voiceSource;
+        bool playing = src != null && src.isPlaying && src.clip == clip;
+        if (mail.voiceIcon != null) mail.voiceIcon.texture = playing ? mail.pauseTexture : mail.playTexture;
+        if (mail.voiceLabel != null)
+            mail.voiceLabel.text = clip != null ? T("Voice message from ", "Mensagem de voz de ") + mailOpen.FromName
+                                                : $"<color=#777777>{T("Voice message: no recording yet", "Mensagem de voz: sem gravação ainda")}</color>";
+        float played = src != null && src.clip == clip && clip != null ? src.time : 0f;
+        float length = clip != null ? clip.length : 0f;
+        if (mail.voiceFill != null) mail.voiceFill.anchorMax = new Vector2(length > 0f ? Mathf.Clamp01(played / length) : 0f, 1f);
+        if (mail.voiceTime != null) mail.voiceTime.text = clip != null ? $"{Clock(played)} / {Clock(length)}" : "--:--";
+    }
+
+    private static string Clock(float seconds)
+    {
+        int s = Mathf.FloorToInt(seconds);
+        return $"{s / 60}:{s % 60:00}";
     }
 
     private void OpenAttachment()
@@ -838,6 +922,11 @@ public class OperatorOS : DesktopScreen
         if (stage == Stage.Bios || stage == Stage.Logo) UpdateBoot();
         if (!open) return;
         if (desktop.clock != null) desktop.clock.text = DateTime.Now.ToString("HH:mm");
+        if (mail.voiceSource != null && mail.voiceSource.clip != null)
+        {
+            if (mail.window != null && !mail.window.IsOpen) StopVoice();   // the mail closed: the voice stops
+            else ShowVoice();
+        }
         if (desktop.status != null && statusTimer > 0f)
         {
             statusTimer -= Time.unscaledDeltaTime;

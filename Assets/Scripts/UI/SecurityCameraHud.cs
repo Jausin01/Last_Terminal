@@ -9,10 +9,13 @@ using UnityEngine.UI;
 // The operator's screen over the camera feed:
 //   feed  - camera label + room, blinking REC, clock, where she is ("SUBJECT IN VIEW" / room name), pan indicator,
 //           a burst of static when the camera changes;
-//   map   - (Tab) blueprint of the place drawn from the Rooms: numbered doors (click the remote ones), cameras and
-//           their view, her blip, the marked spots of big halls (named: say it to send her there); side panel with
-//           where she is, the camera on screen, the places, the door list and a legend;
-//           mouse wheel on the map = zoom (toward the cursor), right / middle drag = move it; wheel on the side = scroll;
+//   map   - blueprint of the place drawn from the Rooms: numbered doors (click the remote ones), cameras and
+//           their view, her blip, the marked spots of big halls (named: say it to send her there).
+//           Tab once: the corner map (bottom right, the picture stays): it follows her (drag = look around, the
+//           button = follow again), wheel over it = zoom. Tab again: the large map over the picture, with the side
+//           panel (where she is, the camera on screen, the places, the door list, a legend). The same drawing moves
+//           between the two windows. Wheel on the map = zoom (toward the cursor), right / middle drag = move it;
+//           wheel on the side = scroll;
 // Every text follows the game's language (CameraSettings), names of rooms included (Room.NameIn).
 //   settings - (Esc) pan control, pan speeds, camera filter on / off + strength, language, subtitles.
 // The fixed layout is built by Last Terminal/4; the map and the settings rows are generated here from the scene data.
@@ -41,6 +44,11 @@ public class SecurityCameraHud : MonoBehaviour
     public const string SettingsTitleField = nameof(settingsTitle);
     public const string PlaceNameField = nameof(placeName);
     public const string PlaceNamePtField = nameof(placeNamePt);
+    public const string MiniPanelField = nameof(miniPanel);
+    public const string MiniAreaField = nameof(miniArea);
+    public const string MiniTitleField = nameof(miniTitle);
+    public const string MiniFollowField = nameof(miniFollow);
+    public const string MiniFollowLabelField = nameof(miniFollowLabel);
 
     [SerializeField] private SecurityCameraSystem system;
     [SerializeField] private CameraSettings settings;
@@ -71,6 +79,17 @@ public class SecurityCameraHud : MonoBehaviour
     [Tooltip("The place on the map title (\"FACILITY\", \"CASINO\").")]
     [SerializeField] private string placeName = "FACILITY";
     [SerializeField] private string placeNamePt = "INSTALAÇÃO";
+
+    [Header("Corner map (first Tab)")]
+    [SerializeField] private CanvasGroup miniPanel;
+    [Tooltip("The window of the corner map (the drawing moves in here).")]
+    [SerializeField] private RectTransform miniArea;
+    [SerializeField] private TMP_Text miniTitle;
+    [Tooltip("Follow her again (after dragging the corner map).")]
+    [SerializeField] private Button miniFollow;
+    [SerializeField] private TMP_Text miniFollowLabel;
+    [Tooltip("Zoom of the corner map when it opens (1 = the scale of the large map).")]
+    [SerializeField, Min(0.1f)] private float miniStartZoom = 1.2f;
 
     [Header("Look")]
     [SerializeField] private Color phosphor = new Color(0.45f, 1f, 0.55f);
@@ -111,6 +130,12 @@ public class SecurityCameraHud : MonoBehaviour
     private float mapScale;
     private RectTransform mapContent;          // everything drawn on the map: scaled / moved by the zoom
     private float mapZoom = 1f;
+    // each window keeps its own zoom and position; the corner map follows her until dragged
+    private SecurityCameraSystem.MapView shownView;
+    private float largeZoom = 1f, miniZoom = -1f;
+    private Vector2 largePos, miniPos;
+    private bool follow = true;
+    private bool followShown;
     private RectTransform sideContent;         // the side rows: scrolled inside sideViewport
     private RectTransform sideViewport;
     private float sideHeight;
@@ -132,7 +157,9 @@ public class SecurityCameraHud : MonoBehaviour
             return;
         }
         SetPanel(mapPanel, false);
+        SetPanel(miniPanel, false);
         SetPanel(settingsPanel, false);
+        if (miniFollow != null) miniFollow.onClick.AddListener(() => { follow = true; RefreshFollow(); });
         BuildMap();
         BuildSettings();
     }
@@ -141,7 +168,7 @@ public class SecurityCameraHud : MonoBehaviour
     {
         if (system == null) return;
         system.ActiveCameraChanged += OnCameraChanged;
-        system.MapToggled += OnMapToggled;
+        system.MapChanged += OnMapChanged;
         system.SettingsToggled += OnSettingsToggled;
         if (settings != null) { settings.Changed += RefreshSettings; settings.Changed += RefreshLanguage; }
         foreach (Door d in doors) if (d != null) d.Changed += OnDoorChanged;
@@ -151,7 +178,7 @@ public class SecurityCameraHud : MonoBehaviour
     {
         if (system == null) return;
         system.ActiveCameraChanged -= OnCameraChanged;
-        system.MapToggled -= OnMapToggled;
+        system.MapChanged -= OnMapChanged;
         system.SettingsToggled -= OnSettingsToggled;
         if (settings != null) { settings.Changed -= RefreshSettings; settings.Changed -= RefreshLanguage; }
         foreach (Door d in doors) if (d != null) d.Changed -= OnDoorChanged;
@@ -189,7 +216,10 @@ public class SecurityCameraHud : MonoBehaviour
         for (int i = 0; i < SettingsRowCount; i++)
             if (settingsLabels[i] != null) settingsLabels[i].text = L(settingsLabelsEn[i], settingsLabelsPt[i]);
         if (closeLabel != null) closeLabel.text = L("CLOSE", "FECHAR");
-        if (hint != null) hint.text = "<mspace=0.6em>" + L("ENTER TALK   TAB MAP   Q/E CAMERA   ESC SETTINGS", "ENTER FALAR   TAB MAPA   Q/E CÂMERA   ESC OPÇÕES") + "</mspace>";
+        if (hint != null) hint.text = "<mspace=0.6em>" + L("ENTER TALK   TAB MAP (AGAIN: LARGE)   Q/E CAMERA   ESC MENU", "ENTER FALAR   TAB MAPA (DE NOVO: GRANDE)   Q/E CÂMERA   ESC MENU") + "</mspace>";
+        if (miniTitle != null) miniTitle.text = "<mspace=0.55em>" + L("MAP  //  TAB: LARGE", "MAPA  //  TAB: AMPLIAR") + "</mspace>";
+        followShown = !follow;
+        RefreshFollow();
         string place = L(placeName, string.IsNullOrEmpty(placeNamePt) ? placeName : placeNamePt).ToUpperInvariant();
         if (mapTitle != null) mapTitle.text = "<mspace=0.6em>" + L(place + " MAP  //  SECURITY NETWORK", "MAPA: " + place + "  //  REDE DE SEGURANÇA") + "</mspace>";
         if (settingsTitle != null) settingsTitle.text = "<mspace=0.6em>" + L("SETTINGS", "CONFIGURAÇÕES") + "</mspace>";
@@ -250,6 +280,47 @@ public class SecurityCameraHud : MonoBehaviour
         {
             UpdateMap();
             MapInput();
+            if (shownView == SecurityCameraSystem.MapView.Corner) UpdateCorner();
+        }
+    }
+
+    // the corner map: the cursor on it is not for the world (no pan / zoom / clicks there); it follows her
+    private void UpdateCorner()
+    {
+        Mouse mouse = Mouse.current;
+        if (miniPanel != null && mouse != null)
+        {
+            Camera eventCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+            system.SetPointerOverPanel(RectTransformUtility.RectangleContainsScreenPoint((RectTransform)miniPanel.transform, mouse.position.ReadValue(), eventCamera));
+        }
+        if (follow && partner != null && mapContent != null)
+        {
+            Vector2 want = -MapPoint(partner.position) * mapZoom;
+            float k = 1f - Mathf.Exp(-8f * Time.unscaledDeltaTime);
+            SetMapView(Vector2.Lerp(mapContent.anchoredPosition, want, k));
+        }
+        RefreshFollow();
+    }
+
+    private void RefreshFollow()
+    {
+        if (miniFollowLabel == null || followShown == follow) return;
+        followShown = follow;
+        miniFollowLabel.text = follow ? L("FOLLOWING HELENA", "SEGUINDO HELENA") : L("> FOLLOW HELENA", "> SEGUIR HELENA");
+        miniFollowLabel.color = follow ? dim : spotColor;
+    }
+
+    private RectTransform Viewport => shownView == SecurityCameraSystem.MapView.Corner ? miniArea : mapArea;
+
+    // the corner map can zoom out until the whole drawing fits in it; the large one starts there
+    private float MinZoom
+    {
+        get
+        {
+            RectTransform v = Viewport;
+            if (v == null || mapContent == null || shownView != SecurityCameraSystem.MapView.Corner) return 1f;
+            Vector2 c = mapContent.sizeDelta;
+            return Mathf.Min(1f, Mathf.Min(v.rect.width / Mathf.Max(c.x, 1f), v.rect.height / Mathf.Max(c.y, 1f)));
         }
     }
 
@@ -264,12 +335,13 @@ public class SecurityCameraHud : MonoBehaviour
         float wheel = mouse.scroll.ReadValue().y;
         int notch = Mathf.Abs(wheel) > 0.01f ? (int)Mathf.Sign(wheel) : 0;
 
-        if (mapArea != null && mapContent != null && RectTransformUtility.RectangleContainsScreenPoint(mapArea, screen, eventCamera))
+        RectTransform view = Viewport;
+        if (view != null && mapContent != null && RectTransformUtility.RectangleContainsScreenPoint(view, screen, eventCamera))
         {
-            if (notch != 0 && RectTransformUtility.ScreenPointToLocalPointInRectangle(mapArea, screen, eventCamera, out Vector2 local))
+            if (notch != 0 && RectTransformUtility.ScreenPointToLocalPointInRectangle(view, screen, eventCamera, out Vector2 local))
             {
                 // the point under the cursor stays under it
-                float next = Mathf.Clamp(mapZoom * Mathf.Pow(mapZoomStep, notch), 1f, maxMapZoom);
+                float next = Mathf.Clamp(mapZoom * Mathf.Pow(mapZoomStep, notch), MinZoom, maxMapZoom);
                 Vector2 onContent = (local - mapContent.anchoredPosition) / mapZoom;
                 mapZoom = next;
                 SetMapView(local - onContent * mapZoom);
@@ -279,22 +351,25 @@ public class SecurityCameraHud : MonoBehaviour
             else if (drag)
             {
                 float toLocal = canvas != null ? 1f / canvas.scaleFactor : 1f;
+                if (screen != lastMouse) follow = false;   // looking around: it stops following her
                 SetMapView(mapContent.anchoredPosition + (screen - lastMouse) * toLocal);
                 lastMouse = screen;
             }
         }
-        else if (sideViewport != null && notch != 0 && RectTransformUtility.RectangleContainsScreenPoint(mapSide, screen, eventCamera))
+        else if (shownView == SecurityCameraSystem.MapView.Large && sideViewport != null && notch != 0 && RectTransformUtility.RectangleContainsScreenPoint(mapSide, screen, eventCamera))
         {
             sideScroll = Mathf.Clamp(sideScroll - notch * sideScrollStep, 0f, Mathf.Max(0f, sideHeight - sideViewport.rect.height));
             sideContent.anchoredPosition = new Vector2(0f, sideScroll);
         }
     }
 
-    // the zoomed map never leaves the well (at zoom 1 it fits it exactly)
+    // the zoomed map never leaves its window (the large one: at zoom 1 it fits it exactly; smaller than the window =
+    // centered)
     private void SetMapView(Vector2 position)
     {
         mapContent.localScale = new Vector3(mapZoom, mapZoom, 1f);
-        Vector2 limit = mapArea.rect.size * (mapZoom - 1f) * 0.5f;
+        RectTransform view = Viewport;
+        Vector2 limit = Vector2.Max(Vector2.zero, (mapContent.sizeDelta * mapZoom - view.rect.size) * 0.5f);
         mapContent.anchoredPosition = new Vector2(Mathf.Clamp(position.x, -limit.x, limit.x), Mathf.Clamp(position.y, -limit.y, limit.y));
     }
 
@@ -669,8 +744,10 @@ public class SecurityCameraHud : MonoBehaviour
         }
     }
 
-    private void OnMapToggled(bool open)
+    private void OnMapChanged(SecurityCameraSystem.MapView view)
     {
+        bool open = view != SecurityCameraSystem.MapView.Closed;
+        MoveMap(view);
         // cameras that only exist sometimes (blackjack table) are on the map only while active
         foreach (var (cam, wedge, dot) in cameraViews)
         {
@@ -682,7 +759,32 @@ public class SecurityCameraHud : MonoBehaviour
         for (int i = 0; i < cameraButtons.Count && i < cams.Count; i++)
             cameraButtons[i].gameObject.SetActive(cams[i] != null && cams[i].gameObject.activeInHierarchy);
         if (open) { RefreshDoorRows(); sideTimer = 0f; UpdateMap(); }
-        SetPanel(mapPanel, open);
+        SetPanel(mapPanel, view == SecurityCameraSystem.MapView.Large);
+        SetPanel(miniPanel, view == SecurityCameraSystem.MapView.Corner);
+    }
+
+    // the drawing goes to the window of this view, with that window's zoom / position (the corner map opens on her)
+    private void MoveMap(SecurityCameraSystem.MapView view)
+    {
+        if (mapContent == null) return;
+        if (shownView == SecurityCameraSystem.MapView.Large) { largeZoom = mapZoom; largePos = mapContent.anchoredPosition; }
+        else if (shownView == SecurityCameraSystem.MapView.Corner) { miniZoom = mapZoom; miniPos = mapContent.anchoredPosition; }
+        if (view == SecurityCameraSystem.MapView.Closed) { shownView = view; return; }
+        bool corner = view == SecurityCameraSystem.MapView.Corner && miniArea != null;
+        shownView = corner ? SecurityCameraSystem.MapView.Corner : SecurityCameraSystem.MapView.Large;
+        mapContent.SetParent(corner ? miniArea : mapArea, false);
+        if (corner)
+        {
+            if (miniZoom < 0f) miniZoom = miniStartZoom;
+            follow = true;
+            mapZoom = Mathf.Clamp(miniZoom, MinZoom, maxMapZoom);
+            SetMapView(partner != null ? -MapPoint(partner.position) * mapZoom : miniPos);
+        }
+        else
+        {
+            mapZoom = largeZoom;
+            SetMapView(largePos);
+        }
     }
 
     // while the map is open: her blip, rooms lit, camera views, the side panel

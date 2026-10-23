@@ -20,7 +20,9 @@ using UnityEngine.UI;
 // - RoomSystems/WakeUp: the cutscene of his first time here, waking up on the cot (OperatorWakeBuilder).
 // - RoomLights / RoomExtras: the ceiling lamps and the new props - made only when missing (move them freely; delete
 //   the root to get it made again).
-// The camera program (Helena, the CCTV) is linked in the next step (additive scenes).
+// The camera program (Helena, the CCTV) is a location scene loaded over the room by CCTV.EXE (OperatorLink /
+// OperatorLocation; the first one: the asylum). The room is moved once far from the origin (RoomOrigin), where the
+// locations are built, so the two scenes never overlap.
 internal static class OperatorSceneSetup
 {
     private const string PropFolder = "Assets/Art/Props/OperatorRoom";
@@ -32,6 +34,9 @@ internal static class OperatorSceneSetup
     private const string LightsRoot = "RoomLights";
     private const string Gen = "[Gen] ";
     private const float Tan33 = 0.6494f;   // half of the 66 deg view
+    // the first location his cameras reach (Last Terminal/17)
+    internal const string FirstLocationScene = "Asylum_IsolationWing";
+    private static readonly Vector3 RoomOrigin = new Vector3(400f, 0f, 400f);
 
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -69,6 +74,9 @@ internal static class OperatorSceneSetup
         RuntimeAnimatorController armsController = EnsureRoomArms();
         highlightMat = HighlightMaterial();
 
+        // ---------------------------------------------------------------- far from the locations loaded over it
+        MoveRoomAway(floor);
+
         // ---------------------------------------------------------------- the room's size
         Bounds floorBounds = WorldBounds(floor);
         GameObject ceilingGo = Find("Ceiling_Office");
@@ -93,7 +101,10 @@ internal static class OperatorSceneSetup
         panel = OperatorRoomUiBuilder.BuildEvidencePanel(canvas);
         OperatorRoomUiBuilder.BuildKeypadOverlay(canvas, out CanvasGroup kpGroup, out TMP_Text kpDisplay, out Button[] kpDigits, out Button kpClear, out Button kpEnter);
         PcPower power = SetUpCase(pcCase, pc);
-        OperatorOS os = OperatorRoomUiBuilder.BuildOS(canvas, settings, story, voice, power, files, mails);
+        SettingsWindow settingsWindow = OperatorRoomUiBuilder.BuildSettingsWindow(canvas, settings, voice);
+        OperatorOS os = OperatorRoomUiBuilder.BuildOS(canvas, settings, story, voice, power, files, mails, settingsWindow);
+        settingsWindow.transform.SetAsLastSibling();   // over the desktop
+        OperatorRoomBuilder.DialogRefs dialog = OperatorRoomBuilder.BuildDialog(canvas);   // Esc in the camera program
         ThoughtView thoughts = ThoughtViewBuilder.Build(canvas, settings);
         HelenaSetupMenu.SetReference(hud, OperatorRoomHud.ThoughtsField, thoughts);
         EnsureEventSystem(sys);
@@ -131,6 +142,19 @@ internal static class OperatorSceneSetup
         so.FindProperty(OperatorStation.PinballField).objectReferenceValue = pinball;
         so.FindProperty(OperatorStation.PcPowerField).objectReferenceValue = power;
         so.FindProperty(OperatorStation.SettingsField).objectReferenceValue = settings;
+        so.FindProperty(OperatorStation.SettingsWindowField).objectReferenceValue = settingsWindow;
+        so.FindProperty(OperatorStation.LinkField).objectReferenceValue = OperatorRoomBuilder.EnsureLink();
+        so.FindProperty(OperatorStation.LocationSceneField).stringValue = LocationInBuild();
+        so.FindProperty(OperatorStation.DialogField).objectReferenceValue = dialog.Group;
+        so.FindProperty(OperatorStation.DialogTitleField).objectReferenceValue = dialog.Title;
+        so.FindProperty(OperatorStation.DialogTextField).objectReferenceValue = dialog.Text;
+        so.FindProperty(OperatorStation.DialogMessageField).objectReferenceValue = dialog.Message;
+        so.FindProperty(OperatorStation.CloseButtonField).objectReferenceValue = dialog.Close;
+        so.FindProperty(OperatorStation.SettingsButtonField).objectReferenceValue = dialog.Settings;
+        so.FindProperty(OperatorStation.CancelButtonField).objectReferenceValue = dialog.Cancel;
+        so.FindProperty(OperatorStation.CloseLabelField).objectReferenceValue = dialog.CloseLabel;
+        so.FindProperty(OperatorStation.SettingsLabelField).objectReferenceValue = dialog.SettingsLabel;
+        so.FindProperty(OperatorStation.CancelLabelField).objectReferenceValue = dialog.CancelLabel;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         AssetDatabase.SaveAssets();
@@ -142,6 +166,36 @@ internal static class OperatorSceneSetup
         Debug.Log($"[Operator] Room set up in {scene.name}: press Play. The PC starts OFF (button on the case). Login password: in OperatorOS (RoomSystems/RoomUI). Keypad code: RoomKeypad on Keypad.{miss}");
         GameObject stray = Find("SM_OpFilingCabinet (1)");
         if (stray != null) Debug.LogWarning("[Operator] 'SM_OpFilingCabinet (1)' (a single drawer) is on the floor in the middle of the room: left as it is.", stray);
+    }
+
+    // ================================================================== his room and the locations
+    // his objects (every root but RoomSystems) moved together so the floor's middle is at RoomOrigin (once: then it is there)
+    private static void MoveRoomAway(GameObject floor)
+    {
+        Bounds b = WorldBounds(floor);
+        Vector3 offset = new Vector3(RoomOrigin.x - b.center.x, 0f, RoomOrigin.z - b.center.z);
+        if (offset.sqrMagnitude < 1f) return;
+        foreach (GameObject root in scene.GetRootGameObjects())
+        {
+            if (root.name == SystemsRoot) continue;
+            Undo.RecordObject(root.transform, "Move operator room");
+            root.transform.position += offset;
+        }
+        Debug.Log($"[Operator] The room was moved by {offset} (its floor's middle at {RoomOrigin}): the location scenes are loaded over it around the origin. Ctrl+Z undoes it.");
+    }
+
+    // the first location (the asylum) when its scene exists: added to the build profile (CCTV.EXE loads it by name)
+    private static string LocationInBuild()
+    {
+        foreach (string guid in AssetDatabase.FindAssets($"{FirstLocationScene} t:Scene"))
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            if (System.IO.Path.GetFileNameWithoutExtension(path) != FirstLocationScene) continue;
+            HelenaSetupMenu.AddToBuild(path);
+            return FirstLocationScene;
+        }
+        Debug.LogWarning($"[Operator] {FirstLocationScene}.unity not found (Last Terminal/17 builds it): CCTV.EXE has no signal until then. Run this menu again after.");
+        return "";
     }
 
     // ================================================================== finding things

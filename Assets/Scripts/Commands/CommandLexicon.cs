@@ -69,6 +69,7 @@ public enum CommandVerb
     ClearBets = 51,   // roulette: take the bets back
     Examine = 52,     // look at a thing and say something about it
     Advance = 53,     // move forward (toward the threat in a fight)
+    TellTag = 54,     // "tell me your tag numbers": she reads what is written on the tag of her outfit
 }
 
 // Which one, when several things match: "the other one", "the one on the left"...

@@ -741,3 +741,25 @@ MonoBehaviour:
     portuguese: "A\xED est\xE1 voc\xEA. Vamos continuar."
     englishClips: []
     portugueseClips: []
+  - line: 120
+    context: "Perguntaram o que t\xE1 escrito na plaquinha (roupa de paciente). Ela
+      olha pro peito e l\xEA devagar: 2716 d\xEDgito por d\xEDgito (two-seven-one-six
+      / dois, sete, um, seis), leito 103 (one-oh-three / cento e tr\xEAs)."
+    english: It says... patient 2716. Bed 103.
+    portuguese: "T\xE1 escrito... paciente 2716. Leito 103."
+    englishClips: []
+    portugueseClips: []
+  - line: 121
+    context: "Perguntaram o que t\xE1 escrito na plaquinha (uniforme de pris\xE3o).
+      Ela l\xEA o n\xFAmero d\xEDgito por d\xEDgito (zero-nine-one-seven / zero,
+      nove, um, sete), meio incomodada."
+    english: 0917. That's all it says.
+    portuguese: "0917. S\xF3 isso."
+    englishClips: []
+    portugueseClips: []
+  - line: 122
+    context: "Perguntaram o n\xFAmero da plaquinha, mas a roupa dela n\xE3o tem nenhuma."
+    english: I'm not wearing a tag.
+    portuguese: "Eu n\xE3o t\xF4 com plaquinha nenhuma."
+    englishClips: []
+    portugueseClips: []

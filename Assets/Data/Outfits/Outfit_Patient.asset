@@ -38,6 +38,9 @@ MonoBehaviour:
   - retop.005
   - billas.001
   - pants.003
+  - Helena2_Body
   extraParts:
   - PatientTag
+  - Helena2_PatientBody
   line: 73
+  tagLine: 120

@@ -1195,6 +1195,8 @@ public static class HelenaSetupMenu
                 rig.OperatorBehaviours.AddRange(new Behaviour[] { cameraSystem, console, mic, click, combatInput, harness, volume });
                 // (the story scenes: not in the scene; it will be its own scene, loaded with them)
                 OperatorStation station = content.EmbedOperatorRoom ? OperatorRoomBuilder.Build(lit, rig) : null;
+                // no room inside: his room (Operator.unity) loads this scene over it and takes this camera program
+                if (station == null) OperatorRoomBuilder.AddLocationLink(scene, rig);
 
                 // cutscenes: the director (Last Terminal/12 adds a cutscene to the scene)
                 CutsceneDirector cutsceneDirector = CutsceneBuilder.Build(canvas, cameraSystem, shotCamera, station, encounter, helena, partnerAnimator, voice, story, camSettings, mic, console);

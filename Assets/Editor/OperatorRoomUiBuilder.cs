@@ -22,7 +22,7 @@ internal static class OperatorRoomUiBuilder
 
     // ================================================================== the fake OS
     internal static OperatorOS BuildOS(Transform canvas, CameraSettings settings, StoryProgress story, AudioSource audio, PcPower power,
-                                       List<OperatorFile> files, List<OperatorEmail> mails)
+                                       List<OperatorFile> files, List<OperatorEmail> mails, SettingsWindow settingsWindow)
     {
         labels.Clear();
         var go = HelenaSetupMenu.CreateUiObject(canvas, "OperatorOS");
@@ -89,6 +89,7 @@ internal static class OperatorRoomUiBuilder
         Button computer = Icon(desk.transform, 1, "T_OpOS_IconComputer", "My Computer", "Meu Computador", out _);
         Button mail = Icon(desk.transform, 2, "T_OpOS_IconMail", null, null, out TMP_Text mailLabel);
         Button recycle = Icon(desk.transform, 3, "T_OpOS_IconRecycle", "Recycle Bin", "Lixeira", out _);
+        Button settingsIcon = Icon(desk.transform, 4, "T_OpOS_IconSettings", "Settings", "Configurações", out _);
 
         var windowsGo = HelenaSetupMenu.CreateUiObject(desk.transform, "Windows");
         var windows = (RectTransform)windowsGo.transform;
@@ -140,7 +141,34 @@ internal static class OperatorRoomUiBuilder
         TMP_Text mHeader = HelenaSetupMenu.CreateText(headerBack.transform, "Text", 16, TextAlignmentOptions.TopLeft, Ink);
         HelenaSetupMenu.Stretch(mHeader.rectTransform);
         mHeader.margin = new Vector4(10f, 8f, 10f, 4f);
-        RectTransform mBodyArea = Area(readArea, "Body", Vector2.zero, Vector2.one, new Vector2(0f, 40f), new Vector2(0f, -88f));
+        // the voice of the e-mail: play / pause, who is speaking, how much was played, the time
+        Image voiceBack = HelenaSetupMenu.CreateUiObject(readArea, "Voice").AddComponent<Image>();
+        voiceBack.color = new Color(0.82f, 0.84f, 0.86f);
+        HelenaSetupMenu.Place(voiceBack.rectTransform, new Vector2(0f, 1f), Vector2.one, new Vector2(0.5f, 1f), new Vector2(0f, -88f), new Vector2(0f, 44f));
+        Button voicePlay = UiButton(voiceBack.transform, "Play", new Vector2(0f, 0.5f), new Vector2(6f, 0f), new Vector2(36f, 36f), "", "", 16, false);
+        ((RectTransform)voicePlay.transform).pivot = new Vector2(0f, 0.5f);
+        RawImage voiceIcon = HelenaSetupMenu.CreateUiObject(voicePlay.transform, "Icon").AddComponent<RawImage>();
+        HelenaSetupMenu.Place(voiceIcon.rectTransform, Mid, Mid, Mid, Vector2.zero, new Vector2(28f, 28f));
+        voiceIcon.raycastTarget = false;
+        Texture2D playTex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{OsArt}/T_OpOS_Play.png");
+        voiceIcon.texture = playTex;
+        TMP_Text voiceLabel = HelenaSetupMenu.CreateText(voiceBack.transform, "Label", 15, TextAlignmentOptions.Left, Ink);
+        HelenaSetupMenu.Place(voiceLabel.rectTransform, TopLeft, TopLeft, TopLeft, new Vector2(52f, -2f), new Vector2(330f, 22f));
+        Image track = HelenaSetupMenu.CreateUiObject(voiceBack.transform, "Track").AddComponent<Image>();
+        track.color = new Color(0.55f, 0.56f, 0.58f);
+        track.raycastTarget = false;
+        HelenaSetupMenu.Place(track.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f), new Vector2(-22f, 10f), new Vector2(-148f, 6f));
+        Image fill = HelenaSetupMenu.CreateUiObject(track.transform, "Fill").AddComponent<Image>();
+        fill.color = WinTitle;
+        fill.raycastTarget = false;
+        fill.rectTransform.anchorMin = Vector2.zero; fill.rectTransform.anchorMax = new Vector2(0f, 1f);
+        fill.rectTransform.offsetMin = Vector2.zero; fill.rectTransform.offsetMax = Vector2.zero;
+        TMP_Text voiceTime = HelenaSetupMenu.CreateText(voiceBack.transform, "Time", 15, TextAlignmentOptions.Right, Ink);
+        HelenaSetupMenu.Place(voiceTime.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-8f, -6f), new Vector2(90f, 22f));
+        var voiceSource = voiceBack.gameObject.AddComponent<AudioSource>();
+        voiceSource.playOnAwake = false;
+        voiceSource.spatialBlend = 0f;
+        RectTransform mBodyArea = Area(readArea, "Body", Vector2.zero, Vector2.one, new Vector2(0f, 40f), new Vector2(0f, -136f));
         ScrollText(mBodyArea, WinBody, 18, Ink, out TMP_Text mText, out ScrollRect mScroll);
         Button attach = UiButton(readArea, "Attachment", Vector2.zero, new Vector2(4f, 4f), new Vector2(380f, 32f), "", "", 16);
         ((RectTransform)attach.transform).pivot = Vector2.zero;
@@ -195,7 +223,7 @@ internal static class OperatorRoomUiBuilder
         HelenaSetupMenu.Stretch(clock.rectTransform);
 
         var menuGo = HelenaSetupMenu.CreateUiObject(desk.transform, "StartMenu");
-        HelenaSetupMenu.Place((RectTransform)menuGo.transform, Vector2.zero, Vector2.zero, Vector2.zero, new Vector2(4f, 40f), new Vector2(270f, 7 * 40f + 16f));
+        HelenaSetupMenu.Place((RectTransform)menuGo.transform, Vector2.zero, Vector2.zero, Vector2.zero, new Vector2(4f, 40f), new Vector2(270f, 8 * 40f + 16f));
         var startMenu = menuGo.AddComponent<CanvasGroup>();
         menuGo.AddComponent<Image>().color = WinGray;
         Outline(menuGo, 2f);
@@ -209,7 +237,8 @@ internal static class OperatorRoomUiBuilder
         var entries = new (string icon, string en, string pt)[]
         {
             ("Cameras", "Cameras (CCTV.EXE)", "Câmeras (CCTV.EXE)"), ("Computer", "My Computer", "Meu Computador"), ("Mail", "E-mail", "E-mail"),
-            ("Recycle", "Recycle Bin", "Lixeira"), ("Run", "Run...", "Executar..."), ("Stand", "Stand up", "Levantar"), ("Power", "Shut down", "Desligar"),
+            ("Recycle", "Recycle Bin", "Lixeira"), ("Settings", "Settings", "Configurações"), ("Run", "Run...", "Executar..."),
+            ("Stand", "Stand up", "Levantar"), ("Power", "Shut down", "Desligar"),
         };
         var startButtons = new Button[entries.Length];
         for (int i = 0; i < entries.Length; i++)
@@ -246,9 +275,12 @@ internal static class OperatorRoomUiBuilder
         Set(so, Sub(OperatorOS.DesktopField, nameof(OperatorOS.DesktopRefs.startFiles)), startButtons[1]);
         Set(so, Sub(OperatorOS.DesktopField, nameof(OperatorOS.DesktopRefs.startMail)), startButtons[2]);
         Set(so, Sub(OperatorOS.DesktopField, nameof(OperatorOS.DesktopRefs.startRecycle)), startButtons[3]);
-        Set(so, Sub(OperatorOS.DesktopField, nameof(OperatorOS.DesktopRefs.startRun)), startButtons[4]);
-        Set(so, Sub(OperatorOS.DesktopField, nameof(OperatorOS.DesktopRefs.startStand)), startButtons[5]);
-        Set(so, Sub(OperatorOS.DesktopField, nameof(OperatorOS.DesktopRefs.startShutdown)), startButtons[6]);
+        Set(so, Sub(OperatorOS.DesktopField, nameof(OperatorOS.DesktopRefs.startSettings)), startButtons[4]);
+        Set(so, Sub(OperatorOS.DesktopField, nameof(OperatorOS.DesktopRefs.startRun)), startButtons[5]);
+        Set(so, Sub(OperatorOS.DesktopField, nameof(OperatorOS.DesktopRefs.startStand)), startButtons[6]);
+        Set(so, Sub(OperatorOS.DesktopField, nameof(OperatorOS.DesktopRefs.startShutdown)), startButtons[7]);
+        Set(so, Sub(OperatorOS.DesktopField, nameof(OperatorOS.DesktopRefs.settings)), settingsIcon);
+        Set(so, OperatorOS.SettingsWindowField, settingsWindow);
         Set(so, Sub(OperatorOS.DesktopField, nameof(OperatorOS.DesktopRefs.clock)), clock);
         Set(so, Sub(OperatorOS.DesktopField, nameof(OperatorOS.DesktopRefs.status)), status);
         Set(so, Sub(OperatorOS.ExplorerField, nameof(OperatorOS.ExplorerRefs.window)), explorer);
@@ -271,6 +303,15 @@ internal static class OperatorRoomUiBuilder
         Set(so, Sub(OperatorOS.MailField, nameof(OperatorOS.MailRefs.bodyScroll)), mScroll);
         Set(so, Sub(OperatorOS.MailField, nameof(OperatorOS.MailRefs.attachment)), attach);
         Set(so, Sub(OperatorOS.MailField, nameof(OperatorOS.MailRefs.attachmentLabel)), attachLabel);
+        Set(so, Sub(OperatorOS.MailField, nameof(OperatorOS.MailRefs.voiceBar)), voiceBack.gameObject);
+        Set(so, Sub(OperatorOS.MailField, nameof(OperatorOS.MailRefs.voicePlay)), voicePlay);
+        Set(so, Sub(OperatorOS.MailField, nameof(OperatorOS.MailRefs.voiceIcon)), voiceIcon);
+        Set(so, Sub(OperatorOS.MailField, nameof(OperatorOS.MailRefs.playTexture)), playTex);
+        Set(so, Sub(OperatorOS.MailField, nameof(OperatorOS.MailRefs.pauseTexture)), AssetDatabase.LoadAssetAtPath<Texture2D>($"{OsArt}/T_OpOS_Pause.png"));
+        Set(so, Sub(OperatorOS.MailField, nameof(OperatorOS.MailRefs.voiceFill)), fill.rectTransform);
+        Set(so, Sub(OperatorOS.MailField, nameof(OperatorOS.MailRefs.voiceLabel)), voiceLabel);
+        Set(so, Sub(OperatorOS.MailField, nameof(OperatorOS.MailRefs.voiceTime)), voiceTime);
+        Set(so, Sub(OperatorOS.MailField, nameof(OperatorOS.MailRefs.voiceSource)), voiceSource);
         Set(so, Sub(OperatorOS.TerminalField, nameof(OperatorOS.TerminalRefs.window)), terminal);
         Set(so, Sub(OperatorOS.TerminalField, nameof(OperatorOS.TerminalRefs.output)), tOut);
         Set(so, Sub(OperatorOS.TerminalField, nameof(OperatorOS.TerminalRefs.scroll)), tScroll);
@@ -311,6 +352,155 @@ internal static class OperatorRoomUiBuilder
         }
         so.ApplyModifiedPropertiesWithoutUndo();
         return os;
+    }
+
+    // ================================================================== the settings window (gear on the desktop, Esc over the cameras)
+    // A shade over everything (clicks stay in the window), the window in the middle: four sections of rows, each row a
+    // name on the left and its control on the right (two choices, a slider with its value, an on / off button).
+    internal static SettingsWindow BuildSettingsWindow(Transform canvas, CameraSettings settings, AudioSource audio)
+    {
+        var texts = new List<(TMP_Text text, string en, string pt)>();
+        var go = HelenaSetupMenu.CreateUiObject(canvas, "SettingsWindow");
+        HelenaSetupMenu.Stretch((RectTransform)go.transform);
+        var group = go.AddComponent<CanvasGroup>();
+        Image shade = go.AddComponent<Image>();
+        shade.color = new Color(0f, 0f, 0f, 0.45f);
+        var win = HelenaSetupMenu.CreateUiObject(go.transform, "Window");
+        HelenaSetupMenu.Place((RectTransform)win.transform, Mid, Mid, Mid, Vector2.zero, new Vector2(660f, 580f));
+        win.AddComponent<Image>().color = WinGray;
+        Outline(win, 2f);
+        Bar(win.transform, out TMP_Text title);
+        Button close = UiButton(win.transform.Find("TitleBar"), "Close", new Vector2(1f, 0.5f), new Vector2(-18f, 0f), new Vector2(28f, 22f), "X", "X", 16, false);
+        Image body = HelenaSetupMenu.CreateUiObject(win.transform, "Body").AddComponent<Image>();
+        body.color = WinBody;
+        body.rectTransform.anchorMin = Vector2.zero; body.rectTransform.anchorMax = Vector2.one;
+        body.rectTransform.offsetMin = new Vector2(8f, 58f); body.rectTransform.offsetMax = new Vector2(-8f, -40f);
+        Transform b = body.transform;
+
+        float y = -10f;
+        void Section(string en, string pt)
+        {
+            TMP_Text h = HelenaSetupMenu.CreateText(b, "Section", 17, TextAlignmentOptions.Left, WinTitle);
+            HelenaSetupMenu.Place(h.rectTransform, TopLeft, TopLeft, TopLeft, new Vector2(14f, y), new Vector2(600f, 24f));
+            h.fontStyle = FontStyles.Bold;
+            h.characterSpacing = 3f;
+            texts.Add((h, en.ToUpperInvariant(), pt.ToUpperInvariant()));
+            Image rule = HelenaSetupMenu.CreateUiObject(b, "Rule").AddComponent<Image>();
+            rule.color = new Color(0.6f, 0.6f, 0.62f);
+            rule.raycastTarget = false;
+            HelenaSetupMenu.Place(rule.rectTransform, TopLeft, TopLeft, TopLeft, new Vector2(14f, y - 25f), new Vector2(616f, 1f));
+            y -= 32f;
+        }
+        void RowName(string en, string pt)
+        {
+            TMP_Text t = HelenaSetupMenu.CreateText(b, "Name", 17, TextAlignmentOptions.Left, Ink);
+            HelenaSetupMenu.Place(t.rectTransform, TopLeft, TopLeft, TopLeft, new Vector2(26f, y), new Vector2(250f, 32f));
+            texts.Add((t, en, pt));
+        }
+        Button Choice(string name, float x, float width, string en, string pt)
+        {
+            Button c = UiButton(b, name, TopLeft, new Vector2(x, y - 2f), new Vector2(width, 28f), en, pt, 16, false);
+            ((RectTransform)c.transform).pivot = TopLeft;
+            texts.Add((c.GetComponentInChildren<TMP_Text>(), en, pt));
+            return c;
+        }
+        SettingsWindow.Level Level(string name)
+        {
+            var level = new SettingsWindow.Level();
+            GameObject sg = DefaultControls.CreateSlider(new DefaultControls.Resources());
+            sg.name = name;
+            sg.transform.SetParent(b, false);
+            foreach (Transform t in sg.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = b.gameObject.layer;
+            var rt = (RectTransform)sg.transform;
+            HelenaSetupMenu.Place(rt, TopLeft, TopLeft, TopLeft, new Vector2(290f, y - 8f), new Vector2(250f, 16f));
+            rt.pivot = TopLeft;
+            level.slider = sg.GetComponent<Slider>();
+            sg.transform.Find("Background").GetComponent<Image>().color = new Color(0.62f, 0.62f, 0.6f);
+            sg.transform.Find("Fill Area/Fill").GetComponent<Image>().color = WinTitle;
+            Image handle = sg.transform.Find("Handle Slide Area/Handle").GetComponent<Image>();
+            handle.color = WinLight;
+            var ho = handle.gameObject.AddComponent<Outline>();
+            ho.effectColor = new Color(0.2f, 0.2f, 0.2f);
+            ho.effectDistance = new Vector2(1f, -1f);
+            level.value = HelenaSetupMenu.CreateText(b, name + "Value", 17, TextAlignmentOptions.Right, Ink);
+            HelenaSetupMenu.Place(level.value.rectTransform, TopLeft, TopLeft, TopLeft, new Vector2(548f, y), new Vector2(80f, 32f));
+            return level;
+        }
+
+        var refs = new SettingsWindow.Refs();
+        Section("Cameras", "Câmeras");
+        RowName("Camera control", "Controle da câmera");
+        refs.pan.a = Choice("PanMouse", 290f, 166f, "Mouse (screen edges)", "Mouse (bordas)");
+        refs.pan.b = Choice("PanKeys", 462f, 166f, "Keyboard (A / D)", "Teclado (A / D)");
+        y -= 38f;
+        RowName("Speed (mouse)", "Velocidade (mouse)");
+        refs.mouseSpeed = Level("MouseSpeed");
+        y -= 38f;
+        RowName("Speed (keyboard)", "Velocidade (teclado)");
+        refs.keyboardSpeed = Level("KeyboardSpeed");
+        y -= 46f;
+        Section("Picture", "Imagem");
+        RowName("Camera filter (CRT)", "Filtro da câmera (CRT)");
+        refs.filter = Choice("Filter", 290f, 166f, "On", "Ligado");
+        y -= 38f;
+        RowName("Filter strength", "Força do filtro");
+        refs.filterStrength = Level("FilterStrength");
+        y -= 46f;
+        Section("Sound", "Som");
+        RowName("Volume", "Volume geral");
+        refs.volume = Level("Volume");
+        y -= 46f;
+        Section("Language", "Idioma");
+        RowName("Language (voice and text)", "Idioma (voz e texto)");
+        refs.language.a = Choice("LangPt", 290f, 166f, "Português", "Português");
+        refs.language.b = Choice("LangEn", 462f, 166f, "English", "English");
+        y -= 38f;
+        RowName("Subtitles", "Legendas");
+        refs.subtitles = Choice("Subtitles", 290f, 166f, "On", "Ligadas");
+
+        refs.defaults = UiButton(win.transform, "Defaults", Vector2.zero, new Vector2(12f, 12f), new Vector2(210f, 34f), "Restore defaults", "Restaurar padrão", 17, false);
+        ((RectTransform)refs.defaults.transform).pivot = Vector2.zero;
+        texts.Add((refs.defaults.GetComponentInChildren<TMP_Text>(), "Restore defaults", "Restaurar padrão"));
+        refs.ok = UiButton(win.transform, "OK", new Vector2(1f, 0f), new Vector2(-12f, 12f), new Vector2(120f, 34f), "OK", "OK", 17, false);
+        ((RectTransform)refs.ok.transform).pivot = new Vector2(1f, 0f);
+        refs.title = title;
+        refs.close = close;
+
+        var window = go.AddComponent<SettingsWindow>();
+        var so = new SerializedObject(window);
+        Set(so, SettingsWindow.SettingsField, settings);
+        Set(so, SettingsWindow.AudioField, audio);
+        Set(so, SettingsWindow.GroupField, group);
+        void R(string path, Object value) => Set(so, Sub(SettingsWindow.RefsField, path), value);
+        R(nameof(SettingsWindow.Refs.title), refs.title);
+        R(nameof(SettingsWindow.Refs.close), refs.close);
+        R(nameof(SettingsWindow.Refs.ok), refs.ok);
+        R(nameof(SettingsWindow.Refs.defaults), refs.defaults);
+        R("pan.a", refs.pan.a);
+        R("pan.b", refs.pan.b);
+        R("mouseSpeed.slider", refs.mouseSpeed.slider);
+        R("mouseSpeed.value", refs.mouseSpeed.value);
+        R("keyboardSpeed.slider", refs.keyboardSpeed.slider);
+        R("keyboardSpeed.value", refs.keyboardSpeed.value);
+        R(nameof(SettingsWindow.Refs.filter), refs.filter);
+        R("filterStrength.slider", refs.filterStrength.slider);
+        R("filterStrength.value", refs.filterStrength.value);
+        R("volume.slider", refs.volume.slider);
+        R("volume.value", refs.volume.value);
+        R("language.a", refs.language.a);
+        R("language.b", refs.language.b);
+        R(nameof(SettingsWindow.Refs.subtitles), refs.subtitles);
+        SerializedProperty lp = so.FindProperty(SettingsWindow.LabelsField);
+        lp.arraySize = texts.Count;
+        for (int i = 0; i < texts.Count; i++)
+        {
+            SerializedProperty e = lp.GetArrayElementAtIndex(i);
+            e.FindPropertyRelative(nameof(SettingsWindow.Label.text)).objectReferenceValue = texts[i].text;
+            e.FindPropertyRelative(nameof(SettingsWindow.Label.en)).stringValue = texts[i].en;
+            e.FindPropertyRelative(nameof(SettingsWindow.Label.pt)).stringValue = texts[i].pt;
+        }
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return window;
     }
 
     // ================================================================== the evidence panel (right side)

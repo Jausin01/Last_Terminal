@@ -172,8 +172,11 @@ public class PartnerCommands : MonoBehaviour
     private void Run(ParsedCommand cmd)
     {
         meleeTarget = null;
-        if (cameraPose != null && cmd.Verb != CommandVerb.Status) cameraPose.Stop();   // any order ends the pose
-        if (examiner != null && cmd.Verb != CommandVerb.Status) examiner.Stop();       // and looking at something
+        bool talk = cmd.Verb == CommandVerb.Status || cmd.Verb == CommandVerb.TellTag;   // just a question: she keeps doing what she does
+        if (cameraPose != null && !talk) cameraPose.Stop();   // any order ends the pose
+        if (examiner != null && !talk) examiner.Stop();       // and looking at something
+        // "what does your tag say": answered anywhere (a table, a fight...)
+        if (cmd.Verb == CommandVerb.TellTag) { SayTag(); return; }
 
         // a game of blackjack is on: the table takes the command
         BlackjackGame game = targets.ActiveTable;
@@ -1438,6 +1441,13 @@ public class PartnerCommands : MonoBehaviour
         if (!PathExists(station.GetWalkInPosition(transform.position))) { voice.Say(PartnerLine.CantGetThere); return; }
         lastTarget = station;
         voice.Say(saveUser.Use(station) ? PartnerLine.Saving : PartnerLine.Busy);
+    }
+
+    // what is written on the tag of the outfit she has on (no outfit / no tag: she says so)
+    private void SayTag()
+    {
+        OutfitDefinition current = outfit != null ? outfit.Current : null;
+        voice.Say(current != null ? current.TagLine : PartnerLine.NoTag);
     }
 
     private void SayStatus()

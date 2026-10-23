@@ -6,6 +6,8 @@ using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 // The operator's own room, built into every location scene (far from the level, at RoomOrigin): the old office
@@ -185,6 +187,46 @@ internal static class OperatorRoomBuilder
         return AssetDatabase.FindAssets("t:OperatorFile", new[] { FilesFolder })
             .Select(g => AssetDatabase.LoadAssetAtPath<OperatorFile>(AssetDatabase.GUIDToAssetPath(g)))
             .Where(f => f != null).OrderBy(f => f.Order).ToList();
+    }
+
+    // ================================================================== his room as its own scene (OperatorLink)
+    internal const string LinkPath = "Assets/Data/OperatorLink.asset";
+
+    // the asset his room and the location scenes share (OperatorStation <-> OperatorLocation)
+    internal static OperatorLink EnsureLink()
+    {
+        var link = AssetDatabase.LoadAssetAtPath<OperatorLink>(LinkPath);
+        if (link != null) return link;
+        HelenaSetupMenu.EnsureFolder("Assets", "Data");
+        link = ScriptableObject.CreateInstance<OperatorLink>();
+        AssetDatabase.CreateAsset(link, LinkPath);
+        return link;
+    }
+
+    // a location scene without a room of its own: its camera program, ready to be taken by his room's station
+    internal static OperatorLocation AddLocationLink(Scene scene, Rig rig)
+    {
+        var go = new GameObject("OperatorLocation");
+        SceneManager.MoveGameObjectToScene(go, scene);
+        var location = go.AddComponent<OperatorLocation>();
+        var so = new SerializedObject(location);
+        so.FindProperty(OperatorLocation.LinkField).objectReferenceValue = EnsureLink();
+        so.FindProperty(OperatorLocation.ViewCameraField).objectReferenceValue = rig.ViewCamera;
+        so.FindProperty(OperatorLocation.ViewListenerField).objectReferenceValue = rig.ViewListener;
+        so.FindProperty(OperatorLocation.OperatorCanvasField).objectReferenceValue = rig.OperatorCanvas;
+        so.FindProperty(OperatorLocation.CameraSystemField).objectReferenceValue = rig.CameraSystem;
+        so.FindProperty(OperatorLocation.PartnerRestField).objectReferenceValue = rig.Rest;
+        so.FindProperty(OperatorLocation.PartnerField).objectReferenceValue = rig.Partner;
+        so.FindProperty(OperatorLocation.TargetsField).objectReferenceValue = rig.Targets;
+        so.FindProperty(OperatorLocation.EncounterField).objectReferenceValue = rig.Encounter;
+        so.FindProperty(OperatorLocation.VoiceField).objectReferenceValue = rig.Voice;
+        so.FindProperty(OperatorLocation.EventSystemField).objectReferenceValue = CutsceneBuilder.First<EventSystem>(scene);
+        SerializedProperty list = so.FindProperty(OperatorLocation.OperatorBehavioursField);
+        List<Behaviour> behaviours = rig.OperatorBehaviours.Where(b => b != null).ToList();
+        list.arraySize = behaviours.Count;
+        for (int i = 0; i < behaviours.Count; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = behaviours[i];
+        so.ApplyModifiedPropertiesWithoutUndo();
+        return location;
     }
 
     // ================================================================== the room (every location scene)
@@ -584,7 +626,7 @@ internal static class OperatorRoomBuilder
     private static readonly Color WinBody = new Color(0.97f, 0.97f, 0.95f);
     private static readonly Color Ink = new Color(0.08f, 0.08f, 0.1f);
 
-    private class DialogRefs
+    internal class DialogRefs
     {
         public CanvasGroup Group;
         public TMP_Text Title, Text, Message, CloseLabel, SettingsLabel, CancelLabel;
@@ -861,7 +903,7 @@ internal static class OperatorRoomBuilder
         return button;
     }
 
-    private static DialogRefs BuildDialog(Transform canvas)
+    internal static DialogRefs BuildDialog(Transform canvas)
     {
         var refs = new DialogRefs();
         var go = HelenaSetupMenu.CreateUiObject(canvas, "CloseDialog");

@@ -506,6 +506,41 @@ MonoBehaviour:
     - close in
     - step forward
     - keep going
+  - verb: 54
+    phrases:
+    - tag
+    - tags
+    - your tag
+    - name tag
+    - tag number
+    - tag numbers
+    - your tag number
+    - your tag numbers
+    - tell me your tag numbers
+    - tell me your tag number
+    - tell me your number
+    - tell me the numbers
+    - read your tag
+    - read the tag
+    - read me your tag
+    - look at your tag
+    - check your tag
+    - what does your tag say
+    - what s on your tag
+    - what s written on your tag
+    - what s your number
+    - your number
+    - patient number
+    - your patient number
+    - bed number
+    - your bed number
+    - badge
+    - your badge
+    - read your badge
+    - id number
+    - your id
+    - inmate number
+    - your inmate number
   names:
   - key: Lobby
     phrases:

@@ -11,6 +11,9 @@ using UnityEngine;
 // Helena 2 (one body material): each outfit also swaps M_Helena2_Body for T_Helena2_<Outfit>.png (her texture with the
 // outfit painted on), and her accessories are SM_Helena2_<Outfit>Accessories.fbx (fitted to her body). An outfit asset
 // carries both sets: whichever model wears it finds its own materials.
+// Helena 2 can also wear an outfit as a body of its own (helena2Body: SM_Helena2_<Outfit>Body.fbx in Model2, made on
+// her skeleton with her head and hands): a skinned part added next to Helena2_Body on her bones, shown with the outfit,
+// her body hidden. Without that file the painted texture is used.
 public static class OutfitBuilder
 {
     private const string TextureFolder = HelenaImport.Folder + "Textures/Outfits";
@@ -19,6 +22,8 @@ public static class OutfitBuilder
     private const string AccessoryFolder = PropImport.Folder + "Outfits";
     private const string DataFolder = "Assets/Data/Outfits";
     private const string MeshFolder = HelenaImport.Folder + "Meshes";
+    private const string Helena2Folder = HelenaImport.Folder + "Model2";
+    private const string Helena2BodyPart = "Helena2_Body";
     private static readonly string[] ArmBones = { "LeftShoulder", "LeftArm", "LeftForeArm", "RightShoulder", "RightArm", "RightForeArm" };
     private static readonly int BumpMapId = Shader.PropertyToID("_BumpMap");
 
@@ -34,6 +39,8 @@ public static class OutfitBuilder
         public string[] smoothArms;                                       // parts reshaped: cloth folds of the arms smoothed
         public string helena2Texture;                                     // Helena 2: her body texture for this outfit
         public float helena2Smooth;
+        public string helena2Body;
+        public PartnerLine? tagLine;                                      // what her tag says (none: NoTag)                                        // Helena 2: a body of its own (model in Model2, texture in Outfits)
     }
 
     // holster, belt and pouch (they belong to the suit)
@@ -48,6 +55,7 @@ public static class OutfitBuilder
         new Outfit
         {
             key = "outfit_prison", asset = "Outfit_Prison", en = "Prison Uniform", pt = "Uniforme de Prisão", price = 0, line = PartnerLine.OutfitChanged,
+            tagLine = PartnerLine.TagPrison,
             swaps = new[]
             {
                 ("jacket",   "T_Helena_Prison_Top",   0.15f),
@@ -68,6 +76,7 @@ public static class OutfitBuilder
         new Outfit
         {
             key = PatientOutfitKey, asset = "Outfit_Patient", en = "Patient Scrubs", pt = "Roupa de Paciente", price = 0, line = PartnerLine.OutfitChanged,
+            tagLine = PartnerLine.TagPatient,
             swaps = new[]
             {
                 ("jacket",   "T_Helena_Patient_Top",   0.12f),
@@ -80,6 +89,7 @@ public static class OutfitBuilder
             accessoryModel = "SM_Helena_PatientAccessories", accessoryTexture = "T_Helena_Patient_Tag",
             accessories = new[] { ("PatientTag", HumanBodyBones.UpperChest) },
             helena2Texture = "T_Helena2_Patient", helena2Smooth = 0.12f,
+            helena2Body = "SM_Helena2_PatientBody",
         },
         new Outfit
         {
@@ -146,7 +156,8 @@ public static class OutfitBuilder
             (Material original, Material replacement)? h2 = Helena2Swap(o, lit);
             if (h2.HasValue) swaps.Add(h2.Value);
             else if (helena2) Debug.LogWarning($"[Outfits] {o.asset}: Helena 2's version missing ({TextureFolder}/{o.helena2Texture}.png or {HelenaCompareBuilder.BodyMaterialPath}: menu 18).");
-            if (!ok && !h2.HasValue) continue;
+            bool ownBody = helena2 && Helena2BodyModel(o) != null;
+            if (!ok && !h2.HasValue && !ownBody) continue;
 
             string path = $"{DataFolder}/{o.asset}.asset";
             var outfit = AssetDatabase.LoadAssetAtPath<OutfitDefinition>(path);
@@ -161,6 +172,7 @@ public static class OutfitBuilder
             so.FindProperty(OutfitDefinition.DisplayNamePtField).stringValue = o.pt;
             so.FindProperty(OutfitDefinition.PriceField).intValue = o.price;
             so.FindProperty(OutfitDefinition.LineField).enumValueIndex = System.Array.IndexOf(System.Enum.GetValues(typeof(PartnerLine)), o.line);
+            so.FindProperty(OutfitDefinition.TagLineField).enumValueIndex = System.Array.IndexOf(System.Enum.GetValues(typeof(PartnerLine)), o.tagLine ?? PartnerLine.NoTag);
             SerializedProperty list = so.FindProperty(OutfitDefinition.SwapsField);
             list.arraySize = swaps.Count;
             for (int i = 0; i < swaps.Count; i++)
@@ -169,7 +181,7 @@ public static class OutfitBuilder
                 e.FindPropertyRelative(OutfitDefinition.MaterialSwap.OriginalField).objectReferenceValue = swaps[i].original;
                 e.FindPropertyRelative(OutfitDefinition.MaterialSwap.ReplacementField).objectReferenceValue = swaps[i].replacement;
             }
-            SetStrings(so.FindProperty(OutfitDefinition.HiddenPartsField), o.hidden);
+            SetStrings(so.FindProperty(OutfitDefinition.HiddenPartsField), ownBody ? With(o.hidden, Helena2BodyPart) : o.hidden);
             var meshes = new List<(string part, Mesh mesh)>();
             if (o.smoothArms != null && !helena2)
                 foreach (string part in o.smoothArms)
@@ -187,6 +199,7 @@ public static class OutfitBuilder
             }
             var extras = new List<string>();
             if (o.accessories != null) foreach (var a in o.accessories) extras.Add(a.name);
+            if (ownBody) extras.Add(BodyPartName(o));
             SetStrings(so.FindProperty(OutfitDefinition.ExtraPartsField), extras.ToArray());
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(outfit);
@@ -252,6 +265,13 @@ public static class OutfitBuilder
         Animator animator = helena.GetComponent<Animator>();
         foreach (Outfit o in Outfits)
             if (o.accessories != null) AddAccessories(o, helena.transform, animator, lit, extras);
+        if (IsHelena2(helena))
+            foreach (Outfit o in Outfits)
+                if (Helena2BodyModel(o) != null) AddBody(o, helena.transform, lit, extras);
+
+        // PS2-like: she casts shadows but takes none on herself (her texture has its shading baked; a lamp above made
+        // her nose and lips throw jagged shadow-map blots over her mouth and chin)
+        foreach (Renderer r in helena.GetComponentsInChildren<Renderer>(true)) r.receiveShadows = false;
 
         var outfit = helena.AddComponent<PartnerOutfit>();
         HelenaSetupMenu.SetReferenceArray(outfit, PartnerOutfit.PartsField, parts);
@@ -312,6 +332,63 @@ public static class OutfitBuilder
             extras.Add(r);
         }
         Object.DestroyImmediate(temp);
+    }
+
+    // ------------------------------------------------------------------ Helena 2: an outfit as a body of its own
+    private static GameObject Helena2BodyModel(Outfit o) =>
+        string.IsNullOrEmpty(o.helena2Body) ? null : AssetDatabase.LoadAssetAtPath<GameObject>($"{Helena2Folder}/{o.helena2Body}.fbx");
+
+    // SM_Helena2_PatientBody -> Helena2_PatientBody (the part's name, listed by the outfit)
+    private static string BodyPartName(Outfit o) => o.helena2Body.Replace("SM_", "");
+
+    // The skinned body of the outfit (same skeleton and rest as hers): its mesh on a new part of her model, driven by
+    // her own bones (matched by name), placed like the part in its file; its materials: the outfit's texture and her
+    // own body material (her head and hands). Hidden until the outfit is worn.
+    private static void AddBody(Outfit o, Transform helena, Shader lit, List<Renderer> extras)
+    {
+        GameObject model = Helena2BodyModel(o);
+        SkinnedMeshRenderer source = model.GetComponentInChildren<SkinnedMeshRenderer>(true);
+        var texture = AssetDatabase.LoadAssetAtPath<Texture2D>($"{TextureFolder}/T_{BodyPartName(o)}.png");
+        var herBody = AssetDatabase.LoadAssetAtPath<Material>(HelenaCompareBuilder.BodyMaterialPath);
+        if (source == null || texture == null || herBody == null)
+        {
+            Debug.LogWarning($"[Outfits] {o.asset}: {o.helena2Body}: skinned mesh, {TextureFolder}/T_{BodyPartName(o)}.png or {HelenaCompareBuilder.BodyMaterialPath} (menu 18) missing.");
+            return;
+        }
+        var bones = new Dictionary<string, Transform>();
+        foreach (Transform t in helena.GetComponentsInChildren<Transform>(true)) if (!bones.ContainsKey(t.name)) bones[t.name] = t;
+        var mapped = new Transform[source.bones.Length];
+        for (int i = 0; i < mapped.Length; i++)
+        {
+            if (source.bones[i] == null || !bones.TryGetValue(source.bones[i].name, out mapped[i]))
+            {
+                Debug.LogWarning($"[Outfits] {o.asset}: bone '{(source.bones[i] != null ? source.bones[i].name : "?")}' not on her model: no own body.");
+                return;
+            }
+        }
+        Material outfitMat = HelenaSetupMenu.MakeMaterial($"{MaterialFolder}/M_{BodyPartName(o)}.mat", texture, o.helena2Smooth, false, lit);
+        var mats = new Material[source.sharedMaterials.Length];
+        for (int i = 0; i < mats.Length; i++)
+            mats[i] = source.sharedMaterials[i] != null && source.sharedMaterials[i].name.StartsWith(Helena2BodyPart) ? herBody : outfitMat;
+
+        Transform existing = helena.Find(BodyPartName(o));
+        if (existing != null) Object.DestroyImmediate(existing.gameObject);
+        var go = new GameObject(BodyPartName(o));
+        go.transform.SetParent(helena, false);
+        // the same place under her root as the part had under its file's root (both files exported alike)
+        Matrix4x4 local = model.transform.worldToLocalMatrix * source.transform.localToWorldMatrix;
+        go.transform.localPosition = local.GetColumn(3);
+        go.transform.localRotation = local.rotation;
+        go.transform.localScale = local.lossyScale;
+        var r = go.AddComponent<SkinnedMeshRenderer>();
+        r.sharedMesh = source.sharedMesh;
+        r.bones = mapped;
+        r.rootBone = source.rootBone != null && bones.TryGetValue(source.rootBone.name, out Transform root) ? root : null;
+        r.sharedMaterials = mats;
+        r.localBounds = source.localBounds;
+        r.updateWhenOffscreen = false;
+        r.enabled = false;   // shown by PartnerOutfit with the outfit
+        extras.Add(r);
     }
 
     // where the bone was in her bind pose, in model space (from any skinned part it drives)

@@ -45,6 +45,7 @@ public class OutfitDefinition : ScriptableObject
     public const string HiddenPartsField = nameof(hiddenParts);
     public const string ExtraPartsField = nameof(extraParts);
     public const string LineField = nameof(line);
+    public const string TagLineField = nameof(tagLine);
 
     [SerializeField] private string key = "outfit_";
     [SerializeField] private string displayName = "Outfit";
@@ -59,11 +60,14 @@ public class OutfitDefinition : ScriptableObject
     [SerializeField] private string[] extraParts = new string[0];
     [Tooltip("What she says once she has it on.")]
     [SerializeField] private PartnerLine line = PartnerLine.OutfitChanged;
+    [Tooltip("What she answers when asked what her tag says (NoTag: this outfit has none).")]
+    [SerializeField] private PartnerLine tagLine = PartnerLine.NoTag;
 
     public string Key => key;
     public string DisplayName(GameLanguage language) => language == GameLanguage.Portuguese ? displayNamePt : displayName;
     public int Price => price;
     public PartnerLine Line => line;
+    public PartnerLine TagLine => tagLine;
 
     public Material Swap(Material original)
     {

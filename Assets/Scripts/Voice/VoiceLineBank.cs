@@ -132,6 +132,10 @@ public enum PartnerLine
     NoCounter = 117,
     OperatorAway = 118,
     OperatorBack = 119,
+    // what her tag says (asked by the operator)
+    TagPatient = 120,
+    TagPrison = 121,
+    NoTag = 122,
 }
 
 [CreateAssetMenu(menuName = "Last Terminal/Voice/Voice Line Bank", fileName = "VoiceLineBank")]

@@ -700,6 +700,41 @@ internal static class FacilityBuilder
         var side = HelenaSetupMenu.CreateUiObject(map.transform.GetChild(1), "MapSide").GetComponent<RectTransform>();
         HelenaSetupMenu.Place(side, mid, mid, mid, new Vector2(424f, -18f), new Vector2(372f, 636f));
 
+        // the large map lets the picture show through (the camera stays readable behind it)
+        map.transform.GetChild(0).GetComponent<Image>().color = new Color(0f, 0.02f, 0.01f, 0.25f);
+        map.transform.GetChild(1).GetComponent<Image>().color = new Color(0.01f, 0.05f, 0.025f, 0.72f);
+        well.color = new Color(0f, 0.025f, 0.012f, 0.7f);
+
+        // the corner map (first Tab): bottom right, a title strip with the follow button, the window the drawing moves into
+        Vector2 br = new Vector2(1f, 0f);
+        var mini = HelenaSetupMenu.CreateUiObject(root.transform, "MiniMap");
+        HelenaSetupMenu.Place((RectTransform)mini.transform, br, br, br, new Vector2(-34f, 34f), new Vector2(410f, 268f));
+        CanvasGroup miniGroup = mini.AddComponent<CanvasGroup>();
+        miniGroup.alpha = 0f; miniGroup.interactable = false; miniGroup.blocksRaycasts = false;
+        Image miniFrame = mini.AddComponent<Image>();
+        miniFrame.color = new Color(0.01f, 0.05f, 0.025f, 0.82f);
+        var miniLine = mini.AddComponent<Outline>();
+        miniLine.effectColor = Dim;
+        miniLine.effectDistance = new Vector2(2f, -2f);
+        Vector2 top = new Vector2(0.5f, 1f), tl2 = new Vector2(0f, 1f), tr2 = new Vector2(1f, 1f);
+        TMP_Text miniTitle = HelenaSetupMenu.CreateText(mini.transform, "Title", 14, TextAlignmentOptions.Left, Phosphor);
+        HelenaSetupMenu.Place(miniTitle.rectTransform, tl2, tl2, tl2, new Vector2(8f, -4f), new Vector2(220f, 22f));
+        var follow = HelenaSetupMenu.CreateUiObject(mini.transform, "Follow");
+        HelenaSetupMenu.Place((RectTransform)follow.transform, tr2, tr2, tr2, new Vector2(-6f, -4f), new Vector2(170f, 22f));
+        Image followBack = follow.AddComponent<Image>();
+        followBack.color = new Color(Phosphor.r, Phosphor.g, Phosphor.b, 0.12f);
+        Button followButton = follow.AddComponent<Button>();
+        followButton.targetGraphic = followBack;
+        TMP_Text followLabel = HelenaSetupMenu.CreateText(follow.transform, "Label", 13, TextAlignmentOptions.Center, Phosphor);
+        HelenaSetupMenu.Stretch(followLabel.rectTransform);
+        var miniWell = HelenaSetupMenu.CreateUiObject(mini.transform, "Well").AddComponent<Image>();
+        miniWell.color = new Color(0f, 0.025f, 0.012f, 0.78f);
+        miniWell.raycastTarget = true;   // the cursor on the map belongs to the map
+        HelenaSetupMenu.Place(miniWell.rectTransform, top, top, top, new Vector2(0f, -30f), new Vector2(398f, 232f));
+        var miniArea = HelenaSetupMenu.CreateUiObject(miniWell.transform, "MiniArea").GetComponent<RectTransform>();
+        HelenaSetupMenu.Stretch(miniArea);
+        miniArea.gameObject.AddComponent<RectMask2D>();
+
         // settings panel
         CanvasGroup settingsPanel = Panel(root.transform, "SettingsPanel", "SETTINGS", new Vector2(760f, 600f));
         var rows = HelenaSetupMenu.CreateUiObject(settingsPanel.transform.GetChild(1), "Rows").GetComponent<RectTransform>();
@@ -730,6 +765,11 @@ internal static class FacilityBuilder
         HelenaSetupMenu.SetReference(hud, SecurityCameraHud.SettingsTitleField, settingsPanel.transform.GetChild(1).Find("Title").GetComponent<TMP_Text>());
         HelenaSetupMenu.SetString(hud, SecurityCameraHud.PlaceNameField, placeName);
         HelenaSetupMenu.SetString(hud, SecurityCameraHud.PlaceNamePtField, placeNamePt);
+        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MiniPanelField, miniGroup);
+        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MiniAreaField, miniArea);
+        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MiniTitleField, miniTitle);
+        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MiniFollowField, followButton);
+        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MiniFollowLabelField, followLabel);
 
         var filter = root.AddComponent<CameraFilter>();
         HelenaSetupMenu.SetReference(filter, CameraFilter.SettingsField, settings);

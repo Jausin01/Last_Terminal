@@ -1,6 +1,8 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 // Where the operator is: walking around his room (first person), at the PC's desktop (his files), in the camera
@@ -18,6 +20,10 @@ using UnityEngine.UI;
 // save of another scene, a restart) starts in the camera program (GameSession).
 // Every switch turns the operator's things (camera system, inputs, his UI, the CCTV filter, the view camera) on or
 // off together; the room has its own camera and listener.
+// His own room as a scene of its own (Operator.unity): the camera program lives in a location scene (Location Scene),
+// loaded over the room the first time CCTV.EXE opens; it hands itself over through the OperatorLink (OperatorLocation)
+// and keeps running while he is in the room. In the camera program the location is the active scene (its lighting).
+// Settings: a window of his PC (SettingsWindow), also opened from the "close the program?" dialog over the cameras.
 // Waking up: the first time in the room (until its cutscene has been seen) he wakes up on the cot - a cinema
 // cutscene with its own camera; at its end (or Esc) he stands where it left him (Wake End) and walks around.
 public class OperatorStation : MonoBehaviour
@@ -42,6 +48,9 @@ public class OperatorStation : MonoBehaviour
     public const string IntroCutsceneField = nameof(introCutscene);
     public const string WakeCutsceneField = nameof(wakeCutscene);
     public const string WakeEndField = nameof(wakeEnd);
+    public const string LinkField = nameof(link);
+    public const string LocationSceneField = nameof(locationScene);
+    public const string SettingsWindowField = nameof(settingsWindow);
     public const string SeatViewField = nameof(seatView);
     public const string ScreenViewField = nameof(screenView);
     public const string PinballField = nameof(pinball);
@@ -104,6 +113,14 @@ public class OperatorStation : MonoBehaviour
     [Tooltip("Where he stands when it ends (on the floor; the blue arrow = where he looks).")]
     [SerializeField] private Transform wakeEnd;
 
+    [Header("The camera program in another scene")]
+    [Tooltip("Shared with the location scenes (their OperatorLocation hands itself over through it).")]
+    [SerializeField] private OperatorLink link;
+    [Tooltip("The location loaded over the room the first time CCTV.EXE opens (in the build profile). Empty = none.")]
+    [SerializeField] private string locationScene = "";
+    [Tooltip("Optional: the settings window (else the camera program's own settings panel).")]
+    [SerializeField] private SettingsWindow settingsWindow;
+
     [Header("Close dialog")]
     [SerializeField] private CanvasGroup dialog;
     [SerializeField] private TMP_Text dialogTitle;
@@ -125,6 +142,8 @@ public class OperatorStation : MonoBehaviour
     private bool transitioning;
     private bool dialogOpen;
     private FocusInteractable focused;
+    private bool loadingLocation;
+    private Scene locationSceneLoaded;
 
     public Mode Current => mode;
     private bool Pt => settings != null && settings.Language == GameLanguage.Portuguese;
@@ -148,6 +167,8 @@ public class OperatorStation : MonoBehaviour
     {
         back.Enable(); relock.Enable();
         back.performed += OnBack;
+        if (link != null) { link.SetStation(this); link.LocationArrived += Attach; }
+        if (settingsWindow != null) settingsWindow.Closed += OnSettingsClosed;
         if (cameraSystem != null) cameraSystem.EscapeRequested += OnOperatorEscape;
         if (desktop != null) { desktop.ProgramRequested += EnterOperator; desktop.StandRequested += StandUp; desktop.ShutdownRequested += OnShutdown; }
     }
@@ -155,6 +176,8 @@ public class OperatorStation : MonoBehaviour
     private void OnDisable()
     {
         back.performed -= OnBack;
+        if (link != null) { link.ClearStation(this); link.LocationArrived -= Attach; }
+        if (settingsWindow != null) settingsWindow.Closed -= OnSettingsClosed;
         back.Disable(); relock.Disable();
         if (cameraSystem != null) cameraSystem.EscapeRequested -= OnOperatorEscape;
         if (desktop != null) { desktop.ProgramRequested -= EnterOperator; desktop.StandRequested -= StandUp; desktop.ShutdownRequested -= OnShutdown; }
@@ -209,6 +232,49 @@ public class OperatorStation : MonoBehaviour
     }
 
     private bool HasOperator => cameraSystem != null && viewCamera != null;
+    private bool CanLoadLocation => !HasOperator && !string.IsNullOrEmpty(locationScene) && Application.CanStreamedLevelBeLoaded(locationScene);
+
+    // ------------------------------------------------------------------ the location over the room
+    private IEnumerator LoadLocation()
+    {
+        loadingLocation = true;
+        transitioning = true;
+        desktop.SetStatus(Pt ? "CCTV.EXE: conectando às câmeras..." : "CCTV.EXE: connecting to the cameras...", 30f);
+        AsyncOperation load = SceneManager.LoadSceneAsync(locationScene, LoadSceneMode.Additive);
+        while (load != null && !load.isDone) yield return null;
+        float waited = 0f;
+        while (!HasOperator && waited < 3f) { waited += Time.unscaledDeltaTime; yield return null; }
+        loadingLocation = false;
+        transitioning = false;
+        if (!HasOperator)
+        {
+            desktop.SetStatus(Pt ? "CCTV.EXE: o local não respondeu." : "CCTV.EXE: the location didn't answer.", 6f);
+            Debug.LogWarning($"{name}: {locationScene} loaded but has no OperatorLocation (rebuild it with its Last Terminal menu).", this);
+            yield break;
+        }
+        desktop.SetStatus("", 0.01f);
+        if (mode == Mode.Desktop) EnterOperator();
+    }
+
+    // a location scene handed its camera program over (OperatorLocation, on its Awake)
+    private void Attach(OperatorLocation location)
+    {
+        if (location == null) return;
+        if (cameraSystem != null) cameraSystem.EscapeRequested -= OnOperatorEscape;
+        viewCamera = location.ViewCamera;
+        viewListener = location.ViewListener;
+        operatorCanvas = location.OperatorCanvas;
+        operatorBehaviours = location.OperatorBehaviours;
+        cameraSystem = location.CameraSystem;
+        partnerRest = location.PartnerRest;
+        partner = location.Partner;
+        targets = location.Targets;
+        encounter = location.Encounter;
+        voice = location.Voice;
+        locationSceneLoaded = location.gameObject.scene;
+        if (cameraSystem != null) cameraSystem.EscapeRequested += OnOperatorEscape;
+        desktop.SetProgramAvailable(true);
+    }
 
     // ------------------------------------------------------------------ switching
     // the PC in his room: sit down, lean in to the screen, the camera program opens
@@ -235,7 +301,11 @@ public class OperatorStation : MonoBehaviour
 
     private void EnterOperator()
     {
-        if (!HasOperator) return;
+        if (!HasOperator)
+        {
+            if (CanLoadLocation && !loadingLocation) StartCoroutine(LoadLocation());
+            return;
+        }
         Apply(Mode.Operator);
         bool intro = introCutscene != null && !introCutscene.HasPlayed;
         if (partnerRest != null && partnerRest.IsResting && !intro)
@@ -340,7 +410,10 @@ public class OperatorStation : MonoBehaviour
         roomCamera.enabled = !op;
         if (roomListener != null) roomListener.enabled = !op;
         if (!op) SetDialog(false);
-        desktop.SetProgramAvailable(HasOperator);
+        desktop.SetProgramAvailable(HasOperator || CanLoadLocation);
+        // the camera program sees the location with its own lighting (the active scene's ambient / fog)
+        if (locationSceneLoaded.IsValid() && locationSceneLoaded.isLoaded)
+            SceneManager.SetActiveScene(op ? locationSceneLoaded : gameObject.scene);
         desktop.SetOpen(next == Mode.Desktop);
         hud.SetVisible(next == Mode.Room);
         if (next != Mode.Focus) hud.SetHint(next == Mode.Pinball && pinball != null ? pinball.Hint(Language) : null);
@@ -390,6 +463,7 @@ public class OperatorStation : MonoBehaviour
     private void OnOperatorEscape()
     {
         if (mode != Mode.Operator || transitioning) return;
+        if (settingsWindow != null && settingsWindow.IsOpen) { settingsWindow.Close(); return; }
         SetDialog(!dialogOpen);
     }
 
@@ -427,7 +501,18 @@ public class OperatorStation : MonoBehaviour
     private void OnSettings()
     {
         SetDialog(false);
+        if (settingsWindow != null)
+        {
+            settingsWindow.Open();
+            if (cameraSystem != null) cameraSystem.SetOverlayOpen(true);   // the cameras wait under it
+            return;
+        }
         if (cameraSystem != null) cameraSystem.SetSettingsOpen(true);
+    }
+
+    private void OnSettingsClosed()
+    {
+        if (mode == Mode.Operator && cameraSystem != null) cameraSystem.SetOverlayOpen(false);
     }
 
     private void OnCancel() => SetDialog(false);

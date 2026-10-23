@@ -601,6 +601,45 @@ MonoBehaviour:
     - continua
     - continue
     - vai em frente
+  - verb: 54
+    phrases:
+    - plaquinha
+    - placa
+    - sua plaquinha
+    - sua placa
+    - etiqueta
+    - sua etiqueta
+    - cracha
+    - seu cracha
+    - numero da plaquinha
+    - numeros da plaquinha
+    - numero da placa
+    - numeros da placa
+    - numero da sua plaquinha
+    - numeros da sua plaquinha
+    - qual o seu numero
+    - qual seu numero
+    - seu numero
+    - me fala seu numero
+    - me fala os numeros
+    - fala os numeros
+    - le os numeros
+    - le a plaquinha
+    - le sua plaquinha
+    - leia a plaquinha
+    - leia sua plaquinha
+    - olha a plaquinha
+    - olha sua plaquinha
+    - o que ta escrito na plaquinha
+    - o que esta escrito na plaquinha
+    - o que ta escrito na sua plaquinha
+    - o que esta escrito na sua plaquinha
+    - numero do leito
+    - seu leito
+    - numero de paciente
+    - seu numero de paciente
+    - numero de detenta
+    - tag
   names:
   - key: Lobby
     phrases:

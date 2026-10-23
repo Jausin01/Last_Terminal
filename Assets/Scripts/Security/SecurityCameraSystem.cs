@@ -5,9 +5,11 @@ using UnityEngine.InputSystem;
 
 // The operator's monitor: one view camera that sits on the active CCTV camera's lens.
 // Pan: cursor at the left / right edge of the screen (FNAF style, the cursor stays free for clicks) or keys A / D,
-// chosen in the settings. Tab = facility map (pick a camera, operate remote doors), Q / E = previous / next camera,
+// chosen in the settings. Tab = facility map: first a small map in a corner (the picture stays; the wheel over it zooms
+// the map), Tab again = the large map over the picture, Tab again = closed. Q / E = previous / next camera,
 // Esc = settings (or, when something listens to EscapeRequested - the operator's PC - that decides: the
-// "close the program?" dialog). While the map, the settings or an overlay (that dialog) are open, clicks don't reach the world.
+// "close the program?" dialog). While the large map, the settings or an overlay (that dialog) are open, or the cursor is
+// on the corner map, clicks don't reach the world.
 // While the operator types a command (CommandConsole), the camera keys are off.
 // A camera whose object is inactive is skipped (the blackjack table camera only exists during a game).
 public class SecurityCameraSystem : MonoBehaviour
@@ -47,9 +49,13 @@ public class SecurityCameraSystem : MonoBehaviour
     [Tooltip("How fast the view catches up with the zoom (1/s).")]
     [SerializeField] private float zoomSmoothing = 12f;
 
+    // the map: closed, small in a corner (the picture stays usable), large over the picture
+    public enum MapView { Closed, Corner, Large }
+
     private int active = -1;
     private float[] yaws;
-    private bool mapOpen;
+    private MapView mapView;
+    private bool pointerOnPanel;
     private bool settingsOpen;
     private bool typing;
     private bool overlayOpen;
@@ -60,7 +66,7 @@ public class SecurityCameraSystem : MonoBehaviour
     private Vector2 aim, aimTarget;   // deg: x = right, y = up, from the camera's own direction
 
     public event Action<SecurityCamera> ActiveCameraChanged;
-    public event Action<bool> MapToggled;
+    public event Action<MapView> MapChanged;
     public event Action<bool> SettingsToggled;
     // Esc with the settings closed: raised instead of opening the settings when someone listens (OperatorStation)
     public event Action EscapeRequested;
@@ -68,13 +74,14 @@ public class SecurityCameraSystem : MonoBehaviour
     public IReadOnlyList<SecurityCamera> Cameras => cameras;
     public int ActiveIndex => active;
     public SecurityCamera Active => active >= 0 ? cameras[active] : null;
-    public bool IsMapOpen => mapOpen;
+    public bool IsMapOpen => mapView != MapView.Closed;
+    public MapView Map => mapView;
     public bool IsSettingsOpen => settingsOpen;
     public bool IsTyping => typing;
     public bool IsOverlayOpen => overlayOpen;
     // a cutscene: the operator only watches (no camera keys, map, settings, clicks, commands)
     public bool IsLocked => locked;
-    public bool BlocksWorldInput => mapOpen || settingsOpen || typing || overlayOpen || locked;
+    public bool BlocksWorldInput => mapView == MapView.Large || settingsOpen || typing || overlayOpen || locked || pointerOnPanel;
     // keys typed into the command line (and the Esc / Enter that closed it) are not camera keys
     private bool KeysBlocked => typing || Time.frameCount == typingEndFrame;
     // -1 = left limit, 1 = right limit
@@ -143,26 +150,30 @@ public class SecurityCameraSystem : MonoBehaviour
 
     private bool Usable(int index) => cameras[index] != null && cameras[index].gameObject.activeInHierarchy;
 
-    public void SetMapOpen(bool open)
+    public void SetMap(MapView view)
     {
-        if (mapOpen == open) return;
-        mapOpen = open;
-        if (open) SetSettingsOpen(false);
-        MapToggled?.Invoke(open);
+        if (mapView == view) return;
+        mapView = view;
+        if (view != MapView.Closed) SetSettingsOpen(false);
+        if (view != MapView.Corner) pointerOnPanel = false;
+        MapChanged?.Invoke(view);
     }
+
+    // the cursor is on a panel over the picture (the corner map): no pan, wheel or clicks for the world
+    public void SetPointerOverPanel(bool over) => pointerOnPanel = over;
 
     public void SetSettingsOpen(bool open)
     {
         if (settingsOpen == open) return;
         settingsOpen = open;
-        if (open) SetMapOpen(false);
+        if (open) SetMap(MapView.Closed);
         SettingsToggled?.Invoke(open);
     }
 
     public void SetLocked(bool value)
     {
         locked = value;
-        if (value) { SetMapOpen(false); SetSettingsOpen(false); }
+        if (value) { SetMap(MapView.Closed); SetSettingsOpen(false); }
     }
 
     // a panel over the cameras (the PC's dialog): no clicks on the world, no camera keys
@@ -170,7 +181,7 @@ public class SecurityCameraSystem : MonoBehaviour
     {
         if (overlayOpen == open) return;
         overlayOpen = open;
-        if (open) { SetMapOpen(false); SetSettingsOpen(false); }
+        if (open) { SetMap(MapView.Closed); SetSettingsOpen(false); }
     }
 
     public void SetTyping(bool value)
@@ -184,13 +195,14 @@ public class SecurityCameraSystem : MonoBehaviour
 
     private void OnToggleMap(InputAction.CallbackContext ctx)
     {
-        if (!InputBlockedBySaveScreen && !KeysBlocked && !overlayOpen && !locked) SetMapOpen(!mapOpen);
+        if (InputBlockedBySaveScreen || KeysBlocked || overlayOpen || locked) return;
+        SetMap(mapView == MapView.Closed ? MapView.Corner : mapView == MapView.Corner ? MapView.Large : MapView.Closed);
     }
 
     private void OnToggleSettings(InputAction.CallbackContext ctx)
     {
         if (InputBlockedBySaveScreen || KeysBlocked || locked) return;
-        if (!settingsOpen && EscapeRequested != null) { SetMapOpen(false); EscapeRequested(); return; }
+        if (!settingsOpen && EscapeRequested != null) { SetMap(MapView.Closed); EscapeRequested(); return; }
         SetSettingsOpen(!settingsOpen);
     }
 
@@ -229,7 +241,7 @@ public class SecurityCameraSystem : MonoBehaviour
     // wheel: toward the point under the cursor (it stays under the cursor); keys: toward the middle of the picture
     private void ReadZoom(SecurityCamera cam)
     {
-        bool panelOpen = mapOpen || settingsOpen;   // the wheel zooms / scrolls the map then
+        bool panelOpen = mapView == MapView.Large || settingsOpen || pointerOnPanel;   // the wheel zooms / scrolls the map then
         float wheel = KeysBlocked || panelOpen ? 0f : zoomScroll.ReadValue<float>();
         float keys = KeysBlocked || panelOpen ? 0f : zoomKeys.ReadValue<float>();
         float factor = 1f;
