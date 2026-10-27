@@ -5,6 +5,7 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Last Terminal/Elevator Stop", fileName = "Stop_Place")]
 public class ElevatorStop : ScriptableObject
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string IdField = nameof(id);
     public const string DisplayNameField = nameof(displayName);
     public const string DisplayNamePtField = nameof(displayNamePt);
@@ -14,6 +15,7 @@ public class ElevatorStop : ScriptableObject
 
     [Tooltip("Stable id (saves, arrivals). Don't change it once used.")]
     [SerializeField] private string id = "stop";
+    // Name on the signs, per language.
     [SerializeField] private string displayName = "Casino";
     [SerializeField] private string displayNamePt = "Cassino";
     [Tooltip("The scene the elevator loads (must be in the Build Settings). Empty / missing = out of service.")]
@@ -23,12 +25,14 @@ public class ElevatorStop : ScriptableObject
     [Tooltip("On the sign and the floor indicator (\"B2\", \"5\"...).")]
     [SerializeField] private string floor = "1";
 
+    // Read-only data.
     public string Id => id;
     public string DisplayName => displayName;
     public string SceneName => sceneName;
     public ElevatorKey RequiredKey => requiredKey;
     public string Floor => floor;
 
+    // Name in a language.
     public string NameIn(GameLanguage language) =>
         language == GameLanguage.Portuguese && !string.IsNullOrEmpty(displayNamePt) ? displayNamePt : displayName;
 

@@ -11,6 +11,7 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class PartnerDamage : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string HealthField = nameof(health);
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string EvasionField = nameof(evasion);
@@ -18,6 +19,7 @@ public class PartnerDamage : MonoBehaviour
     public const string InteractorField = nameof(interactor);
     public const string VoiceField = nameof(voice);
 
+    // Her health, animator, evasion, combat, interactor and voice.
     [SerializeField] private Health health;
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private PartnerEvasion evasion;
@@ -35,6 +37,7 @@ public class PartnerDamage : MonoBehaviour
     [Tooltip("At most one cry of pain per this many seconds.")]
     [SerializeField] private float cryInterval = 1.2f;
 
+    // Her agent and its normal speed, the limp blend, a hit reaction running, warned once, last cry time.
     private NavMeshAgent agent;
     private float baseSpeed;
     private float injured;
@@ -42,10 +45,13 @@ public class PartnerDamage : MonoBehaviour
     private bool warnedBadlyHurt;
     private float lastCry = -10f;
 
+    // Raised when she dies (the game over screen listens).
     public event Action Died;
 
+    // She is dead.
     public bool IsDead => health != null && health.IsDead;
 
+    // Remembers her speed; checks the references.
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -57,6 +63,7 @@ public class PartnerDamage : MonoBehaviour
         }
     }
 
+    // Listens to her health.
     private void OnEnable()
     {
         if (health == null) return;
@@ -64,6 +71,7 @@ public class PartnerDamage : MonoBehaviour
         health.Died += OnDied;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (health == null) return;
@@ -71,6 +79,7 @@ public class PartnerDamage : MonoBehaviour
         health.Died -= OnDied;
     }
 
+    // Hurt: a cry (the badly-hurt warning once), then a light / heavy hit reaction when she can react.
     private void OnDamaged(int amount)
     {
         if (amount <= 0 || health.IsDead) return;   // a killing blow: Died does the rest
@@ -96,6 +105,7 @@ public class PartnerDamage : MonoBehaviour
     private bool CanReact() =>
         !partnerAnimator.IsScripted && !partnerAnimator.IsPickingUp && !interactor.IsBusy && evasion.Current == PartnerEvasion.Move.None;
 
+    // A cry of pain (limited to one per interval unless forced).
     private void Cry(PartnerLine line, bool always)
     {
         if (!always && Time.time - lastCry < cryInterval) return;
@@ -103,6 +113,7 @@ public class PartnerDamage : MonoBehaviour
         voice.Say(line);
     }
 
+    // Dead: everything stops, the death clip (from a duck: crumpling), Died.
     private void OnDied()
     {
         bool crouched = evasion.IsCrouched;
@@ -129,6 +140,7 @@ public class PartnerDamage : MonoBehaviour
         if (agent.isOnNavMesh) agent.isStopped = false;
     }
 
+    // Resumes her path after a reaction; blends the limp in / out with her health.
     private void Update()
     {
         if (health.IsDead) return;

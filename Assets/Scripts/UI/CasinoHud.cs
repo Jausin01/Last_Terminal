@@ -5,6 +5,7 @@ using UnityEngine;
 // the chips and prize coins, the last result (the middle row) and what to say.
 public class CasinoHud : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string KeypadUserField = nameof(keypadUser);
     public const string BankField = nameof(bank);
     public const string SettingsField = nameof(settings);
@@ -13,6 +14,7 @@ public class CasinoHud : MonoBehaviour
     public const string BodyField = nameof(body);
     public const string PromptField = nameof(prompt);
 
+    // Her keypad user (at which machine), the chip bank, the settings, the panel and its texts.
     [SerializeField] private PartnerKeypadUser keypadUser;
     [SerializeField] private ChipBank bank;
     [SerializeField] private CameraSettings settings;
@@ -20,13 +22,17 @@ public class CasinoHud : MonoBehaviour
     [SerializeField] private TMP_Text header;
     [SerializeField] private TMP_Text body;
     [SerializeField] private TMP_Text prompt;
+    // Fade speed (1/s).
     [SerializeField] private float fadeSpeed = 4f;
 
+    // Symbol names per language.
     private static readonly string[] SymbolsEn = { "CHERRY", "GRAPES", "COIN", "SEVEN", "CLOWN", "BELL" };
     private static readonly string[] SymbolsPt = { "CEREJA", "UVA", "MOEDA", "SETE", "PALHAÇO", "SINO" };
 
+    // Hash of what is shown (rebuild only on change).
     private int shownState;
 
+    // Checks references; hidden at start.
     private void Awake()
     {
         if (keypadUser == null || bank == null || group == null || header == null || body == null)
@@ -38,6 +44,7 @@ public class CasinoHud : MonoBehaviour
         group.alpha = 0f;
     }
 
+    // Fades in at a machine; rebuilds the text when the state changes.
     private void Update()
     {
         var machine = keypadUser.Current as SlotMachine;

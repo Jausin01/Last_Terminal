@@ -10,6 +10,7 @@ using UnityEngine.Rendering;
 // hers (ModelCompare). The model sits under Characters/Helena, so HelenaImport makes it Humanoid like the clips.
 internal static class HelenaCompareBuilder
 {
+    // Helena 2 asset paths (model, textures), the old model, clip folders, the test scene and the weapon prefabs.
     private const string Folder = "Assets/Characters/Helena/Model2";
     internal const string ModelPath = Folder + "/Helena2.fbx";
     private const string BasePath = Folder + "/T_Helena2_Base.png";
@@ -25,6 +26,7 @@ internal static class HelenaCompareBuilder
     private const float BodySmoothness = 0.7f;   // x the map (Meshy roughness)
     private const float HairCutoff = 0.35f;      // lower = fuller locks
 
+    // URP Lit property ids set on her materials.
     private static readonly int BumpMapId = Shader.PropertyToID("_BumpMap");
     private static readonly int MetallicGlossMapId = Shader.PropertyToID("_MetallicGlossMap");
     private static readonly int MetallicId = Shader.PropertyToID("_Metallic");
@@ -33,10 +35,11 @@ internal static class HelenaCompareBuilder
     private static readonly int SpecularHighlightsId = Shader.PropertyToID("_SpecularHighlights");
     private static readonly int EnvironmentReflectionsId = Shader.PropertyToID("_EnvironmentReflections");
 
+    // Menu: materials, import settings and the comparison scene.
     [MenuItem("Last Terminal/18 - Helena 2: Materials + Compare Scene (old vs new, every clip)")]
     private static void Build()
     {
-        Shader lit = HelenaSetupMenu.DefaultLitShader();
+        Shader lit = EditorAssets.DefaultLitShader();
         if (lit == null) return;
         if (AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath) == null) { Debug.LogError("[Helena2] Model not found: " + ModelPath); return; }
         var oldModel = AssetDatabase.LoadAssetAtPath<GameObject>(OldModelPath);
@@ -87,8 +90,8 @@ internal static class HelenaCompareBuilder
         Texture(HairPath, t => { t.alphaIsTransparency = true; t.mipMapsPreserveCoverage = true; t.alphaTestReferenceValue = HairCutoff; });
         Texture(BasePath, t => { t.maxTextureSize = 2048; });
 
-        HelenaSetupMenu.EnsureFolder(Folder, "Materials");
-        Material body = HelenaSetupMenu.MakeMaterial(Folder + "/Materials/M_Helena2_Body.mat",
+        EditorAssets.EnsureFolder(Folder, "Materials");
+        Material body = EditorAssets.MakeMaterial(Folder + "/Materials/M_Helena2_Body.mat",
                                                      AssetDatabase.LoadAssetAtPath<Texture2D>(BasePath), BodySmoothness, false, lit);
         body.SetTexture(BumpMapId, AssetDatabase.LoadAssetAtPath<Texture2D>(NormalPath));
         body.EnableKeyword("_NORMALMAP");
@@ -98,7 +101,7 @@ internal static class HelenaCompareBuilder
         body.EnableKeyword("_METALLICSPECGLOSSMAP");
         EditorUtility.SetDirty(body);
 
-        Material hair = HelenaSetupMenu.MakeMaterial(Folder + "/Materials/M_Helena2_Hair.mat",
+        Material hair = EditorAssets.MakeMaterial(Folder + "/Materials/M_Helena2_Hair.mat",
                                                      AssetDatabase.LoadAssetAtPath<Texture2D>(HairPath), 0.12f, true, lit);
         hair.SetFloat(CutoffId, HairCutoff);
         // no sky reflection / highlights on the dark hair: at grazing angles they drew a pale blue outline
@@ -121,6 +124,7 @@ internal static class HelenaCompareBuilder
         AssetDatabase.SaveAssets();
     }
 
+    // Changes a texture's import settings.
     private static void Texture(string path, System.Action<TextureImporter> set)
     {
         if (!(AssetImporter.GetAtPath(path) is TextureImporter t)) { Debug.LogWarning("[Helena2] Texture not found: " + path); return; }
@@ -197,7 +201,7 @@ internal static class HelenaCompareBuilder
         compare.EditorSet(new[] { oldA, newA }, new[] { leftLabel, rightLabel }, clips, cam,
                           display.ToArray(), ShownWeapons.Length, weaponOfClip, aimOfClip, rightClips, closeFingers);
 
-        HelenaSetupMenu.EnsureFolder("Assets", "Scenes");
+        EditorAssets.EnsureFolder("Assets", "Scenes");
         EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), scenePath);
     }
 
@@ -213,6 +217,7 @@ internal static class HelenaCompareBuilder
         return -1;
     }
 
+    // A display copy of a weapon prefab (no game logic).
     private static Weapon DisplayCopy(string weapon, Transform parent)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{WeaponPrefabFolder}/Weapon_{weapon}.prefab");
@@ -225,6 +230,7 @@ internal static class HelenaCompareBuilder
         return go.GetComponent<Weapon>();
     }
 
+    // An instance of a model placed at x in the scene.
     private static Animator Place(GameObject model, string name, float x)
     {
         var go = (GameObject)PrefabUtility.InstantiatePrefab(model);

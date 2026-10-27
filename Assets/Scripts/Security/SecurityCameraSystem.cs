@@ -14,12 +14,14 @@ using UnityEngine.InputSystem;
 // A camera whose object is inactive is skipped (the blackjack table camera only exists during a game).
 public class SecurityCameraSystem : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string ViewCameraField = nameof(viewCamera);
     public const string CamerasField = nameof(cameras);
     public const string SettingsField = nameof(settings);
     public const string SaveScreenField = nameof(saveScreen);
     public const string StartCameraField = nameof(startCamera);
 
+    // The single view camera, the CCTV cameras it cycles through, and the operator settings (pan mode / speed).
     [SerializeField] private Camera viewCamera;
     [SerializeField] private SecurityCamera[] cameras = new SecurityCamera[0];
     [SerializeField] private CameraSettings settings;
@@ -30,6 +32,7 @@ public class SecurityCameraSystem : MonoBehaviour
     [Tooltip("Width of the screen edge that pans with the cursor (fraction of the screen).")]
     [SerializeField, Range(0.02f, 0.4f)] private float edgeSize = 0.12f;
 
+    // Input: pointer position, pan keys, map / settings toggles, next / previous camera, zoom wheel and keys.
     [Header("Input (bindings added when empty)")]
     [SerializeField] private InputAction point = new InputAction("Point", InputActionType.Value, "<Pointer>/position", expectedControlType: "Vector2");
     [SerializeField] private InputAction panKeys = new InputAction("PanKeys", InputActionType.Value, expectedControlType: "Axis");
@@ -40,6 +43,7 @@ public class SecurityCameraSystem : MonoBehaviour
     [SerializeField] private InputAction zoomScroll = new InputAction("ZoomScroll", InputActionType.Value, "<Mouse>/scroll/y", expectedControlType: "Axis");
     [SerializeField] private InputAction zoomKeys = new InputAction("ZoomKeys", InputActionType.Value, expectedControlType: "Axis");
 
+    // Max zoom factor.
     [Header("Zoom (mouse wheel toward the cursor, or + / -)")]
     [SerializeField, Min(1f)] private float maxZoom = 4f;
     [Tooltip("Zoom factor per wheel notch.")]
@@ -52,6 +56,7 @@ public class SecurityCameraSystem : MonoBehaviour
     // the map: closed, small in a corner (the picture stays usable), large over the picture
     public enum MapView { Closed, Corner, Large }
 
+    // Active camera index, each camera's pan, the map view, pointer on a UI panel, settings / typing / overlay open, locked (no input) and the frame typing ended.
     private int active = -1;
     private float[] yaws;
     private MapView mapView;
@@ -65,12 +70,14 @@ public class SecurityCameraSystem : MonoBehaviour
     private float zoom = 1f, zoomTarget = 1f;
     private Vector2 aim, aimTarget;   // deg: x = right, y = up, from the camera's own direction
 
+    // Raised when the camera, the map view or the settings change.
     public event Action<SecurityCamera> ActiveCameraChanged;
     public event Action<MapView> MapChanged;
     public event Action<bool> SettingsToggled;
     // Esc with the settings closed: raised instead of opening the settings when someone listens (OperatorStation)
     public event Action EscapeRequested;
 
+    // Read-only state for the HUD and the operator's PC.
     public IReadOnlyList<SecurityCamera> Cameras => cameras;
     public int ActiveIndex => active;
     public SecurityCamera Active => active >= 0 ? cameras[active] : null;
@@ -89,6 +96,7 @@ public class SecurityCameraSystem : MonoBehaviour
     public Camera ViewCamera => viewCamera;
     public float Zoom => zoom;
 
+    // Checks references; sets up the per-camera pan.
     private void Awake()
     {
         if (panKeys.bindings.Count == 0)
@@ -109,6 +117,7 @@ public class SecurityCameraSystem : MonoBehaviour
         }
     }
 
+    // Enables the input and hooks the buttons.
     private void OnEnable()
     {
         point.Enable(); panKeys.Enable(); toggleMap.Enable(); toggleSettings.Enable(); nextCamera.Enable(); previousCamera.Enable();
@@ -119,6 +128,7 @@ public class SecurityCameraSystem : MonoBehaviour
         previousCamera.performed += OnPrevious;
     }
 
+    // Unhooks and disables the input.
     private void OnDisable()
     {
         toggleMap.performed -= OnToggleMap;
@@ -129,12 +139,14 @@ public class SecurityCameraSystem : MonoBehaviour
         zoomScroll.Disable(); zoomKeys.Disable();
     }
 
+    // Starts on the first usable camera.
     private void Start()
     {
         if (active < 0) Switch(startCamera < cameras.Length ? startCamera : 0);   // unless something chose one first (an elevator arrival)
         if (active < 0) Switch(0);
     }
 
+    // Makes a camera active (skips unusable ones).
     public void Switch(int index)
     {
         if (index < 0 || index >= cameras.Length || !Usable(index) || index == active) return;
@@ -146,10 +158,13 @@ public class SecurityCameraSystem : MonoBehaviour
         ActiveCameraChanged?.Invoke(cameras[active]);
     }
 
+    // Switch by camera.
     public void Switch(SecurityCamera cam) => Switch(Array.IndexOf(cameras, cam));
 
+    // Camera assigned and its object active?
     private bool Usable(int index) => cameras[index] != null && cameras[index].gameObject.activeInHierarchy;
 
+    // Opens / changes / closes the map.
     public void SetMap(MapView view)
     {
         if (mapView == view) return;
@@ -162,6 +177,7 @@ public class SecurityCameraSystem : MonoBehaviour
     // the cursor is on a panel over the picture (the corner map): no pan, wheel or clicks for the world
     public void SetPointerOverPanel(bool over) => pointerOnPanel = over;
 
+    // Opens / closes the settings.
     public void SetSettingsOpen(bool open)
     {
         if (settingsOpen == open) return;
@@ -170,6 +186,7 @@ public class SecurityCameraSystem : MonoBehaviour
         SettingsToggled?.Invoke(open);
     }
 
+    // Locks / unlocks all camera input (another screen has it).
     public void SetLocked(bool value)
     {
         locked = value;
@@ -184,6 +201,7 @@ public class SecurityCameraSystem : MonoBehaviour
         if (open) { SetMap(MapView.Closed); SetSettingsOpen(false); }
     }
 
+    // The operator is typing a command: camera keys off.
     public void SetTyping(bool value)
     {
         if (typing == value) return;
@@ -191,14 +209,17 @@ public class SecurityCameraSystem : MonoBehaviour
         if (!value) typingEndFrame = Time.frameCount;
     }
 
+    // The save screen has the input.
     private bool InputBlockedBySaveScreen => saveScreen != null && saveScreen.IsOpen;
 
+    // Tab: map closed -> corner -> large -> closed.
     private void OnToggleMap(InputAction.CallbackContext ctx)
     {
         if (InputBlockedBySaveScreen || KeysBlocked || overlayOpen || locked) return;
         SetMap(mapView == MapView.Closed ? MapView.Corner : mapView == MapView.Corner ? MapView.Large : MapView.Closed);
     }
 
+    // Esc: the PC's handler if any, else the settings.
     private void OnToggleSettings(InputAction.CallbackContext ctx)
     {
         if (InputBlockedBySaveScreen || KeysBlocked || locked) return;
@@ -206,9 +227,11 @@ public class SecurityCameraSystem : MonoBehaviour
         SetSettingsOpen(!settingsOpen);
     }
 
+    // Q / E.
     private void OnNext(InputAction.CallbackContext ctx) => Step(1);
     private void OnPrevious(InputAction.CallbackContext ctx) => Step(-1);
 
+    // Next / previous usable camera.
     private void Step(int dir)
     {
         if (InputBlockedBySaveScreen || settingsOpen || overlayOpen || locked || KeysBlocked || cameras.Length == 0) return;
@@ -219,6 +242,7 @@ public class SecurityCameraSystem : MonoBehaviour
         }
     }
 
+    // Each frame: pan by cursor edge or keys, zoom toward the cursor.
     private void Update()
     {
         SecurityCamera cam = Active;
@@ -267,6 +291,7 @@ public class SecurityCameraSystem : MonoBehaviour
     // degrees (right, up) of a viewport point from the middle of the picture at that zoom
     private float Aspect => viewCamera.aspect > 0f ? viewCamera.aspect : 16f / 9f;
 
+    // Angles (deg) of a viewport point from the camera's direction.
     private Vector2 CursorAngle(SecurityCamera cam, float z, Vector2 viewport)
     {
         float tanV = Mathf.Tan(cam.FieldOfView * 0.5f * Mathf.Deg2Rad) / z;
@@ -298,8 +323,10 @@ public class SecurityCameraSystem : MonoBehaviour
         return push * settings.MousePanSpeed;
     }
 
+    // Moves the view camera after everything else moved.
     private void LateUpdate() => PlaceView();
 
+    // Puts the view camera on the active lens with the zoomed field of view and aim.
     private void PlaceView()
     {
         SecurityCamera cam = Active;

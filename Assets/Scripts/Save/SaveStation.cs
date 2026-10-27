@@ -14,6 +14,7 @@ using UnityEngine.AI;
 // Forward of this object = toward the desk. Chair slot pivot = where her hips go when seated at the desk.
 public class SaveStation : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string LocationNameField = nameof(locationName);
     public const string ChairField = nameof(chair);
     public const string StandPointField = nameof(standPoint);
@@ -21,6 +22,7 @@ public class SaveStation : MonoBehaviour
     public const string WalkInLeftField = nameof(walkInLeft);
     public const string ChairPullDistanceField = nameof(chairPullDistance);
 
+    // Which side she walks in from (Auto = the one she can reach, nearest first).
     public enum Side { Auto, Right, Left }
 
     // measured on the clips (station local space, z = toward the desk)
@@ -32,15 +34,18 @@ public class SaveStation : MonoBehaviour
     public static readonly Vector3 KeyboardCenter = new Vector3(0f, 0.76f, 0.60f);
     public static readonly Vector3 KeyboardSize = new Vector3(0.44f, 0.04f, 0.16f);
 
+    // Name shown in the save slots.
     [SerializeField] private string locationName = "Office";
     [Tooltip("Which side of the desk she walks in from. Auto = the side closest to her that is on the NavMesh.")]
     [SerializeField] private Side walkInSide = Side.Auto;
+    // The chair (pulled out / pushed in), where she stands to sit, and the walk-in points on each side.
     [SerializeField] private Transform chair;
     [SerializeField] private Transform standPoint;
     [SerializeField] private Transform walkInRight;
     [SerializeField] private Transform walkInLeft;
     [Tooltip("How far the chair is pulled out for her to sit (m). Her sit clip travels 0.55 m backwards, so she stands " +
              "0.55 - this in front of the seat (pull more when the table edge is close to the seat).")]
+    // How far the chair is pulled out (m).
     [SerializeField] private float chairPullDistance = 0.25f;
 
     [Header("Fit To Models (context menu)")]
@@ -49,8 +54,10 @@ public class SaveStation : MonoBehaviour
     [Tooltip("Radius of her NavMeshAgent.")]
     [SerializeField] private float partnerRadius = 0.3f;
 
+    // The chair's pushed-in position.
     private Vector3 chairHome;
 
+    // Read-only data for PartnerSaveUser and the save screen.
     public string LocationName => locationName;
     public Vector3 StandPosition => standPoint.position;
     public Vector3 Facing => Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
@@ -59,6 +66,7 @@ public class SaveStation : MonoBehaviour
     // where she stands to sit, in front of the pushed-in seat
     public float StandOffset => SitTravel - chairPullDistance;
 
+    // Records the chair position; checks the slots.
     private void Awake()
     {
         if (chair == null || standPoint == null || walkInRight == null || walkInLeft == null)
@@ -93,6 +101,7 @@ public class SaveStation : MonoBehaviour
         chair.position = chairHome - Facing * (chairPullDistance * Mathf.Clamp01(amount));
     }
 
+    // Is this point on the NavMesh?
     private static bool IsOnNavMesh(Vector3 p) => NavMesh.SamplePosition(p, out _, 0.2f, NavMesh.AllAreas);
 
     // Sizes the click collider and the NavMesh hole to the models in the slots, and puts the walk-in points
@@ -161,6 +170,7 @@ public class SaveStation : MonoBehaviour
         DrawWalkIn(walkInLeft, walkInSide != Side.Right);
     }
 
+    // Gizmo of a walk-in point (bright when it is the one used).
     private void DrawWalkIn(Transform point, bool used)
     {
         if (point == null) return;

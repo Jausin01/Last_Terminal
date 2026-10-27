@@ -7,19 +7,22 @@ using UnityEngine.SceneManagement;
 // too where it makes sense (thought, scare, loading, sounds, moving objects, lighting).
 
 // ====================================================================== speech
-[Serializable, CutsceneStepInfo("Fala/Pensamento (balão)", 23)]
+[Serializable, CutsceneStepInfo("Speech/Thought (bubble)", 23)]
 public class ThoughtStep : CutsceneStep
 {
     [Tooltip("What the protagonist thinks (shown in the thoughts block, top-left, not said).")]
     [TextArea(2, 4)] public string textPt = "";
+    // The same thought in English.
     [TextArea(2, 4)] public string textEn = "";
     [Tooltip("Wait until it fades before the next step.")]
     public bool wait = true;
     [Tooltip("Extra pause after it (s).")]
     public float pauseAfter = 0.2f;
 
-    public override string Summary => $"PENSAMENTO: \"{Short(!string.IsNullOrEmpty(textPt) ? textPt : textEn)}\"";
+    // One-line description shown in the cutscene's step list.
+    public override string Summary => $"THOUGHT: \"{Short(!string.IsNullOrEmpty(textPt) ? textPt : textEn)}\"";
 
+    // Shows the thought (in the game's language) and waits for it to fade.
     public override IEnumerator Run(CutsceneDirector d)
     {
         bool pt = d.IsPortuguese;
@@ -30,25 +33,31 @@ public class ThoughtStep : CutsceneStep
         while (t < duration + pauseAfter) { t += Time.deltaTime; yield return null; }
     }
 
+    // Skipped: the thought disappears.
     public override void Finish(CutsceneDirector d) => d.HideThought();
 }
 
 // ====================================================================== animation
-[Serializable, CutsceneStepInfo("Animação/Mãos em alvos (IK)", 13)]
+[Serializable, CutsceneStepInfo("Animation/Hands on targets (IK)", 13)]
 public class HandTargetStep : CutsceneStep
 {
+    // Who moves the hands.
     public CutsceneActor actor;
     [Tooltip("Where the left / right hand goes (an empty object: on a steering wheel, a door...). Both empty = hands free again.")]
     public Transform left;
+    // Right hand target.
     public Transform right;
+    // IK weight at full blend.
     [Range(0f, 1f)] public float weight = 1f;
     [Tooltip("Seconds to get there.")]
     public float blend = 0.4f;
     [Tooltip("The hand also turns to the target's rotation (blue arrow = where the fingers point, green = the back of the hand).")]
     public bool orient;
 
-    public override string Summary => left == null && right == null ? $"{N(actor)} solta as mãos" : $"{N(actor)} põe as mãos em {N(left)} / {N(right)}";
+    // Step list description.
+    public override string Summary => left == null && right == null ? $"{N(actor)} lets go with the hands" : $"{N(actor)} puts the hands on {N(left)} / {N(right)}";
 
+    // Puts the hands on the targets (blending).
     public override IEnumerator Run(CutsceneDirector d)
     {
         if (actor == null) yield break;
@@ -56,6 +65,7 @@ public class HandTargetStep : CutsceneStep
         actor.SetHandTargets(left, right, weight, blend, orient);
     }
 
+    // Skipped: hands on the targets at once.
     public override void Finish(CutsceneDirector d)
     {
         if (actor == null) return;
@@ -65,11 +75,12 @@ public class HandTargetStep : CutsceneStep
 }
 
 // ====================================================================== camera (cinema mode)
-[Serializable, CutsceneStepInfo("Câmera/Movimento de câmera (cinema)", 33)]
+[Serializable, CutsceneStepInfo("Camera/Camera move (cinema)", 33)]
 public class CameraMoveStep : CutsceneStep
 {
     [Tooltip("Where the camera goes (an empty object: position + blue arrow).")]
     public Transform to;
+    // Duration of the move (s).
     public float seconds = 2f;
     [Tooltip("Field of view at the end (0 = keep).")]
     [Range(0f, 100f)] public float fieldOfView = 0f;
@@ -78,8 +89,10 @@ public class CameraMoveStep : CutsceneStep
     [Tooltip("Wait for the move to end before the next step.")]
     public bool wait = true;
 
-    public override string Summary => $"câmera vai até {N(to)} ({seconds:0.#} s){(wait ? "" : " (sem esperar)")}";
+    // Step list description.
+    public override string Summary => $"camera moves to {N(to)} ({seconds:0.#} s){(wait ? "" : " (no wait)")}";
 
+    // Moves the cinema camera to the target pose (optionally without waiting).
     public override IEnumerator Run(CutsceneDirector d)
     {
         if (to == null) yield break;
@@ -87,6 +100,7 @@ public class CameraMoveStep : CutsceneStep
         yield return Move(d);
     }
 
+    // The move itself: position, rotation and field of view eased over the duration.
     private IEnumerator Move(CutsceneDirector d)
     {
         d.GetCinemaPose(out Vector3 p0, out Quaternion r0, out float f0);
@@ -103,6 +117,7 @@ public class CameraMoveStep : CutsceneStep
         d.SetCinemaPose(to.position, to.rotation, f1);
     }
 
+    // Skipped: the camera jumps to the end pose.
     public override void Finish(CutsceneDirector d)
     {
         if (to == null) return;
@@ -111,29 +126,34 @@ public class CameraMoveStep : CutsceneStep
     }
 }
 
-[Serializable, CutsceneStepInfo("Câmera/Tremor de mão (cinema)", 34)]
+// Changes the handheld shake of the cinema camera.
+[Serializable, CutsceneStepInfo("Camera/Handheld shake (cinema)", 34)]
 public class HandheldStep : CutsceneStep
 {
     [Tooltip("0 = still (a tripod), 1 = normal, 3 = nervous.")]
     [Range(0f, 4f)] public float amount = 1f;
 
-    public override string Summary => $"tremor de mão x{amount:0.#}";
+    // Step list description.
+    public override string Summary => $"handheld shake x{amount:0.#}";
 
+    // Applies the shake amount (instant).
     public override IEnumerator Run(CutsceneDirector d)
     {
         Finish(d);
         yield break;
     }
 
+    // Sets the shake.
     public override void Finish(CutsceneDirector d) => d.SetHandheld(amount);
 }
 
 // ====================================================================== screen
-[Serializable, CutsceneStepInfo("Tela/Susto (VFX)", 35)]
+[Serializable, CutsceneStepInfo("Screen/Scare (VFX)", 35)]
 public class ScareStep : CutsceneStep
 {
     [Tooltip("The scream (or any sound), played at the start.")]
     public AudioClip sound;
+    // Sound volume, duration of the effect and flash color.
     [Range(0f, 1f)] public float volume = 1f;
     public float seconds = 1.2f;
     public Color flashColor = new Color(1f, 0.12f, 0.08f);
@@ -148,8 +168,10 @@ public class ScareStep : CutsceneStep
     [Tooltip("At the end: hard cut to black.")]
     public bool endOnBlack = true;
 
-    public override string Summary => $"SUSTO {N(sound)} ({seconds:0.#} s){(endOnBlack ? " -> preto" : "")}";
+    // Step list description.
+    public override string Summary => $"SCARE {N(sound)} ({seconds:0.#} s){(endOnBlack ? " -> black" : "")}";
 
+    // The scare: a spike then a flickering decay of flash, noise, shake and zoom.
     public override IEnumerator Run(CutsceneDirector d)
     {
         if (sound != null) d.PlaySound(sound, null, volume);
@@ -168,6 +190,7 @@ public class ScareStep : CutsceneStep
         Finish(d);
     }
 
+    // End of the scare: effects off (optionally on black).
     public override void Finish(CutsceneDirector d)
     {
         d.SetScare(0f, Color.clear, false);
@@ -177,16 +200,20 @@ public class ScareStep : CutsceneStep
     }
 }
 
-[Serializable, CutsceneStepInfo("Tela/Carregamento", 36)]
+// A "Loading..." text on the screen for a while.
+[Serializable, CutsceneStepInfo("Screen/Loading", 36)]
 public class LoadingStep : CutsceneStep
 {
+    // The text in each language.
     public string textPt = "Carregando...";
     public string textEn = "Loading...";
     [Tooltip("Seconds on screen (over the black: put a fade to black before it).")]
     public float seconds = 2f;
 
-    public override string Summary => $"carregamento ({seconds:0.#} s)";
+    // Step list description.
+    public override string Summary => $"loading ({seconds:0.#} s)";
 
+    // Shows the text for the duration.
     public override IEnumerator Run(CutsceneDirector d)
     {
         d.ShowLoading(d.IsPortuguese ? textPt : textEn);
@@ -195,23 +222,27 @@ public class LoadingStep : CutsceneStep
         d.HideLoading();
     }
 
+    // Skipped: hides the text.
     public override void Finish(CutsceneDirector d) => d.HideLoading();
 }
 
 // ====================================================================== world
-[Serializable, CutsceneStepInfo("Mundo/Mover objeto (porta, vidro...)", 44)]
+[Serializable, CutsceneStepInfo("World/Move object (door, glass...)", 44)]
 public class TransformStep : CutsceneStep
 {
     [Tooltip("What moves (a door leaf, a sliding glass...).")]
     public Transform target;
     [Tooltip("Where it ends (an empty object: its position and rotation).")]
     public Transform to;
+    // Duration, easing and whether the next step waits for it.
     public float seconds = 1f;
     public bool smooth = true;
     public bool wait = true;
 
-    public override string Summary => $"move {N(target)} até {N(to)} ({seconds:0.#} s)";
+    // Step list description.
+    public override string Summary => $"move {N(target)} to {N(to)} ({seconds:0.#} s)";
 
+    // Moves the object (optionally without waiting).
     public override IEnumerator Run(CutsceneDirector d)
     {
         if (target == null || to == null) yield break;
@@ -219,6 +250,7 @@ public class TransformStep : CutsceneStep
         yield return Move();
     }
 
+    // The move itself, eased.
     private IEnumerator Move()
     {
         Vector3 p0 = target.position;
@@ -235,24 +267,29 @@ public class TransformStep : CutsceneStep
         target.SetPositionAndRotation(to.position, to.rotation);
     }
 
+    // Skipped: the object jumps to the end pose.
     public override void Finish(CutsceneDirector d)
     {
         if (target != null && to != null) target.SetPositionAndRotation(to.position, to.rotation);
     }
 }
 
-[Serializable, CutsceneStepInfo("Mundo/Som contínuo (ligar ou desligar)", 45)]
+// Starts / stops a looping sound of the scene with a fade.
+[Serializable, CutsceneStepInfo("World/Looping sound (on or off)", 45)]
 public class SoundLoopStep : CutsceneStep
 {
     [Tooltip("An AudioSource of the scene (its clip, loop on).")]
     public AudioSource source;
+    // On or off, and the target volume.
     public bool play = true;
     [Range(0f, 1f)] public float volume = 0.6f;
     [Tooltip("Fade in / out (s).")]
     public float fade = 0.8f;
 
-    public override string Summary => $"{(play ? "liga" : "desliga")} som {N(source)}";
+    // Step list description.
+    public override string Summary => $"sound {N(source)} {(play ? "on" : "off")}";
 
+    // Starts the fade (the step does not wait for it).
     public override IEnumerator Run(CutsceneDirector d)
     {
         if (source == null) yield break;
@@ -262,6 +299,7 @@ public class SoundLoopStep : CutsceneStep
         d.StartCoroutine(Ramp(from, to));
     }
 
+    // Fades the volume; stops the source at the end when turning off.
     private IEnumerator Ramp(float from, float to)
     {
         float t = 0f;
@@ -276,6 +314,7 @@ public class SoundLoopStep : CutsceneStep
         if (!play) source.Stop();
     }
 
+    // Skipped: the final volume at once.
     public override void Finish(CutsceneDirector d)
     {
         if (source == null) return;
@@ -285,17 +324,20 @@ public class SoundLoopStep : CutsceneStep
     }
 }
 
-[Serializable, CutsceneStepInfo("Mundo/Ambiente (luz, céu, névoa)", 46)]
+// Changes the environment: sun, ambient light, sky color and fog (blended or a cut).
+[Serializable, CutsceneStepInfo("World/Environment (light, sky, fog)", 46)]
 public class LightingStep : CutsceneStep
 {
     [Tooltip("The sun / moon (a directional light).")]
     public Light sun;
+    // The sun's rotation, color and intensity, and the ambient light color.
     public Vector3 sunAngles = new Vector3(40f, -30f, 0f);
     public Color sunColor = new Color(1f, 0.92f, 0.8f);
     public float sunIntensity = 1f;
     public Color ambient = new Color(0.45f, 0.47f, 0.5f);
     [Tooltip("The sky (the camera's background color, cinema mode).")]
     public Color sky = new Color(0.62f, 0.68f, 0.74f);
+    // Fog on / off, color and range.
     public bool fog = true;
     public Color fogColor = new Color(0.62f, 0.68f, 0.74f);
     public float fogStart = 15f;
@@ -303,8 +345,10 @@ public class LightingStep : CutsceneStep
     [Tooltip("Blend time (0 = at once: a cut).")]
     public float seconds = 0f;
 
-    public override string Summary => $"ambiente: sol {sunIntensity:0.##}, névoa {(fog ? fogEnd.ToString("0") + " m" : "não")}";
+    // Step list description.
+    public override string Summary => $"environment: sun {sunIntensity:0.##}, fog {(fog ? fogEnd.ToString("0") + " m" : "off")}";
 
+    // Blends from the current environment to this one over the duration.
     public override IEnumerator Run(CutsceneDirector d)
     {
         if (seconds <= 0f) { Finish(d); yield break; }
@@ -328,12 +372,14 @@ public class LightingStep : CutsceneStep
         Finish(d);
     }
 
+    // Skipped / end: the final environment at once.
     public override void Finish(CutsceneDirector d)
     {
         Apply(d, Quaternion.Euler(sunAngles), sunColor, sunIntensity, ambient, sky, fogColor, fogStart, fogEnd);
         RenderSettings.fog = fog;
     }
 
+    // Applies one environment state to the sun, RenderSettings and the cinema camera.
     private void Apply(CutsceneDirector d, Quaternion sunRot, Color sunCol, float sunInt, Color amb, Color skyCol, Color fogCol, float fs, float fe)
     {
         if (sun != null)
@@ -358,20 +404,23 @@ public class LightingStep : CutsceneStep
 }
 
 // ====================================================================== flow
-[Serializable, CutsceneStepInfo("Fluxo/Carregar cena", 62)]
+[Serializable, CutsceneStepInfo("Flow/Load scene", 62)]
 public class LoadSceneStep : CutsceneStep
 {
     [Tooltip("The scene to open (by name, it must be in File > Build Profiles). Empty = nothing (stays here).")]
     public string sceneName = "";
 
-    public override string Summary => string.IsNullOrEmpty(sceneName) ? "carregar cena: (nenhuma)" : $"carregar cena {sceneName}";
+    // Step list description.
+    public override string Summary => string.IsNullOrEmpty(sceneName) ? "load scene: (none)" : $"load scene {sceneName}";
 
+    // Loads the scene (immediately).
     public override IEnumerator Run(CutsceneDirector d)
     {
         Finish(d);
         yield break;
     }
 
+    // Loads the scene if it is in the build (else a warning).
     public override void Finish(CutsceneDirector d)
     {
         if (string.IsNullOrEmpty(sceneName)) return;

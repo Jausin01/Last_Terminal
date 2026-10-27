@@ -9,16 +9,19 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class PartnerCameraPose : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string InteractorField = nameof(interactor);
     public const string CameraSystemField = nameof(cameraSystem);
     public const string TargetsField = nameof(targets);
     public const string VoiceField = nameof(voice);
 
+    // Why the pose can't start; which side she shows; what she is doing.
     public enum Result { Ok, NoCamera, TooFar, NoSpot }
     public enum Facing { Front, Back, LeftSide, RightSide }
     private enum State { None, Walking, Facing, Posing, Turning }
 
+    // Her animator, interactor, the cameras, the rooms and her voice.
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private PartnerInteractor interactor;
     [SerializeField] private SecurityCameraSystem cameraSystem;
@@ -29,15 +32,18 @@ public class PartnerCameraPose : MonoBehaviour
     [SerializeField] private float preferredDistance = 3.2f;
     [Tooltip("Spots tried on a grid this size (m), this far from the walls.")]
     [SerializeField] private float grid = 0.5f;
+    // Distance kept from the walls (m).
     [SerializeField] private float wallMargin = 0.6f;
     [Tooltip("Her feet and head must be inside this part of the picture (viewport, 0..1).")]
     [SerializeField] private Vector2 frameMargin = new Vector2(0.1f, 0.06f);
+    // Turn speed (deg/s) and how much her head looks at the camera.
     [Header("Pose")]
     [SerializeField] private float turnSpeed = 240f;
     [SerializeField, Range(0f, 1f)] private float lookWeight = 0.9f;
     [Tooltip("Still posing after this long: she says something again (s).")]
     [SerializeField] private float waitLineDelay = 8f;
 
+    // Her agent, a reusable path, the state, the camera position, timers and the "still waiting" line said once.
     private NavMeshAgent agent;
     private NavMeshPath path;
     private State state;
@@ -45,10 +51,13 @@ public class PartnerCameraPose : MonoBehaviour
     private float timer;
     private bool saidWait;
     private bool lookAtEye = true;   // posing toward the camera (not when showing her back / a side)
+    // The direction she turns to when showing her back / a side.
     private Vector3 turnForward;
 
+    // She is posing.
     public bool IsActive => state != State.None;
 
+    // Checks the references.
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -60,6 +69,7 @@ public class PartnerCameraPose : MonoBehaviour
         }
     }
 
+    // "Look at the camera": finds the best framed spot of the watched camera's room and walks there.
     public Result Begin()
     {
         Stop();
@@ -109,6 +119,7 @@ public class PartnerCameraPose : MonoBehaviour
         return Result.Ok;
     }
 
+    // Ends the pose (any other command).
     public void Stop()
     {
         if (state == State.None) return;
@@ -144,12 +155,15 @@ public class PartnerCameraPose : MonoBehaviour
         return bestScore < float.MaxValue;
     }
 
+    // Is a viewport point inside the frame margins?
     private bool InFrame(Vector3 v) =>
         v.x > frameMargin.x && v.x < 1f - frameMargin.x && v.y > frameMargin.y && v.y < 1f - frameMargin.y;
 
+    // Can she walk there?
     private bool PathExists(Vector3 to) =>
         agent.isOnNavMesh && NavMesh.CalculatePath(transform.position, to, NavMesh.AllAreas, path) && path.status == NavMeshPathStatus.PathComplete;
 
+    // Turn / walk / face / pose: looks into the camera, says "What?", and later a waiting line.
     private void Update()
     {
         if (state == State.None) return;
@@ -196,5 +210,6 @@ public class PartnerCameraPose : MonoBehaviour
         }
     }
 
+    // A vector flattened onto the floor.
     private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 }

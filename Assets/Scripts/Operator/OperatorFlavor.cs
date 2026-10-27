@@ -5,6 +5,7 @@ using UnityEngine;
 // instead of the message line.
 public class OperatorFlavor : OperatorInteractable
 {
+    // Its lines per language, the sound and the arm motion when used.
     [SerializeField] private string[] linesEn = new string[0];
     [SerializeField] private string[] linesPt = new string[0];
     [SerializeField] private OperatorSounds.Kind sound = OperatorSounds.Kind.Click;
@@ -12,10 +13,13 @@ public class OperatorFlavor : OperatorInteractable
     [Tooltip("The lines are his thoughts (the block in the top-left corner).")]
     [SerializeField] private bool asThought;
 
+    // Index of the next line.
     private int next;
 
+    // The arm motion set for it.
     public override HandMotion Motion => motion;
 
+    // Shows the next line (message or thought) and plays the sound.
     public override void Interact(FirstPersonPlayer player)
     {
         string[] lines = player.Language == GameLanguage.Portuguese ? linesPt : linesEn;
@@ -30,6 +34,7 @@ public class OperatorFlavor : OperatorInteractable
     }
 
 #if UNITY_EDITOR
+    // Editor: sets everything (room builder).
     public void EditorSet(string label, string labelPortuguese, string[] en, string[] pt, OperatorSounds.Kind kind, HandMotion hand, bool thought = false)
     {
         asThought = thought;

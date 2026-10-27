@@ -7,6 +7,7 @@ using UnityEngine;
 // her cards once shown, what each hand is, the result and what to say. Rebuilt when the game changes.
 public class HoldemHud : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string GamesField = nameof(games);
     public const string SettingsField = nameof(settings);
     public const string GroupField = nameof(group);
@@ -14,43 +15,52 @@ public class HoldemHud : MonoBehaviour
     public const string BodyField = nameof(body);
     public const string PromptField = nameof(prompt);
 
+    // The hold'em tables, the settings (language), the panel and its texts.
     [SerializeField] private HoldemGame[] games = new HoldemGame[0];
     [SerializeField] private CameraSettings settings;
     [SerializeField] private CanvasGroup group;
     [SerializeField] private TMP_Text header;
     [SerializeField] private TMP_Text body;
     [SerializeField] private TMP_Text prompt;
+    // Fade time (s).
     [SerializeField] private float fadeTime = 0.25f;
 
+    // Hand category names per language.
     private static readonly string[] CategoryEn = { "HIGH CARD", "PAIR", "TWO PAIR", "THREE OF A KIND", "STRAIGHT", "FLUSH", "FULL HOUSE", "FOUR OF A KIND", "STRAIGHT FLUSH", "ROYAL FLUSH" };
     private static readonly string[] CategoryPt = { "CARTA ALTA", "PAR", "DOIS PARES", "TRINCA", "SEQUÊNCIA", "FLUSH", "FULL HOUSE", "QUADRA", "STRAIGHT FLUSH", "ROYAL FLUSH" };
 
+    // Text builder, card buffers, the game shown and a rebuild pending.
     private readonly StringBuilder sb = new StringBuilder();
     private readonly List<Card> hole = new List<Card>();
     private readonly List<Card> shownBoard = new List<Card>();
     private HoldemGame shown;
     private bool dirty;
 
+    // Checks references; hidden at start.
     private void Awake()
     {
         if (group == null || header == null || body == null || prompt == null) { enabled = false; return; }
         group.alpha = 0f;
     }
 
+    // Listens to every table's changes.
     private void OnEnable()
     {
         foreach (HoldemGame g in games) if (g != null) g.Changed += MarkDirty;
         if (settings != null) settings.Changed += MarkDirty;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         foreach (HoldemGame g in games) if (g != null) g.Changed -= MarkDirty;
         if (settings != null) settings.Changed -= MarkDirty;
     }
 
+    // Something changed: rebuild on the next LateUpdate.
     private void MarkDirty() => dirty = true;
 
+    // Fades in while a game is on; rebuilds when dirty.
     private void LateUpdate()
     {
         HoldemGame game = null;
@@ -64,6 +74,7 @@ public class HoldemHud : MonoBehaviour
         Rebuild(game);
     }
 
+    // Writes chips, ante / call, the cards, the hands, the result and the prompt.
     private void Rebuild(HoldemGame game)
     {
         bool pt = settings != null && settings.Language == GameLanguage.Portuguese;
@@ -93,6 +104,7 @@ public class HoldemHud : MonoBehaviour
         prompt.text = Prompt(game, pt);
     }
 
+    // Cards as short text.
     private static string Cards(List<Card> cards)
     {
         var s = new StringBuilder();
@@ -104,8 +116,10 @@ public class HoldemHud : MonoBehaviour
         return s.ToString();
     }
 
+    // A hand's category name.
     private static string Name(HandValue v, bool pt) => (pt ? CategoryPt : CategoryEn)[(int)v.Category];
 
+    // The result line.
     private static string Result(HoldemOutcome o, bool pt)
     {
         switch (o)
@@ -119,6 +133,7 @@ public class HoldemHud : MonoBehaviour
         }
     }
 
+    // What can be said now.
     private static string Prompt(HoldemGame game, bool pt)
     {
         switch (game.CurrentState)

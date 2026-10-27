@@ -10,11 +10,12 @@ using UnityEngine.UI;
 // Menu "Last Terminal/8 - Build Casino Scene": the casino (its own scene, reached by elevator). The model
 // (SM_Casino: room, bar, roulette, tables, 48 slot machines with separate reels), its materials, colliders and
 // NavMesh, lights, rooms + CCTV cameras, the elevator hall (4 elevators), the playable slot machines and a save point.
-// Helena and her systems come from the shared rig (HelenaSetupMenu.BuildLocation).
+// Helena and her systems come from the shared rig (LocationRigBuilder.BuildLocation).
 // Plan (meters, x east, z north), sections: ELEVATOR HALL z[0,3.9] (elevators on the south wall) | CENTER z[3.9,10.3]
 //   (card tables) | BAR x[0,3.8] + ROULETTE z[10.3,15.3] | FRONT SLOTS z[15.3,18.8] | BACK SLOTS z[18.8,25.83]   (x[0,12.33])
 public static class CasinoBuilder
 {
+    // Scene, NavMesh, art and material paths.
     internal const string SceneName = "Casino";
     private const string ScenePath = "Assets/Scenes/" + SceneName + ".unity";
     private const string NavMeshPath = "Assets/Scenes/" + SceneName + "_NavMesh.asset";
@@ -25,10 +26,12 @@ public static class CasinoBuilder
     private static readonly int[] GlowMaterials = { 1 };         // light halos: additive
     private static readonly int[] ShadowMaterials = { 7 };       // the baked floor shadows: alpha blended
     private const int SlotCount = 48;                             // Reel_<ii>_<0..2>; rows of 12 face south, north, south, north
+    // Room size (m), CCTV camera height (m).
     private const float RoomWidth = 12.33f;
     private const float RoomLength = 25.83f;
     private const float CameraHeight = 3.4f;
     private const float ElevatorDoorZ = 1.8f;                     // the facade of the elevator hall
+    // Elevator height (m); name of the roulette wheel's spinning part in the model.
     private const float ElevatorHeight = 3.4f;
     private const string RotorName = "RouletteRotor";
     // card tables (measured on the model): felt height, x of the three tables of a row, the dealer's seat of each row
@@ -40,10 +43,12 @@ public static class CasinoBuilder
     private static readonly Vector3 WheelAxis = new Vector3(5.285f, 0f, 12.552f);
     private const float RouletteFelt = 0.843f;
 
+    // URP Lit property ids.
     private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
+    // Menu 8: builds the whole casino scene.
     [MenuItem("Last Terminal/8 - Build Casino Scene")]
     public static void BuildCasinoScene()
     {
@@ -52,13 +57,13 @@ public static class CasinoBuilder
             Debug.LogError($"[Casino] {ModelPath} not found: copy the casino art first.");
             return;
         }
-        HelenaSetupMenu.BuildLocation(ScenePath, NavMeshPath, BuildContent);
+        LocationRigBuilder.BuildLocation(ScenePath, NavMeshPath, BuildContent);
     }
 
     // ------------------------------------------------------------------ content
-    private static HelenaSetupMenu.LocationContent BuildContent(Scene scene, Shader lit)
+    private static LocationRigBuilder.LocationContent BuildContent(Scene scene, Shader lit)
     {
-        var content = new HelenaSetupMenu.LocationContent { TestEnemies = false };
+        var content = new LocationRigBuilder.LocationContent { TestEnemies = false };
         var level = new FacilityBuilder.Level
         {
             Rooms = new List<Room>(), Doors = new List<Door>(), Cameras = new List<SecurityCamera>(), Keypads = new List<Keypad>(),
@@ -103,7 +108,7 @@ public static class CasinoBuilder
         {
             var open = new List<Room>();
             foreach (Room b in sections) if (b != a && Touch(a, b)) open.Add(b);
-            HelenaSetupMenu.SetReferenceArray(a, Room.OpenToField, open);
+            EditorSerialized.SetReferenceArray(a, Room.OpenToField, open);
         }
         level.Rooms.AddRange(sections);
         Room hall = sections[0], center = sections[1], bar = sections[2], roulette = sections[3], front = sections[4], back = sections[5];
@@ -127,7 +132,7 @@ public static class CasinoBuilder
         var gameCamGo = new GameObject("GameCam");
         gameCamGo.transform.SetParent(cams, false);
         var gameCam = gameCamGo.AddComponent<SecurityCamera>();
-        HelenaSetupMenu.SetString(gameCam, SecurityCamera.LabelField, "LIVE");
+        EditorSerialized.SetString(gameCam, SecurityCamera.LabelField, "LIVE");
         var gcSo = new SerializedObject(gameCam);
         gcSo.FindProperty(SecurityCamera.YawRangeField).floatValue = 15f;
         gcSo.FindProperty("fieldOfView").floatValue = 55f;
@@ -185,12 +190,12 @@ public static class CasinoBuilder
         counterGo.transform.SetParent(root.transform, false);
         counterGo.transform.position = bar.Spot.position;
         var counter = counterGo.AddComponent<PrizeCounter>();
-        HelenaSetupMenu.SetReference(counter, PrizeCounter.SpotField, bar.Spot);
+        EditorSerialized.SetReference(counter, PrizeCounter.SpotField, bar.Spot);
         content.Counter = counter;
 
         // a save point beside the bar (the casino is a safe zone)
         var savePoints = new GameObject("SavePoints");
-        SaveStation station = HelenaSetupMenu.PlaceSavePoint(savePoints.transform, "SavePoint_Office", new Vector3(0.8f, 0f, 15.5f), 90f);
+        SaveStation station = SavePointBuilder.PlaceSavePoint(savePoints.transform, "SavePoint_Office", new Vector3(0.8f, 0f, 15.5f), 90f);
         if (station != null) content.Stations.Add(station);
 
         AddLights(root.transform);
@@ -215,14 +220,15 @@ public static class CasinoBuilder
         ("Prize Gallery", "Galeria de Prêmios", new Rect(GalleryX, 10.3f, RoomWidth - GalleryX, 5f), new Vector2(10.4f, 12.95f)),   // the lockers
     };
 
+    // A named area with its map spot.
     private static Room AddRoom(Transform parent, string displayName, string displayNamePt, Rect r, Vector2 spotAt)
     {
         var go = new GameObject("Room_" + displayName.Replace(" ", ""));
         go.transform.SetParent(parent, false);
         go.transform.position = new Vector3(r.center.x, 0f, r.center.y);
         var room = go.AddComponent<Room>();
-        HelenaSetupMenu.SetString(room, Room.DisplayNameField, displayName);
-        HelenaSetupMenu.SetString(room, Room.DisplayNamePtField, displayNamePt);
+        EditorSerialized.SetString(room, Room.DisplayNameField, displayName);
+        EditorSerialized.SetString(room, Room.DisplayNamePtField, displayNamePt);
         var so = new SerializedObject(room);
         so.FindProperty(Room.SizeField).vector2Value = r.size;
         so.FindProperty(Room.SafeZoneField).boolValue = true;   // no enemies in the casino: the operator may leave her anywhere
@@ -230,7 +236,7 @@ public static class CasinoBuilder
         var spot = new GameObject("Spot").transform;
         spot.SetParent(go.transform, false);
         spot.position = new Vector3(spotAt.x, 0f, spotAt.y);
-        HelenaSetupMenu.SetReference(room, Room.SpotField, spot);
+        EditorSerialized.SetReference(room, Room.SpotField, spot);
         if (!UnityEngine.AI.NavMesh.SamplePosition(spot.position, out _, 0.3f, UnityEngine.AI.NavMesh.AllAreas))
             Debug.LogWarning($"[Casino] The spot of '{displayName}' is not on the NavMesh: move Rooms/{go.name}/Spot.", spot);
         return room;
@@ -240,6 +246,7 @@ public static class CasinoBuilder
     private static bool Touch(Room a, Room b)
     {
         Rect p = a.FloorRect, q = b.FloorRect;
+        // Tolerance for "touching" edges (m).
         const float e = 0.05f;
         bool xOverlap = p.xMin < q.xMax - e && q.xMin < p.xMax - e;
         bool zOverlap = p.yMin < q.yMax - e && q.yMin < p.yMax - e;
@@ -254,7 +261,7 @@ public static class CasinoBuilder
         var reels = new List<Renderer>();
         for (int r = 0; r < 3; r++)
         {
-            Transform t = HelenaSetupMenu.FindDeep(model, $"Reel_{index:00}_{r}");
+            Transform t = EditorScene.FindDeep(model, $"Reel_{index:00}_{r}");
             if (t == null) { Debug.LogWarning($"[Casino] Reel_{index:00}_{r} not found in the model: machine {index + 1} skipped."); return null; }
             reels.Add(t.GetComponent<Renderer>());
         }
@@ -282,13 +289,14 @@ public static class CasinoBuilder
         audio.volume = 0.5f;
 
         var machine = go.AddComponent<SlotMachine>();
-        HelenaSetupMenu.SetReferenceArray(machine, SlotMachine.ReelsField, reels);
-        HelenaSetupMenu.SetReference(machine, SlotMachine.SpinButtonField, spin);
-        HelenaSetupMenu.SetReference(machine, SlotMachine.AudioSourceField, audio);
-        HelenaSetupMenu.SetInt(machine, SlotMachine.NumberField, index + 1);
+        EditorSerialized.SetReferenceArray(machine, SlotMachine.ReelsField, reels);
+        EditorSerialized.SetReference(machine, SlotMachine.SpinButtonField, spin);
+        EditorSerialized.SetReference(machine, SlotMachine.AudioSourceField, audio);
+        EditorSerialized.SetInt(machine, SlotMachine.NumberField, index + 1);
         return machine;
     }
 
+    // Ceiling lights, glows and accent lights.
     private static void AddLights(Transform root)
     {
         RenderSettings.ambientMode = AmbientMode.Flat;
@@ -322,7 +330,7 @@ public static class CasinoBuilder
     // RouletteGame at the rim, facing her (she stands west of the wheel); the layout cells in its space; the ball.
     private static RouletteGame BuildRoulette(Transform root, Transform model, Shader lit)
     {
-        Transform rotor = HelenaSetupMenu.FindDeep(model, RotorName);
+        Transform rotor = EditorScene.FindDeep(model, RotorName);
         var chip = AssetDatabase.LoadAssetAtPath<GameObject>(BlackjackBuilder.ChipPrefabPath);
         if (rotor == null || chip == null)
         {
@@ -341,7 +349,7 @@ public static class CasinoBuilder
         Object.DestroyImmediate(ballGo.GetComponent<Collider>());
         ballGo.transform.SetParent(root, false);
         ballGo.transform.localScale = Vector3.one * 0.018f;
-        Material ballMat = HelenaSetupMenu.MakeMaterial($"{MatFolder}/M_RouletteBall.mat", null, 0.9f, false, lit);
+        Material ballMat = EditorAssets.MakeMaterial($"{MatFolder}/M_RouletteBall.mat", null, 0.9f, false, lit);
         ballMat.SetColor(BaseColorId, new Color(0.95f, 0.95f, 0.93f));
         EditorUtility.SetDirty(ballMat);
         ballGo.GetComponent<Renderer>().sharedMaterial = ballMat;
@@ -352,10 +360,10 @@ public static class CasinoBuilder
         audio.volume = 0.6f;
 
         var game = go.AddComponent<RouletteGame>();
-        HelenaSetupMenu.SetReference(game, RouletteGame.RotorField, rotor);
-        HelenaSetupMenu.SetReference(game, RouletteGame.BallField, ballGo.transform);
-        HelenaSetupMenu.SetReference(game, RouletteGame.ChipPrefabField, chip);
-        HelenaSetupMenu.SetReference(game, RouletteGame.AudioSourceField, audio);
+        EditorSerialized.SetReference(game, RouletteGame.RotorField, rotor);
+        EditorSerialized.SetReference(game, RouletteGame.BallField, ballGo.transform);
+        EditorSerialized.SetReference(game, RouletteGame.ChipPrefabField, chip);
+        EditorSerialized.SetReference(game, RouletteGame.AudioSourceField, audio);
         var so = new SerializedObject(game);
         // cells of the felt print: numbers in 12 columns (x) by 3 rows (z; 1, 4, 7... is the row nearest the player)
         so.FindProperty(RouletteGame.NumberOneField).vector3Value = L(5.732f, 12.92f);
@@ -384,7 +392,7 @@ public static class CasinoBuilder
     // transparent and unlit, like in the original scene.
     private static void ImportArt(Shader lit)
     {
-        HelenaSetupMenu.EnsureFolder(ArtFolder, "Materials");
+        EditorAssets.EnsureFolder(ArtFolder, "Materials");
         Shader unlit = Shader.Find("Universal Render Pipeline/Unlit");   // editor only: picking the shader for the asset
         if (!(AssetImporter.GetAtPath(ModelPath) is ModelImporter mi)) return;
         for (int i = 0; i < MaterialCount; i++)
@@ -393,7 +401,7 @@ public static class CasinoBuilder
             var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/T_Casino_{i:00}.png");
             bool glow = System.Array.IndexOf(GlowMaterials, i) >= 0, shadow = System.Array.IndexOf(ShadowMaterials, i) >= 0;
             Material m = glow || shadow ? TransparentMaterial($"{MatFolder}/{name}.mat", tex, unlit != null ? unlit : lit, glow)
-                                        : HelenaSetupMenu.MakeMaterial($"{MatFolder}/{name}.mat", tex, 0.35f, false, lit);
+                                        : EditorAssets.MakeMaterial($"{MatFolder}/{name}.mat", tex, 0.35f, false, lit);
             mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), name), m);
         }
         var reelTex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/T_SlotReels.png");
@@ -402,10 +410,10 @@ public static class CasinoBuilder
             ti.wrapMode = TextureWrapMode.Repeat;   // the reels scroll their texture
             ti.SaveAndReimport();
         }
-        Material reels = HelenaSetupMenu.MakeMaterial($"{MatFolder}/M_SlotReels.mat", reelTex, 0.5f, false, lit);
+        Material reels = EditorAssets.MakeMaterial($"{MatFolder}/M_SlotReels.mat", reelTex, 0.5f, false, lit);
         mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "M_SlotReels"), reels);
         var rotorTex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/T_RouletteRotor.png");   // European order (casino_convert.py)
-        Material rotorMat = HelenaSetupMenu.MakeMaterial($"{MatFolder}/M_RouletteRotor.mat", rotorTex, 0.6f, false, lit);
+        Material rotorMat = EditorAssets.MakeMaterial($"{MatFolder}/M_RouletteRotor.mat", rotorTex, 0.6f, false, lit);
         mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "M_RouletteRotor"), rotorMat);
         mi.SaveAndReimport();
     }
@@ -415,6 +423,7 @@ public static class CasinoBuilder
     private const float CaseWidth = 0.95f, CaseDepth = 0.7f, CaseHeight = 2.3f, CaseBackX = 12.3f;   // the wall at 12.32
     private static readonly float[] CaseZ = { 11.95f, 14.1f, 10.9f, 15.15f };   // either side of the pilaster (12.7..13.35) first
 
+    // The prize cases at the counter (one per outfit).
     private static List<PrizeCase> BuildPrizeCases(Transform root, Shader lit)
     {
         var cases = new List<PrizeCase>();
@@ -428,11 +437,11 @@ public static class CasinoBuilder
         if (prizes.Count == 0) { Debug.LogWarning("[Casino] No outfit with a price in Assets/Data/Outfits (run menu 4 first): no prize lockers."); return cases; }
         if (prizes.Count > CaseZ.Length) Debug.LogWarning($"[Casino] {prizes.Count} prizes, room for {CaseZ.Length} lockers: the rest are sold at the cashier.");
 
-        Material wood = HelenaSetupMenu.MakeMaterial($"{MatFolder}/M_CaseWood.mat", null, 0.55f, false, lit);
+        Material wood = EditorAssets.MakeMaterial($"{MatFolder}/M_CaseWood.mat", null, 0.55f, false, lit);
         wood.SetColor(BaseColorId, new Color(0.22f, 0.12f, 0.06f));
-        Material velvet = HelenaSetupMenu.MakeMaterial($"{MatFolder}/M_CaseVelvet.mat", null, 0.15f, false, lit);
+        Material velvet = EditorAssets.MakeMaterial($"{MatFolder}/M_CaseVelvet.mat", null, 0.15f, false, lit);
         velvet.SetColor(BaseColorId, new Color(0.35f, 0.04f, 0.06f));
-        Material brass = HelenaSetupMenu.MakeMaterial($"{MatFolder}/M_CaseBrass.mat", null, 0.8f, false, lit);
+        Material brass = EditorAssets.MakeMaterial($"{MatFolder}/M_CaseBrass.mat", null, 0.8f, false, lit);
         brass.SetColor(BaseColorId, new Color(0.8f, 0.6f, 0.25f));
         brass.SetFloat("_Metallic", 0.9f);
         Material glass = TransparentMaterial($"{MatFolder}/M_CaseGlass.mat", null, lit, false);
@@ -512,13 +521,14 @@ public static class CasinoBuilder
         spot.localPosition = new Vector3(0f, 0f, d + 0.6f);
 
         var locker = go.AddComponent<PrizeCase>();
-        HelenaSetupMenu.SetReference(locker, PrizeCase.PrizeField, prize);
-        HelenaSetupMenu.SetReference(locker, PrizeCase.DoorField, hinge);
-        HelenaSetupMenu.SetReference(locker, PrizeCase.PlateField, text);
-        HelenaSetupMenu.SetReference(locker, PrizeCase.SpotField, spot);
+        EditorSerialized.SetReference(locker, PrizeCase.PrizeField, prize);
+        EditorSerialized.SetReference(locker, PrizeCase.DoorField, hinge);
+        EditorSerialized.SetReference(locker, PrizeCase.PlateField, text);
+        EditorSerialized.SetReference(locker, PrizeCase.SpotField, spot);
         return locker;
     }
 
+    // A box part with a material (and collider when asked).
     private static GameObject Part(Transform parent, string objectName, Vector3 localCenter, Vector3 size, Material m, bool noCollider = false)
     {
         var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -531,6 +541,7 @@ public static class CasinoBuilder
         return go;
     }
 
+    // A transparent (alpha / additive) material from a texture.
     private static Material TransparentMaterial(string path, Texture2D tex, Shader shader, bool additive)
     {
         var m = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -556,11 +567,13 @@ public static class CasinoBuilder
         return m;
     }
 
+    // Does the material render in the transparent queue?
     private static bool IsTransparent(Material m) => m != null && m.renderQueue >= (int)RenderQueue.Transparent;
 
+    // Lit button material of the slot machines.
     private static Material ButtonMaterial(Shader lit)
     {
-        Material m = HelenaSetupMenu.MakeMaterial($"{MatFolder}/M_SlotButton.mat", null, 0.7f, false, lit);
+        Material m = EditorAssets.MakeMaterial($"{MatFolder}/M_SlotButton.mat", null, 0.7f, false, lit);
         m.SetColor(BaseColorId, new Color(0.9f, 0.1f, 0.08f));
         m.SetColor(EmissionColorId, new Color(0.9f, 0.1f, 0.08f) * 1.5f);
         m.EnableKeyword("_EMISSION");
@@ -573,30 +586,31 @@ public static class CasinoBuilder
     // A small panel on the right (like the blackjack one): header, body, prompt. Only one shows at a time.
     private static CanvasGroup Panel(Transform canvas, string objectName, Color back, Color gold, out TMP_Text header, out TMP_Text body, out TMP_Text prompt)
     {
-        var root = HelenaSetupMenu.CreateUiObject(canvas, objectName);
+        var root = EditorUi.CreateUiObject(canvas, objectName);
         root.transform.SetSiblingIndex(1);
         Vector2 rc = new Vector2(1f, 0.5f);
-        HelenaSetupMenu.Place((RectTransform)root.transform, rc, rc, rc, new Vector2(-24f, 0f), new Vector2(330f, 170f));
+        EditorUi.Place((RectTransform)root.transform, rc, rc, rc, new Vector2(-24f, 0f), new Vector2(330f, 170f));
         var group = root.AddComponent<CanvasGroup>();
         group.blocksRaycasts = false;
         group.interactable = false;
-        Image bg = HelenaSetupMenu.CreateUiObject(root.transform, "Back").AddComponent<Image>();
-        HelenaSetupMenu.Stretch(bg.rectTransform);
+        Image bg = EditorUi.CreateUiObject(root.transform, "Back").AddComponent<Image>();
+        EditorUi.Stretch(bg.rectTransform);
         bg.color = back;
         bg.raycastTarget = false;
         var outline = bg.gameObject.AddComponent<Outline>();
         outline.effectColor = gold;
         outline.effectDistance = new Vector2(1f, -1f);
         Vector2 tl = new Vector2(0f, 1f), bl = Vector2.zero;
-        header = HelenaSetupMenu.CreateText(root.transform, "Header", 17, TextAlignmentOptions.Left, gold);
-        HelenaSetupMenu.Place(header.rectTransform, tl, tl, tl, new Vector2(12f, -8f), new Vector2(306f, 24f));
-        body = HelenaSetupMenu.CreateText(root.transform, "Body", 15, TextAlignmentOptions.TopLeft, Color.white);
-        HelenaSetupMenu.Place(body.rectTransform, tl, tl, tl, new Vector2(12f, -36f), new Vector2(306f, 100f));
-        prompt = HelenaSetupMenu.CreateText(root.transform, "Prompt", 12, TextAlignmentOptions.BottomLeft, gold);
-        HelenaSetupMenu.Place(prompt.rectTransform, bl, bl, bl, new Vector2(12f, 6f), new Vector2(306f, 24f));
+        header = EditorUi.CreateText(root.transform, "Header", 17, TextAlignmentOptions.Left, gold);
+        EditorUi.Place(header.rectTransform, tl, tl, tl, new Vector2(12f, -8f), new Vector2(306f, 24f));
+        body = EditorUi.CreateText(root.transform, "Body", 15, TextAlignmentOptions.TopLeft, Color.white);
+        EditorUi.Place(body.rectTransform, tl, tl, tl, new Vector2(12f, -36f), new Vector2(306f, 100f));
+        prompt = EditorUi.CreateText(root.transform, "Prompt", 12, TextAlignmentOptions.BottomLeft, gold);
+        EditorUi.Place(prompt.rectTransform, bl, bl, bl, new Vector2(12f, 6f), new Vector2(306f, 24f));
         return group;
     }
 
+    // Accent color of the casino panels.
     private static readonly Color Gold = new Color(0.95f, 0.78f, 0.36f);
 
     // the slot machine panel
@@ -604,50 +618,53 @@ public static class CasinoBuilder
     {
         CanvasGroup group = Panel(canvas, "CasinoHud", new Color(0.12f, 0.03f, 0.04f, 0.75f), Gold, out TMP_Text header, out TMP_Text body, out TMP_Text prompt);
         var hud = group.gameObject.AddComponent<CasinoHud>();
-        HelenaSetupMenu.SetReference(hud, CasinoHud.KeypadUserField, keypadUser);
-        HelenaSetupMenu.SetReference(hud, CasinoHud.BankField, bank);
-        HelenaSetupMenu.SetReference(hud, CasinoHud.SettingsField, settings);
-        HelenaSetupMenu.SetReference(hud, CasinoHud.GroupField, group);
-        HelenaSetupMenu.SetReference(hud, CasinoHud.HeaderField, header);
-        HelenaSetupMenu.SetReference(hud, CasinoHud.BodyField, body);
-        HelenaSetupMenu.SetReference(hud, CasinoHud.PromptField, prompt);
+        EditorSerialized.SetReference(hud, CasinoHud.KeypadUserField, keypadUser);
+        EditorSerialized.SetReference(hud, CasinoHud.BankField, bank);
+        EditorSerialized.SetReference(hud, CasinoHud.SettingsField, settings);
+        EditorSerialized.SetReference(hud, CasinoHud.GroupField, group);
+        EditorSerialized.SetReference(hud, CasinoHud.HeaderField, header);
+        EditorSerialized.SetReference(hud, CasinoHud.BodyField, body);
+        EditorSerialized.SetReference(hud, CasinoHud.PromptField, prompt);
     }
 
+    // Builds the hold'em side panel.
     internal static void BuildHoldemHud(Transform canvas, List<HoldemGame> games, CameraSettings settings)
     {
         CanvasGroup group = Panel(canvas, "HoldemHud", new Color(0.02f, 0.16f, 0.08f, 0.75f), Gold, out TMP_Text header, out TMP_Text body, out TMP_Text prompt);
         var hud = group.gameObject.AddComponent<HoldemHud>();
-        HelenaSetupMenu.SetReferenceArray(hud, HoldemHud.GamesField, games);
-        HelenaSetupMenu.SetReference(hud, HoldemHud.SettingsField, settings);
-        HelenaSetupMenu.SetReference(hud, HoldemHud.GroupField, group);
-        HelenaSetupMenu.SetReference(hud, HoldemHud.HeaderField, header);
-        HelenaSetupMenu.SetReference(hud, HoldemHud.BodyField, body);
-        HelenaSetupMenu.SetReference(hud, HoldemHud.PromptField, prompt);
+        EditorSerialized.SetReferenceArray(hud, HoldemHud.GamesField, games);
+        EditorSerialized.SetReference(hud, HoldemHud.SettingsField, settings);
+        EditorSerialized.SetReference(hud, HoldemHud.GroupField, group);
+        EditorSerialized.SetReference(hud, HoldemHud.HeaderField, header);
+        EditorSerialized.SetReference(hud, HoldemHud.BodyField, body);
+        EditorSerialized.SetReference(hud, HoldemHud.PromptField, prompt);
     }
 
+    // Builds the roulette side panel.
     internal static void BuildRouletteHud(Transform canvas, RouletteGame game, CameraSettings settings)
     {
         CanvasGroup group = Panel(canvas, "RouletteHud", new Color(0.02f, 0.16f, 0.08f, 0.75f), Gold, out TMP_Text header, out TMP_Text body, out TMP_Text prompt);
         var hud = group.gameObject.AddComponent<RouletteHud>();
-        HelenaSetupMenu.SetReference(hud, RouletteHud.GameField, game);
-        HelenaSetupMenu.SetReference(hud, RouletteHud.SettingsField, settings);
-        HelenaSetupMenu.SetReference(hud, RouletteHud.GroupField, group);
-        HelenaSetupMenu.SetReference(hud, RouletteHud.HeaderField, header);
-        HelenaSetupMenu.SetReference(hud, RouletteHud.BodyField, body);
-        HelenaSetupMenu.SetReference(hud, RouletteHud.PromptField, prompt);
+        EditorSerialized.SetReference(hud, RouletteHud.GameField, game);
+        EditorSerialized.SetReference(hud, RouletteHud.SettingsField, settings);
+        EditorSerialized.SetReference(hud, RouletteHud.GroupField, group);
+        EditorSerialized.SetReference(hud, RouletteHud.HeaderField, header);
+        EditorSerialized.SetReference(hud, RouletteHud.BodyField, body);
+        EditorSerialized.SetReference(hud, RouletteHud.PromptField, prompt);
     }
 
+    // Builds the prize counter side panel.
     internal static void BuildCounterHud(Transform canvas, PrizeCounter counter, Transform partner, CameraSettings settings)
     {
         CanvasGroup group = Panel(canvas, "PrizeCounterHud", new Color(0.12f, 0.08f, 0.02f, 0.78f), Gold, out TMP_Text header, out TMP_Text body, out TMP_Text prompt);
         var hud = group.gameObject.AddComponent<PrizeCounterHud>();
-        HelenaSetupMenu.SetReference(hud, PrizeCounterHud.CounterField, counter);
-        HelenaSetupMenu.SetReference(hud, PrizeCounterHud.PartnerField, partner);
-        HelenaSetupMenu.SetReference(hud, PrizeCounterHud.SettingsField, settings);
-        HelenaSetupMenu.SetReference(hud, PrizeCounterHud.GroupField, group);
-        HelenaSetupMenu.SetReference(hud, PrizeCounterHud.HeaderField, header);
-        HelenaSetupMenu.SetReference(hud, PrizeCounterHud.BodyField, body);
-        HelenaSetupMenu.SetReference(hud, PrizeCounterHud.PromptField, prompt);
+        EditorSerialized.SetReference(hud, PrizeCounterHud.CounterField, counter);
+        EditorSerialized.SetReference(hud, PrizeCounterHud.PartnerField, partner);
+        EditorSerialized.SetReference(hud, PrizeCounterHud.SettingsField, settings);
+        EditorSerialized.SetReference(hud, PrizeCounterHud.GroupField, group);
+        EditorSerialized.SetReference(hud, PrizeCounterHud.HeaderField, header);
+        EditorSerialized.SetReference(hud, PrizeCounterHud.BodyField, body);
+        EditorSerialized.SetReference(hud, PrizeCounterHud.PromptField, prompt);
     }
 
     // the games, the counter and the roulette bets (understood in every scene: "let's play poker")

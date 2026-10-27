@@ -9,14 +9,17 @@ using UnityEditor;
 //           keep the hips at the seat height); loops except the one-shots.
 public class CastImport : AssetPostprocessor
 {
+    // Cast folders and files.
     public const string Folder = "Assets/Characters/Cast/";
     public const string ModelFolder = Folder + "Models/";
     public const string AnimFolder = Folder + "Animations/";
     public const string MaryFile = ModelFolder + "Mary.fbx";
     public const string MaryIdleClip = "Mary_Idle";
+    // PigDriver file and its height in the file / in the game (m).
     const string PigFile = ModelFolder + "PigDriver.fbx";
     const float PigFileHeight = 4.918f;
     const float PigHeight = 1.86f;
+    // Cutscene clips that play once (the others loop).
     static readonly string[] OneShots = { "Cast_ArmsOpen", "Cast_PigLunge", "Cast_PigTurn", "Cast_BedSitUp" };
     // lying down (the asylum bed): the body orientation of the first frame points at the ceiling, so the root keeps
     // the orientation of the file (she faces +Z) instead

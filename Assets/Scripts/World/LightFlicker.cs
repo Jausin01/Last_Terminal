@@ -4,9 +4,11 @@ using UnityEngine;
 // blackout. Unscaled time: it keeps flickering while the game is paused behind a panel.
 public class LightFlicker : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string LampField = nameof(lamp);
     public const string FixtureField = nameof(fixture);
 
+    // The light that flickers.
     [SerializeField] private Light lamp;
     [Tooltip("Optional: the glowing panel of the lamp (its emission follows the light).")]
     [SerializeField] private Renderer fixture;
@@ -16,8 +18,10 @@ public class LightFlicker : MonoBehaviour
     [SerializeField] private Vector2 burst = new Vector2(0.15f, 0.8f);
     [Tooltip("Chance that a burst ends in a short blackout.")]
     [SerializeField, Range(0f, 1f)] private float blackoutChance = 0.15f;
+    // Lowest level of a dip (fraction of the full light).
     [SerializeField, Range(0f, 1f)] private float lowest = 0.05f;
 
+    // Emission id; full intensity / emission, property block, timers (next burst, burst left, blackout left) and the current level.
     private static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
     private float baseIntensity;
     private Color baseEmission;
@@ -27,6 +31,7 @@ public class LightFlicker : MonoBehaviour
     private float blackoutLeft;
     private float level = 1f;
 
+    // Stores the full values.
     private void Awake()
     {
         if (lamp == null) { enabled = false; return; }
@@ -39,6 +44,7 @@ public class LightFlicker : MonoBehaviour
         timer = Random.Range(calm.x, calm.y);
     }
 
+    // Waits, bursts of dips, sometimes a blackout.
     private void Update()
     {
         float dt = Time.unscaledDeltaTime;
@@ -66,6 +72,7 @@ public class LightFlicker : MonoBehaviour
         if (timer <= 0f) burstLeft = Random.Range(burst.x, burst.y);
     }
 
+    // Sets the light and fixture level.
     private void Set(float k)
     {
         lamp.intensity = baseIntensity * k;

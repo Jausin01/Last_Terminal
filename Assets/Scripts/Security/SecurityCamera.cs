@@ -5,6 +5,7 @@ using UnityEngine;
 // Yaw 0 = the direction this object faces (+Z); the operator pans inside [-yawRange, +yawRange].
 public class SecurityCamera : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string LabelField = nameof(label);
     public const string RoomField = nameof(room);
     public const string PanField = nameof(pan);
@@ -13,8 +14,10 @@ public class SecurityCamera : MonoBehaviour
     public const string PitchField = nameof(pitch);
     public const string YawRangeField = nameof(yawRange);
 
+    // Name shown on the HUD and the room it watches.
     [SerializeField] private string label = "CAM 01";
     [SerializeField] private Room room;
+    // Model parts: the pan pivot (left / right), the tilt pivot (down) and the lens the view camera sits on.
     [SerializeField] private Transform pan;
     [SerializeField] private Transform tilt;
     [SerializeField] private Transform lens;
@@ -22,20 +25,26 @@ public class SecurityCamera : MonoBehaviour
     [SerializeField, Range(0f, 80f)] private float pitch = 28f;
     [Tooltip("How far the operator can pan each way (deg).")]
     [SerializeField, Range(0f, 170f)] private float yawRange = 55f;
+    // Field of view of the view camera on this camera (deg).
     [SerializeField, Range(20f, 100f)] private float fieldOfView = 70f;
 
+    // Rest rotations of the pan / tilt parts (stored once).
     private Quaternion panHome = Quaternion.identity;
     private Quaternion tiltHome = Quaternion.identity;
     private bool homeStored;
 
+    // Read-only data for the system, HUD and map.
     public string Label => label;
     public Room Room => room;
     public string RoomName => room != null ? room.DisplayName : "";
     public float YawRange => yawRange;
     public float FieldOfView => fieldOfView;
+    // Current pan angle (deg).
     public float Yaw { get; private set; }
+    // Where the view camera goes.
     public Transform Lens => lens;
 
+    // Stores the rest rotations.
     private void Awake()
     {
         StoreHome();

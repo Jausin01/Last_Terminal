@@ -10,6 +10,7 @@ using TMPro;
 // The code is set here (Code). Typing it the first time sets the story flag (Accepted Flag).
 public class RoomKeypad : FocusInteractable
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string CodeField = nameof(code);
     public const string AudioField = nameof(audioSource);
     public const string GroupField = nameof(group);
@@ -21,41 +22,51 @@ public class RoomKeypad : FocusInteractable
 
     [Tooltip("The code that opens it (digits only).")]
     [SerializeField] private string code = "9999";
+    // Most digits that can be typed.
     [SerializeField, Range(1, 10)] private int maxDigits = 6;
     [Tooltip("StoryProgress flag set the first time the code is right.")]
     [SerializeField] private string acceptedFlag = "operator_door_code";
     [Tooltip("The keypad's sounds (on the keypad, 3D).")]
     [SerializeField] private AudioSource audioSource;
 
+    // The on-screen keypad: panel and display.
     [Header("Screen overlay")]
     [SerializeField] private CanvasGroup group;
     [SerializeField] private TMP_Text display;
     [Tooltip("The buttons 0 to 9, in that order.")]
     [SerializeField] private Button[] digitButtons = new Button[10];
+    // The clear and enter buttons.
     [SerializeField] private Button clearButton;
     [SerializeField] private Button enterButton;
 
+    // Called when the right code is entered (wire what it opens).
     [Header("Result")]
     [SerializeField] private UnityEvent onAccepted = new UnityEvent();
+    // His thoughts after wrong codes / the right one, per language.
     [SerializeField] private string[] wrongThoughtsEn = { "No.", "Not that one either.", "I'm guessing. That's all I'm doing." };
     [SerializeField] private string[] wrongThoughtsPt = { "Não.", "Também não.", "Tô chutando. É só isso que eu tô fazendo." };
     [SerializeField] private string acceptedThoughtEn = "It took it... but the door didn't move.";
     [SerializeField] private string acceptedThoughtPt = "Aceitou... mas a porta não se mexeu.";
 
+    // Keyboard keys for the digits (number row and numpad).
     private static readonly Key[] DigitKeys = { Key.Digit0, Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5, Key.Digit6, Key.Digit7, Key.Digit8, Key.Digit9 };
     private static readonly Key[] PadKeys = { Key.Numpad0, Key.Numpad1, Key.Numpad2, Key.Numpad3, Key.Numpad4, Key.Numpad5, Key.Numpad6, Key.Numpad7, Key.Numpad8, Key.Numpad9 };
 
+    // Display colors.
     private static readonly Color Normal = new Color(0.55f, 1f, 0.6f);
     private static readonly Color Wrong = new Color(1f, 0.25f, 0.2f);
 
+    // The player using it, what was typed, how long the result shows, solved once, wrong tries.
     private FirstPersonPlayer user;
     private string entry = "";
     private float resultTimer;
     private bool accepted;
     private int wrongCount;
 
+    // The code (read by the content builder).
     public string Code => code;
 
+    // Wires the on-screen buttons; the overlay starts hidden.
     private void Awake()
     {
         for (int i = 0; i < digitButtons.Length; i++)
@@ -68,6 +79,7 @@ public class RoomKeypad : FocusInteractable
         SetOverlay(false);
     }
 
+    // Looking at the keypad: overlay on, entry cleared, hint shown.
     public override void BeginFocus(FirstPersonPlayer player)
     {
         user = player;
@@ -79,12 +91,14 @@ public class RoomKeypad : FocusInteractable
                                                  "Digite o código (teclado ou mouse)   |   Enter: confirmar   |   Esc: voltar"));
     }
 
+    // Leaving: overlay off.
     public override void EndFocus(FirstPersonPlayer player)
     {
         SetOverlay(false);
         user = null;
     }
 
+    // Keyboard input while focused (after a result, the display resets).
     public override void UpdateFocus(FirstPersonPlayer player)
     {
         if (resultTimer > 0f)
@@ -101,6 +115,7 @@ public class RoomKeypad : FocusInteractable
         if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame) Confirm();
     }
 
+    // Adds a digit.
     private void Press(int digit)
     {
         if (user == null || resultTimer > 0f) return;
@@ -110,6 +125,7 @@ public class RoomKeypad : FocusInteractable
         ShowEntry();
     }
 
+    // Clears the entry.
     private void Erase()
     {
         if (user == null || resultTimer > 0f) return;
@@ -118,6 +134,7 @@ public class RoomKeypad : FocusInteractable
         ShowEntry();
     }
 
+    // Checks the code: OK (flag, thought, event) or ERROR (sound, a thought every other try).
     private void Confirm()
     {
         if (user == null || resultTimer > 0f || entry.Length == 0) return;
@@ -140,6 +157,7 @@ public class RoomKeypad : FocusInteractable
         if (lines.Length > 0 && wrongCount++ % 2 == 1) user.Hud.ShowThought(lines[(wrongCount / 2) % lines.Length]);
     }
 
+    // Shows the entry with underscores for the missing digits.
     private void ShowEntry()
     {
         string shown = entry;
@@ -147,6 +165,7 @@ public class RoomKeypad : FocusInteractable
         SetDisplay(string.Join(" ", shown.ToCharArray()), Normal);
     }
 
+    // Sets the display text and color.
     private void SetDisplay(string text, Color color)
     {
         if (display == null) return;
@@ -154,12 +173,14 @@ public class RoomKeypad : FocusInteractable
         display.color = color;
     }
 
+    // Plays a keypad sound (on the keypad, else on the player).
     private void Beep(OperatorSounds.Kind kind, float volume)
     {
         AudioSource source = audioSource != null ? audioSource : user != null ? user.Audio : null;
         OperatorSounds.Play(source, kind, volume);
     }
 
+    // Shows / hides the on-screen keypad.
     private void SetOverlay(bool on)
     {
         if (group == null) return;

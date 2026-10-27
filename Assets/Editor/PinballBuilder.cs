@@ -12,33 +12,39 @@ using L = PinballLayout;
 // in place (scenes keep their references).
 internal static class PinballBuilder
 {
+    // Art, material and mesh folders.
     internal const string ArtFolder = "Assets/Art/Props/Pinball";
     private const string MatFolder = ArtFolder + "/Materials";
     private const string MeshFolder = ArtFolder + "/Meshes";
+    // Heights (m): flippers, rails, walls.
     private const float FlipperHeight = 0.022f;
     private const float RailHeight = 0.025f;
     private const float WallHeight = 0.06f;
 
+    // URP Lit property ids.
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int MetallicId = Shader.PropertyToID("_Metallic");
     private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private static readonly int EmissionMapId = Shader.PropertyToID("_EmissionMap");
 
+    // Every material of the machine.
     private class Mats
     {
+        // Materials by part.
         public Material Playfield, Backglass, Cabinet, Wood, Chrome, Rubber, Plastic, Insert, Cap, Flipper, Target, Dark, BumperBase;
     }
 
+    // Creates / updates the materials.
     private static Mats EnsureMaterials(Shader lit)
     {
-        HelenaSetupMenu.EnsureFolder("Assets/Art/Props", "Pinball");
-        HelenaSetupMenu.EnsureFolder(ArtFolder, "Materials");
+        EditorAssets.EnsureFolder("Assets/Art/Props", "Pinball");
+        EditorAssets.EnsureFolder(ArtFolder, "Materials");
         var m = new Mats
         {
-            Playfield = HelenaSetupMenu.MakeMaterial($"{MatFolder}/M_PB_Playfield.mat", T("T_Pinball_Playfield"), 0.75f, false, lit),
-            Backglass = HelenaSetupMenu.MakeMaterial($"{MatFolder}/M_PB_Backglass.mat", T("T_Pinball_Backglass"), 0.6f, false, lit),
-            Cabinet = HelenaSetupMenu.MakeMaterial($"{MatFolder}/M_PB_Cabinet.mat", T("T_Pinball_Cabinet"), 0.45f, false, lit),
+            Playfield = EditorAssets.MakeMaterial($"{MatFolder}/M_PB_Playfield.mat", T("T_Pinball_Playfield"), 0.75f, false, lit),
+            Backglass = EditorAssets.MakeMaterial($"{MatFolder}/M_PB_Backglass.mat", T("T_Pinball_Backglass"), 0.6f, false, lit),
+            Cabinet = EditorAssets.MakeMaterial($"{MatFolder}/M_PB_Cabinet.mat", T("T_Pinball_Cabinet"), 0.45f, false, lit),
             Wood = ColorMat("M_PB_Wood", new Color(0.3f, 0.17f, 0.09f), 0.35f, 0f, lit),
             Chrome = ColorMat("M_PB_Chrome", new Color(0.85f, 0.86f, 0.9f), 0.9f, 1f, lit),
             Rubber = ColorMat("M_PB_Rubber", new Color(0.92f, 0.92f, 0.9f), 0.25f, 0f, lit),
@@ -48,7 +54,7 @@ internal static class PinballBuilder
             Dark = ColorMat("M_PB_Dark", new Color(0.02f, 0.01f, 0.02f), 0.2f, 0f, lit),
             BumperBase = ColorMat("M_PB_BumperBase", new Color(0.12f, 0.05f, 0.2f), 0.6f, 0f, lit),
             Cap = ColorMat("M_PB_BumperCap", new Color(0.7f, 0.35f, 1f), 0.7f, 0f, lit),
-            Insert = HelenaSetupMenu.MakeMaterial($"{MatFolder}/M_PB_Insert.mat", T("T_Pinball_Insert"), 0.8f, false, lit),
+            Insert = EditorAssets.MakeMaterial($"{MatFolder}/M_PB_Insert.mat", T("T_Pinball_Insert"), 0.8f, false, lit),
         };
         Emissive(m.Backglass, Color.white * 0.85f, T("T_Pinball_Backglass"));
         Emissive(m.Cap, Color.black, null);
@@ -58,11 +64,13 @@ internal static class PinballBuilder
         return m;
     }
 
+    // A pinball texture by name.
     private static Texture2D T(string n) => AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/{n}.png");
 
+    // A plain colored material (made once, updated in place).
     private static Material ColorMat(string name, Color c, float smooth, float metallic, Shader lit)
     {
-        Material m = HelenaSetupMenu.MakeMaterial($"{MatFolder}/{name}.mat", null, smooth, false, lit);
+        Material m = EditorAssets.MakeMaterial($"{MatFolder}/{name}.mat", null, smooth, false, lit);
         m.SetColor(BaseColorId, c);
         m.SetFloat(MetallicId, metallic);
         m.SetFloat(SmoothnessId, smooth);
@@ -136,9 +144,10 @@ internal static class PinballBuilder
         else { t.Add(a); t.Add(c); t.Add(b); }
     }
 
+    // Saves / updates a generated mesh asset.
     private static Mesh SaveMesh(Mesh mesh)
     {
-        HelenaSetupMenu.EnsureFolder(ArtFolder, "Meshes");
+        EditorAssets.EnsureFolder(ArtFolder, "Meshes");
         string path = $"{MeshFolder}/{mesh.name}.asset";
         var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
         if (existing == null) { AssetDatabase.CreateAsset(mesh, path); return mesh; }
@@ -152,6 +161,7 @@ internal static class PinballBuilder
     {
         var pts = new List<Vector2>();
         float d = Mathf.Asin(Mathf.Clamp((f.BaseRadius - f.TipRadius) / f.Length, -1f, 1f));
+        // Points per half circle.
         const int n = 10;
         for (int i = 0; i <= n; i++)   // tip half circle (right side)
         {
@@ -176,8 +186,8 @@ internal static class PinballBuilder
         root.transform.localPosition = localPos;
         root.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
         var machine = root.AddComponent<PinballMachine>();
-        HelenaSetupMenu.SetString(machine, OperatorInteractable.LabelEnField, "Pinball");
-        HelenaSetupMenu.SetString(machine, OperatorInteractable.LabelPtField, "Fliperama");
+        EditorSerialized.SetString(machine, OperatorInteractable.LabelEnField, "Pinball");
+        EditorSerialized.SetString(machine, OperatorInteractable.LabelPtField, "Fliperama");
         var col = root.AddComponent<BoxCollider>();   // used / blocks him (on the interactable itself)
         col.center = new Vector3(0f, 0.95f, 0.06f);
         col.size = new Vector3(0.68f, 1.9f, 1.32f);
@@ -386,6 +396,7 @@ internal static class PinballBuilder
         for (int i = 0; i < values.Count; i++) p.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
     }
 
+    // A box part.
     private static Renderer Box(Transform parent, string name, Vector3 pos, Vector3 size, Material mat)
     {
         var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -410,6 +421,7 @@ internal static class PinballBuilder
         return r;
     }
 
+    // A cylinder part.
     private static Renderer Cylinder(Transform parent, string name, Vector3 pos, float radius, float height, Material mat, Quaternion rot)
     {
         var go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -428,6 +440,7 @@ internal static class PinballBuilder
     private static Renderer Quad(Transform parent, string name, Vector3 pos, Vector2 size, Material mat) =>
         Quad(parent, name, pos, size, mat, Quaternion.Euler(90f, 0f, 0f));
 
+    // A quad part.
     private static Renderer Quad(Transform parent, string name, Vector3 pos, Vector2 size, Material mat, Quaternion rot)
     {
         var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -443,6 +456,7 @@ internal static class PinballBuilder
         return r;
     }
 
+    // An object with a generated mesh.
     private static Renderer MeshObject(Transform parent, string name, Mesh mesh, Material mat, Vector3 pos)
     {
         var go = new GameObject(name);

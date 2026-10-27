@@ -4,12 +4,14 @@ using UnityEngine;
 // Needs a Collider on this same GameObject so it can be clicked / targeted.
 public class Pickup : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string ItemField = nameof(item);
     public const string AmountField = nameof(amount);
     public const string VisualField = nameof(visual);
     public const string GrabPointField = nameof(grabPoint);
     public const string SaveIdField = nameof(saveId);
 
+    // What lies here and how many units.
     [SerializeField] private ItemDefinition item;
     [SerializeField, Min(1)] private int amount = 1;
     [Tooltip("Where the partner walks to pick it up. Empty = the pickup itself.")]
@@ -21,8 +23,10 @@ public class Pickup : MonoBehaviour
     [Tooltip("Unique in the scene: the save system records what is left of this pickup under this id.")]
     [SerializeField] private string saveId;
 
+    // Default height of the grab point above the pivot (m).
     private const float DefaultGrabHeight = 0.05f;
 
+    // Read by the interactor, the commands and the save system.
     public ItemDefinition Item => item;
     public int Amount => amount;
     public Transform Visual => visual;

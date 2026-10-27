@@ -9,7 +9,7 @@ using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-// Cutscene 01 - Iniciação (CUTSCENE_01_Iniciacao.md): a scene of its own where the story cutscenes are made and
+// Cutscene 01 - Initiation (design doc: CUTSCENE_01_Iniciacao.md; scene and asset names keep "Iniciacao"): a scene of its own where the story cutscenes are made and
 // tested (cinema mode: no cameras of the facility, a plain camera moved by the shots). Five sets far apart:
 //   1 the front of his house (15h)        at    0
 //   2 inside Mary's car, driving          at  500 (the world slides past the windows)
@@ -19,11 +19,12 @@ using UnityEngine.UI;
 // The whole script as one Cutscene (Cutscene_01_Iniciacao, starts with the scene): edit its steps in the inspector,
 // move the Shot_ / Move_ / Spot_ objects of each set to adjust the camera and where people stand.
 // Menu 14 rebuilds everything (the scene is replaced: tune the steps after you are happy with the build, or keep a copy).
-internal static class IniciacaoBuilder
+internal static class InitiationBuilder
 {
+    // Art, cast, audio, data, mesh asset and scene paths of cutscene 01.
     private const string ArtFolder = "Assets/Art/Props/Iniciacao";
     private const string MatFolder = ArtFolder + "/Materials";
-    private const string OpFolder = "Assets/Art/Props/Operator";
+    private const string OperatorArtFolder = "Assets/Art/Props/Operator";
     private const string DoorFolder = "Assets/Art/Props/Doors";
     private const string CastFolder = "Assets/Characters/Cast";
     private const string CastMatFolder = CastFolder + "/Materials";
@@ -36,19 +37,20 @@ internal static class IniciacaoBuilder
     private const string MeshAssetPath = DataFolder + "/IniciacaoMeshes.asset";
     private const string ControllerPath = CastFolder + "/Cast.controller";
     private const string ArmsModelPath = "Assets/Art/FirstPerson/SM_FPArms.fbx";
-    private const string ArmsControllerPath = "Assets/Art/FirstPerson/FPArms.controller";
     private const string SceneFolder = "Assets/Scenes";
     private const string ScenePath = SceneFolder + "/Cutscene01_Iniciacao.unity";
     // where the cutscene ends: his room (Operator.unity, made by hand; Last Terminal/16 sets it up)
     internal const string OperatorSceneName = "Operator";
     private const float ArmsEye = 1.7432f;
 
+    // Where each set is built (far apart, never in view of each other): house, car, office, night street, van.
     private static readonly Vector3 HouseOrigin = Vector3.zero;
     private static readonly Vector3 CarOrigin = new Vector3(500f, 0f, 0f);
     private static readonly Vector3 OfficeOrigin = new Vector3(1000f, 0f, 0f);
     private static readonly Vector3 NightOrigin = new Vector3(1500f, 0f, 0f);
     private static readonly Vector3 VanOrigin = new Vector3(2000f, 0f, 0f);
 
+    // URP Lit property ids.
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private static readonly int SmoothnessId = Shader.PropertyToID("_Smoothness");
@@ -64,6 +66,7 @@ internal static class IniciacaoBuilder
         ("PigTurn", "Cast_PigTurn", false),
     };
 
+    // Build state of this run: shader, materials and meshes made (by name), mesh asset created, missing objects.
     private static Shader lit;
     private static readonly Dictionary<string, Material> mats = new Dictionary<string, Material>();
     private static readonly Dictionary<string, Mesh> meshes = new Dictionary<string, Mesh>();
@@ -71,10 +74,10 @@ internal static class IniciacaoBuilder
     private static readonly List<string> missing = new List<string>();
 
     // ================================================================== the menu
-    [MenuItem("Last Terminal/14 - Cutscene 01: Build Scene (Iniciação)")]
+    [MenuItem("Last Terminal/14 - Cutscene 01: Build Scene (Initiation)")]
     public static void Build()
     {
-        lit = HelenaSetupMenu.DefaultLitShader();
+        lit = EditorAssets.DefaultLitShader();
         if (lit == null) return;
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
         mats.Clear();
@@ -82,12 +85,12 @@ internal static class IniciacaoBuilder
         missing.Clear();
         meshAssetCreated = false;
 
-        HelenaSetupMenu.EnsureFolder("Assets", "Data");
-        HelenaSetupMenu.EnsureFolder("Assets/Data", "Iniciacao");
-        HelenaSetupMenu.EnsureFolder("Assets", "Scenes");
+        EditorAssets.EnsureFolder("Assets", "Data");
+        EditorAssets.EnsureFolder("Assets/Data", "Iniciacao");
+        EditorAssets.EnsureFolder("Assets", "Scenes");
         if (!AssetDatabase.IsValidFolder(ArtFolder) || !AssetDatabase.IsValidFolder(CastFolder))
         {
-            Debug.LogError("[Iniciação] Assets/Art/Props/Iniciacao or Assets/Characters/Cast missing: extract the package at the project root first.");
+            Debug.LogError("[Initiation] Assets/Art/Props/Iniciacao or Assets/Characters/Cast missing: extract the package at the project root first.");
             return;
         }
         PrepareArt();
@@ -143,12 +146,12 @@ internal static class IniciacaoBuilder
 
         AssetDatabase.SaveAssets();
         EditorSceneManager.SaveScene(scene, ScenePath);
-        HelenaSetupMenu.AddToBuild(ScenePath);
+        EditorAssets.AddToBuild(ScenePath);
         AddOperatorToBuild();
         Selection.activeGameObject = cutscene.gameObject;
         if (missing.Count > 0)
-            Debug.LogWarning("[Iniciação] Built with placeholders, missing: " + string.Join(", ", missing.Distinct()));
-        Debug.Log($"[Iniciação] {ScenePath} built. Play: the whole cutscene runs (Esc skips). Steps: select Cutscene_01_Iniciacao.", cutscene);
+            Debug.LogWarning("[Initiation] Built with placeholders, missing: " + string.Join(", ", missing.Distinct()));
+        Debug.Log($"[Initiation] {ScenePath} built. Play: the whole cutscene runs (Esc skips). Steps: select Cutscene_01_Iniciacao.", cutscene);
     }
 
     // the operator room's scene in the build profile (the cutscene's last step loads it by name)
@@ -158,17 +161,17 @@ internal static class IniciacaoBuilder
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
             if (System.IO.Path.GetFileNameWithoutExtension(path) != OperatorSceneName) continue;
-            HelenaSetupMenu.AddToBuild(path);
+            EditorAssets.AddToBuild(path);
             return;
         }
-        Debug.LogWarning($"[Iniciação] {OperatorSceneName}.unity not found: the cutscene ends on black (it loads it by name).");
+        Debug.LogWarning($"[Initiation] {OperatorSceneName}.unity not found: the cutscene ends on black (it loads it by name).");
     }
 
     // ================================================================== assets
     // every model of the folder: its M_x materials get T_x.png (alpha -> cutout, double sided)
     private static void PrepareArt()
     {
-        HelenaSetupMenu.EnsureFolder(ArtFolder, "Materials");
+        EditorAssets.EnsureFolder(ArtFolder, "Materials");
         foreach (string guid in AssetDatabase.FindAssets("t:Model", new[] { ArtFolder }))
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
@@ -197,7 +200,7 @@ internal static class IniciacaoBuilder
         bool clip = false;
         if (tex == null) missing.Add(texPath);
         else if (AssetImporter.GetAtPath(texPath) is TextureImporter ti && ti.DoesSourceTextureHaveAlpha()) clip = true;
-        m = HelenaSetupMenu.MakeMaterial($"{MatFolder}/M_Ini_{name}.mat", tex, smooth, clip, lit);
+        m = EditorAssets.MakeMaterial($"{MatFolder}/M_Ini_{name}.mat", tex, smooth, clip, lit);
         // vehicle shells: hollow models, seen from inside too (no "infinite" through the far side)
         if (name == "Nissan" || name == "Van") { m.SetFloat("_Cull", (float)CullMode.Off); EditorUtility.SetDirty(m); }
         if (tex == null) m.SetColor(BaseColorId, new Color(0.5f, 0.5f, 0.5f));
@@ -205,16 +208,18 @@ internal static class IniciacaoBuilder
         return m;
     }
 
+    // A plain colored material (made once).
     private static Material Flat(string name, Color c, float smooth = 0.15f)
     {
         if (mats.TryGetValue("flat_" + name, out Material m)) return m;
-        m = HelenaSetupMenu.MakeMaterial($"{MatFolder}/M_IniFlat_{name}.mat", null, smooth, false, lit);
+        m = EditorAssets.MakeMaterial($"{MatFolder}/M_IniFlat_{name}.mat", null, smooth, false, lit);
         m.SetColor(BaseColorId, c);
         EditorUtility.SetDirty(m);
         mats["flat_" + name] = m;
         return m;
     }
 
+    // A glowing material.
     private static Material Glow(string name, Color c, float strength)
     {
         if (mats.TryGetValue("glow_" + name, out Material m)) return m;
@@ -227,6 +232,7 @@ internal static class IniciacaoBuilder
         return m;
     }
 
+    // A glass material (transparent).
     private static Material Glass(string name, Color c)
     {
         if (mats.TryGetValue("glass_" + name, out Material m)) return m;
@@ -254,20 +260,20 @@ internal static class IniciacaoBuilder
     // the cast: their materials, and their clips on Helena's avatar
     private static void PrepareCast()
     {
-        HelenaSetupMenu.EnsureFolder(CastFolder, "Materials");
+        EditorAssets.EnsureFolder(CastFolder, "Materials");
         foreach (string name in new[] { "Mary", "Mary2", "Michael", "Michael2", "PigDriver" })
         {
             // the first package had them re-exported from Blender (broken skinning): those go
             if (AssetDatabase.LoadMainAssetAtPath($"{CastFolder}/{name}.fbx") != null)
             {
                 AssetDatabase.DeleteAsset($"{CastFolder}/{name}.fbx");
-                Debug.Log($"[Iniciação] Old {CastFolder}/{name}.fbx removed (the Mixamo file in Models/ replaces it).");
+                Debug.Log($"[Initiation] Old {CastFolder}/{name}.fbx removed (the Mixamo file in Models/ replaces it).");
             }
             string path = $"{CastModelFolder}/{name}.fbx";
             var mi = AssetImporter.GetAtPath(path) as ModelImporter;
             if (mi == null) { if (!name.EndsWith("2")) missing.Add(path); continue; }
             var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{CastFolder}/T_{name}.png");
-            Material m = HelenaSetupMenu.MakeMaterial($"{CastMatFolder}/M_{name}.mat", tex, 0.12f, false, lit);
+            Material m = EditorAssets.MakeMaterial($"{CastMatFolder}/M_{name}.mat", tex, 0.12f, false, lit);
             // whatever the file calls its material: ours
             var names = new HashSet<string>();
             foreach (Object o in AssetDatabase.LoadAllAssetsAtPath(path)) if (o is Material) names.Add(o.name);
@@ -291,6 +297,7 @@ internal static class IniciacaoBuilder
         }
     }
 
+    // The clip inside an FBX file.
     private static AnimationClip FileClip(string path)
     {
         AnimationClip c = AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>().FirstOrDefault(x => !x.name.StartsWith("__preview__"));
@@ -385,6 +392,7 @@ internal static class IniciacaoBuilder
         return mesh;
     }
 
+    // A box part (density = UV tiling).
     private static GameObject Box(Transform parent, string name, Vector3 pos, Vector3 size, Material m, float density = 1f, float yaw = 0f, bool shadows = true)
     {
         var go = new GameObject(name);
@@ -402,6 +410,7 @@ internal static class IniciacaoBuilder
     private static GameObject Slab(Transform parent, string name, float x0, float x1, float y0, float y1, float z0, float z1, Material m, float density = 1f)
         => Box(parent, name, new Vector3((x0 + x1) * 0.5f, (y0 + y1) * 0.5f, (z0 + z1) * 0.5f), new Vector3(Mathf.Abs(x1 - x0), Mathf.Abs(y1 - y0), Mathf.Abs(z1 - z0)), m, density);
 
+    // A primitive part.
     private static GameObject Prim(PrimitiveType type, Transform parent, string name, Vector3 pos, Vector3 scale, Material m, Vector3 euler = default)
     {
         GameObject go = GameObject.CreatePrimitive(type);
@@ -415,6 +424,7 @@ internal static class IniciacaoBuilder
         return go;
     }
 
+    // A model instance at a pose.
     private static GameObject Model(Transform parent, string path, Vector3 pos, float yaw, float scale = 1f)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -426,7 +436,8 @@ internal static class IniciacaoBuilder
         return go;
     }
 
-    private static GameObject Ini(Transform parent, string model, Vector3 pos, float yaw) => Model(parent, $"{ArtFolder}/SM_Ini_{model}.fbx", pos, yaw);
+    // A model from the cutscene's art folder.
+    private static GameObject InitiationProp(Transform parent, string model, Vector3 pos, float yaw) => Model(parent, $"{ArtFolder}/SM_Ini_{model}.fbx", pos, yaw);
 
     // an empty object at pos looking at lookAt (local coordinates of the set)
     private static Transform Mark(Transform parent, string name, Vector3 pos, Vector3 lookAt)
@@ -450,6 +461,7 @@ internal static class IniciacaoBuilder
         return t;
     }
 
+    // A point light.
     private static Light PointLight(Transform parent, string name, Vector3 pos, Color color, float intensity, float range, bool shadows = false)
     {
         var l = new GameObject(name).AddComponent<Light>();
@@ -463,6 +475,7 @@ internal static class IniciacaoBuilder
         return l;
     }
 
+    // A looping ambient sound.
     private static AudioSource Loop(Transform parent, string name, string clip, float volume)
     {
         var go = new GameObject(name);
@@ -476,6 +489,7 @@ internal static class IniciacaoBuilder
         return a;
     }
 
+    // A cutscene audio clip by name.
     private static AudioClip Clip(string name)
     {
         string path = $"{AudioFolder}/{name}.wav";
@@ -489,7 +503,7 @@ internal static class IniciacaoBuilder
     {
         GameObject go = Model(parent, $"{DoorFolder}/SM_DoorWood.fbx", pos, yaw);
         Transform leaf = null;
-        if (go != null) { go.name = name; leaf = HelenaSetupMenu.FindDeep(go.transform, "Leaf"); }
+        if (go != null) { go.name = name; leaf = EditorScene.FindDeep(go.transform, "Leaf"); }
         if (leaf == null)
         {
             if (go == null) { go = new GameObject(name); go.transform.SetParent(parent, false); go.transform.localPosition = pos; go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f); }
@@ -526,6 +540,7 @@ internal static class IniciacaoBuilder
         return t;
     }
 
+    // A simple tree (trunk + crown).
     private static void Tree(Transform parent, string name, Vector3 pos, float h)
     {
         var t = new GameObject(name).transform;
@@ -539,15 +554,15 @@ internal static class IniciacaoBuilder
     private static Transform BuildHouse()
     {
         Transform root = Root("Set1_HouseFront", HouseOrigin);
-        Ini(root, "Street", Vector3.zero, 0f);
+        InitiationProp(root, "Street", Vector3.zero, 0f);
         // the ground all around the street piece (no edge of the world)
         Box(root, "GroundAround", new Vector3(0f, -0.42f, 0f), new Vector3(500f, 0.1f, 500f), Mat("Grass"), 0.25f, 0f, false);
 
         // Mary's car at the curb, its rear right door open toward the path: the sedan (Meshy, low poly, closed inside),
         // the old Nissan if it is missing
-        GameObject car = Ini(root, "Sedan", new Vector3(0.6f, -0.31f, 6.25f), 90f);
+        GameObject car = InitiationProp(root, "Sedan", new Vector3(0.6f, -0.31f, 6.25f), 90f);
         bool sedan = car != null;
-        if (!sedan) car = Ini(root, "Nissan", new Vector3(0.6f, -0.31f, 6.25f), 90f);
+        if (!sedan) car = InitiationProp(root, "Nissan", new Vector3(0.6f, -0.31f, 6.25f), 90f);
         if (car != null)
         {
             car.name = "Car_Mary";
@@ -572,7 +587,7 @@ internal static class IniciacaoBuilder
                 Box(car.transform, "InFront", new Vector3(0f, 0.7f, 1.45f), new Vector3(1.8f, 0.7f, 0.06f), inside);
                 Box(car.transform, "InBack", new Vector3(0f, 0.8f, -1.7f), new Vector3(1.8f, 0.6f, 0.06f), inside);
             }
-            Transform door = HelenaSetupMenu.FindDeep(car.transform, "RearDoorR");
+            Transform door = EditorScene.FindDeep(car.transform, "RearDoorR");
             if (door != null)
             {
                 var closed = new GameObject("RearDoorR_Closed").transform;
@@ -641,7 +656,7 @@ internal static class IniciacaoBuilder
     private const float FrontSeatScale = 0.91f;
     private static GameObject CarPart(Transform parent, string name, Vector3 pos, Vector3 scale)
     {
-        GameObject go = Ini(parent, name, pos, 0f);
+        GameObject go = InitiationProp(parent, name, pos, 0f);
         if (go != null) go.transform.localScale = scale;
         return go;
     }
@@ -686,7 +701,7 @@ internal static class IniciacaoBuilder
         // the dash: a bit narrower and taller than the file (the wheel in front of her seat, its top at 1 m)
         // the car around them: the sedan, 1.1x (a roomier cabin), its ground 0.22 under the cabin floor; closed all
         // around (lined inside), the road only through the windows. Without it: the old slabs.
-        GameObject shell = Ini(root, "Sedan", new Vector3(0f, -0.22f, 0f), 0f);
+        GameObject shell = InitiationProp(root, "Sedan", new Vector3(0f, -0.22f, 0f), 0f);
         if (shell != null)
         {
             shell.name = "CarShell";
@@ -779,6 +794,7 @@ internal static class IniciacaoBuilder
         wheel.SetParent(parent, false);
         wheel.localPosition = pos;
         wheel.localRotation = Quaternion.Euler(-25f, 0f, 0f);
+        // Wheel rim segments and radius (m).
         const int rimSegments = 12;
         const float r = 0.18f;
         for (int i = 0; i < rimSegments; i++)
@@ -803,6 +819,7 @@ internal static class IniciacaoBuilder
     {
         Transform root = Root("Set3_Office", OfficeOrigin);
         Material plaster = Mat("Plaster"), wood = Mat("Wood"), woodLight = Mat("WoodLight"), floor = Mat("Floor");
+        // Office room measures (m): half width, half depth, height, wall thickness.
         const float W = 3.5f, D = 4f, H = 3.2f, T = 0.2f;
 
         Slab(root, "Floor", -W, W, -0.1f, 0f, -D, D, floor, 0.7f);
@@ -878,12 +895,12 @@ internal static class IniciacaoBuilder
         Slab(root, "PassageEnd", W + 2.2f, W + 2.4f, 0f, 2.9f, 1.0f, 3.4f, plaster);
 
         // the desk (a crescent around his chair), his chair, things on it, the flags
-        Ini(root, "GovDesk", new Vector3(0f, 0f, 2.7f), 180f);
+        InitiationProp(root, "GovDesk", new Vector3(0f, 0f, 2.7f), 180f);
         // the model faces +X: turned to face the visitor; lowered (seat 0.57 -> 0.47 m) so he sits on it, not in it
-        GameObject govChair = Ini(root, "OfficeChair", new Vector3(0f, 0f, 2.95f), 90f);
+        GameObject govChair = InitiationProp(root, "OfficeChair", new Vector3(0f, 0f, 2.95f), 90f);
         if (govChair != null) govChair.transform.localScale = new Vector3(1f, 0.82f, 1f);
-        Model(root, $"{OpFolder}/SM_OpPapers.fbx", new Vector3(0.5f, 0.76f, 1.75f), 15f);
-        Model(root, $"{OpFolder}/SM_OpStapler.fbx", new Vector3(-0.55f, 0.76f, 1.8f), -30f);
+        Model(root, $"{OperatorArtFolder}/SM_OpPapers.fbx", new Vector3(0.5f, 0.76f, 1.75f), 15f);
+        Model(root, $"{OperatorArtFolder}/SM_OpStapler.fbx", new Vector3(-0.55f, 0.76f, 1.8f), -30f);
         Prim(PrimitiveType.Cylinder, root, "LampBase", new Vector3(-0.85f, 0.78f, 2.05f), new Vector3(0.14f, 0.02f, 0.14f), Mat("Metal"));
         Prim(PrimitiveType.Cylinder, root, "LampStem", new Vector3(-0.85f, 0.98f, 2.05f), new Vector3(0.025f, 0.2f, 0.025f), Mat("Metal"));
         Prim(PrimitiveType.Cylinder, root, "LampShade", new Vector3(-0.85f, 1.2f, 2.05f), new Vector3(0.24f, 0.08f, 0.24f), Glow("Lamp", new Color(0.25f, 0.4f, 0.25f), 0.6f));
@@ -899,7 +916,7 @@ internal static class IniciacaoBuilder
         }
         Box(root, "Rug", new Vector3(0f, 0.006f, 0.55f), new Vector3(2.4f, 0.012f, 3.6f), Mat("Rug"), 1f / 3.6f);
         // his visitor's chair (where the protagonist sits) facing the desk
-        Model(root, $"{OpFolder}/SM_OpChair.fbx", new Vector3(-0.2f, 0f, 0.42f), 90f);   // the model faces -X: turned to the desk
+        Model(root, $"{OperatorArtFolder}/SM_OpChair.fbx", new Vector3(-0.2f, 0f, 0.42f), 90f);   // the model faces -X: turned to the desk
 
         // the info board (left side, on wheels, turned to the room): cork board + what Michael shows
         Transform board = new GameObject("InfoBoard").transform;
@@ -915,7 +932,7 @@ internal static class IniciacaoBuilder
                 Prim(PrimitiveType.Sphere, board, "Caster", new Vector3(x, 0.04f, z), Vector3.one * 0.08f, Flat("Rubber", new Color(0.05f, 0.05f, 0.05f)));
         }
         Box(board, "Bar", new Vector3(0f, 0.55f, -0.03f), new Vector3(1.5f, 0.04f, 0.04f), metal);
-        GameObject cork = Ini(board, "CorkBoard", new Vector3(0f, 0.95f, 0f), 0f);
+        GameObject cork = InitiationProp(board, "CorkBoard", new Vector3(0f, 0.95f, 0f), 0f);
         Material evA = Mat("EvAsylum"), evM = Mat("EvMap"), evD = Mat("EvDoc"), evP = Mat("EvPlan"), evN = Mat("EvNote");
         Box(board, "EvAsylum", new Vector3(-0.42f, 1.55f, 0.032f), new Vector3(0.28f, 0.3f, 0.004f), evA, 1f / 0.3f);
         Box(board, "EvMap", new Vector3(0.0f, 1.42f, 0.032f), new Vector3(0.36f, 0.36f, 0.004f), evM, 1f / 0.36f);
@@ -936,11 +953,11 @@ internal static class IniciacaoBuilder
 
         // decoration: plants in the corners, books, a cabinet, the calendar, a painting
         foreach (var p in new[] { new Vector3(-3.05f, 0f, 3.55f), new Vector3(3.05f, 0f, 3.55f), new Vector3(-3.05f, 0f, -3.55f), new Vector3(3.05f, 0f, -3.55f) })
-            Model(root, $"{OpFolder}/SM_OpPlant.fbx", p, 0f);
+            Model(root, $"{OperatorArtFolder}/SM_OpPlant.fbx", p, 0f);
         Box(root, "Bookshelf", new Vector3(-3.27f, 1.2f, 2.45f), new Vector3(0.42f, 2.4f, 1.6f), Mat("Books"), 0.8f);
         Box(root, "BookshelfTop", new Vector3(-3.25f, 2.42f, 2.45f), new Vector3(0.46f, 0.05f, 1.64f), wood);
-        Model(root, $"{OpFolder}/SM_OpFilingCabinet.fbx", new Vector3(3.15f, 0f, -1.2f), -90f);
-        Ini(root, "Calendar", new Vector3(W - 0.01f, 1.45f, -2.4f), -90f);
+        Model(root, $"{OperatorArtFolder}/SM_OpFilingCabinet.fbx", new Vector3(3.15f, 0f, -1.2f), -90f);
+        InitiationProp(root, "Calendar", new Vector3(W - 0.01f, 1.45f, -2.4f), -90f);
         Box(root, "PaintingFrame", new Vector3(-W + 0.04f, 1.75f, -1.6f), new Vector3(0.05f, 0.9f, 1.3f), wood);
         Box(root, "Painting", new Vector3(-W + 0.07f, 1.75f, -1.6f), new Vector3(0.01f, 0.78f, 1.18f), Mat("EvMap"), 0.85f);
 
@@ -1053,7 +1070,7 @@ internal static class IniciacaoBuilder
         }
         PointLight(root, "EntranceLight", new Vector3(0f, 4.4f, 4.9f), new Color(1f, 0.85f, 0.6f), 2f, 8f);
         // the van waiting
-        GameObject v = Ini(root, "Van", new Vector3(2.4f, -0.2f, -3.1f), -90f);
+        GameObject v = InitiationProp(root, "Van", new Vector3(2.4f, -0.2f, -3.1f), -90f);
         if (v != null) v.name = "Van";
         Spot(root, "Spot_MaryNight", new Vector3(-0.85f, 0.45f, 5.0f), new Vector3(0.6f, 0f, -1f));
         Mark(root, "Shot_NightExit", new Vector3(0f, 2.1f, 6.7f), new Vector3(0.2f, 1.6f, -3f));   // out through the doors
@@ -1137,6 +1154,7 @@ internal static class IniciacaoBuilder
         return AssetDatabase.LoadAssetAtPath<GameObject>($"{CastModelFolder}/{name}2.fbx") != null ? name + "2" : name;
     }
 
+    // A cast member as a cutscene actor (model, name, color, controller).
     private static CutsceneActor Actor(string model, string display, Color color, RuntimeAnimatorController ctrl, Transform spot)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{CastModelFolder}/{model}.fbx");
@@ -1157,10 +1175,10 @@ internal static class IniciacaoBuilder
         animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
         var actor = go.AddComponent<CutsceneActor>();
         CutsceneBuilder.EnsureSlotClips(out AnimationClip a, out AnimationClip b);
-        HelenaSetupMenu.SetString(actor, CutsceneActor.DisplayNameField, display);
-        HelenaSetupMenu.SetReference(actor, CutsceneActor.AnimatorField, animator);
-        HelenaSetupMenu.SetReference(actor, CutsceneActor.SlotAField, a);
-        HelenaSetupMenu.SetReference(actor, CutsceneActor.SlotBField, b);
+        EditorSerialized.SetString(actor, CutsceneActor.DisplayNameField, display);
+        EditorSerialized.SetReference(actor, CutsceneActor.AnimatorField, animator);
+        EditorSerialized.SetReference(actor, CutsceneActor.SlotAField, a);
+        EditorSerialized.SetReference(actor, CutsceneActor.SlotBField, b);
         var so = new SerializedObject(actor);
         so.FindProperty("nameColor").colorValue = color;
         so.ApplyModifiedPropertiesWithoutUndo();
@@ -1190,9 +1208,9 @@ internal static class IniciacaoBuilder
         animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
         foreach (Renderer rend in arms.GetComponentsInChildren<Renderer>()) rend.shadowCastingMode = ShadowCastingMode.Off;
         var actor = arms.AddComponent<CutsceneActor>();
-        HelenaSetupMenu.SetString(actor, CutsceneActor.DisplayNameField, "");
-        HelenaSetupMenu.SetReference(actor, CutsceneActor.AnimatorField, animator);
-        HelenaSetupMenu.SetString(actor, "speedParameter", "");
+        EditorSerialized.SetString(actor, CutsceneActor.DisplayNameField, "");
+        EditorSerialized.SetReference(actor, CutsceneActor.AnimatorField, animator);
+        EditorSerialized.SetString(actor, "speedParameter", "");
         arms.SetActive(false);
         return actor;
     }
@@ -1238,100 +1256,100 @@ internal static class IniciacaoBuilder
         Transform c = canvasGo.transform;
         Vector2 bc = new Vector2(0.5f, 0f);
 
-        var root = HelenaSetupMenu.CreateUiObject(c, "Cutscene");
-        HelenaSetupMenu.Stretch((RectTransform)root.transform);
+        var root = EditorUi.CreateUiObject(c, "Cutscene");
+        EditorUi.Stretch((RectTransform)root.transform);
 
         // scare: tint + static (under the bars and texts)
-        var scareGo = HelenaSetupMenu.CreateUiObject(root.transform, "Scare");
-        HelenaSetupMenu.Stretch((RectTransform)scareGo.transform);
+        var scareGo = EditorUi.CreateUiObject(root.transform, "Scare");
+        EditorUi.Stretch((RectTransform)scareGo.transform);
         var scare = scareGo.AddComponent<CanvasGroup>();
         scare.blocksRaycasts = false;
-        Image tint = HelenaSetupMenu.CreateUiObject(scareGo.transform, "Tint").AddComponent<Image>();
-        HelenaSetupMenu.Stretch(tint.rectTransform);
+        Image tint = EditorUi.CreateUiObject(scareGo.transform, "Tint").AddComponent<Image>();
+        EditorUi.Stretch(tint.rectTransform);
         tint.raycastTarget = false;
-        RawImage noise = HelenaSetupMenu.CreateUiObject(scareGo.transform, "Noise").AddComponent<RawImage>();
-        HelenaSetupMenu.Stretch(noise.rectTransform);
+        RawImage noise = EditorUi.CreateUiObject(scareGo.transform, "Noise").AddComponent<RawImage>();
+        EditorUi.Stretch(noise.rectTransform);
         noise.raycastTarget = false;
         noise.color = new Color(1f, 1f, 1f, 0.55f);
 
-        var barsGo = HelenaSetupMenu.CreateUiObject(root.transform, "Bars");
-        HelenaSetupMenu.Stretch((RectTransform)barsGo.transform);
+        var barsGo = EditorUi.CreateUiObject(root.transform, "Bars");
+        EditorUi.Stretch((RectTransform)barsGo.transform);
         var bars = barsGo.AddComponent<CanvasGroup>();
         bars.blocksRaycasts = false;
         foreach (var (n, min, max, pivot) in new[] { ("Top", new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f)), ("Bottom", Vector2.zero, new Vector2(1f, 0f), new Vector2(0.5f, 0f)) })
         {
-            Image img = HelenaSetupMenu.CreateUiObject(barsGo.transform, n).AddComponent<Image>();
+            Image img = EditorUi.CreateUiObject(barsGo.transform, n).AddComponent<Image>();
             img.color = Color.black;
             img.raycastTarget = false;
-            HelenaSetupMenu.Place(img.rectTransform, min, max, pivot, Vector2.zero, new Vector2(0f, 70f));
+            EditorUi.Place(img.rectTransform, min, max, pivot, Vector2.zero, new Vector2(0f, 70f));
         }
-        TMP_Text hint = HelenaSetupMenu.CreateText(barsGo.transform, "Skip", 18, TextAlignmentOptions.Right, new Color(0.7f, 0.7f, 0.7f));
-        HelenaSetupMenu.Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-24f, 22f), new Vector2(300f, 30f));
+        TMP_Text hint = EditorUi.CreateText(barsGo.transform, "Skip", 18, TextAlignmentOptions.Right, new Color(0.7f, 0.7f, 0.7f));
+        EditorUi.Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-24f, 22f), new Vector2(300f, 30f));
 
-        var subGo = HelenaSetupMenu.CreateUiObject(root.transform, "Subtitle");
-        HelenaSetupMenu.Place((RectTransform)subGo.transform, bc, bc, bc, new Vector2(0f, 96f), new Vector2(1100f, 90f));
+        var subGo = EditorUi.CreateUiObject(root.transform, "Subtitle");
+        EditorUi.Place((RectTransform)subGo.transform, bc, bc, bc, new Vector2(0f, 96f), new Vector2(1100f, 90f));
         var subGroup = subGo.AddComponent<CanvasGroup>();
         subGroup.blocksRaycasts = false;
-        Image band = HelenaSetupMenu.CreateUiObject(subGo.transform, "Band").AddComponent<Image>();
-        HelenaSetupMenu.Stretch(band.rectTransform);
+        Image band = EditorUi.CreateUiObject(subGo.transform, "Band").AddComponent<Image>();
+        EditorUi.Stretch(band.rectTransform);
         band.color = new Color(0f, 0f, 0f, 0.5f);
         band.raycastTarget = false;
-        TMP_Text sub = HelenaSetupMenu.CreateText(subGo.transform, "Text", 28, TextAlignmentOptions.Center, Color.white);
-        HelenaSetupMenu.Stretch(sub.rectTransform);
+        TMP_Text sub = EditorUi.CreateText(subGo.transform, "Text", 28, TextAlignmentOptions.Center, Color.white);
+        EditorUi.Stretch(sub.rectTransform);
         sub.margin = new Vector4(20f, 6f, 20f, 6f);
 
         // the thoughts block (top-left)
         ThoughtView thoughts = ThoughtViewBuilder.Build(root.transform, settings);
 
         // "say: ..." (the operator's line)
-        var promptGo = HelenaSetupMenu.CreateUiObject(root.transform, "Prompt");
-        HelenaSetupMenu.Place((RectTransform)promptGo.transform, bc, bc, bc, new Vector2(0f, 290f), new Vector2(1000f, 110f));
+        var promptGo = EditorUi.CreateUiObject(root.transform, "Prompt");
+        EditorUi.Place((RectTransform)promptGo.transform, bc, bc, bc, new Vector2(0f, 290f), new Vector2(1000f, 110f));
         var promptGroup = promptGo.AddComponent<CanvasGroup>();
         promptGroup.blocksRaycasts = false;
-        Image promptBack = HelenaSetupMenu.CreateUiObject(promptGo.transform, "Back").AddComponent<Image>();
-        HelenaSetupMenu.Stretch(promptBack.rectTransform);
+        Image promptBack = EditorUi.CreateUiObject(promptGo.transform, "Back").AddComponent<Image>();
+        EditorUi.Stretch(promptBack.rectTransform);
         promptBack.color = new Color(0f, 0.04f, 0.08f, 0.8f);
         promptBack.raycastTarget = false;
-        TMP_Text prompt = HelenaSetupMenu.CreateText(promptGo.transform, "Text", 30, TextAlignmentOptions.Center, Color.white);
-        HelenaSetupMenu.Stretch(prompt.rectTransform);
+        TMP_Text prompt = EditorUi.CreateText(promptGo.transform, "Text", 30, TextAlignmentOptions.Center, Color.white);
+        EditorUi.Stretch(prompt.rectTransform);
         prompt.margin = new Vector4(20f, 8f, 20f, 8f);
 
-        Image black = HelenaSetupMenu.CreateUiObject(root.transform, "Fade").AddComponent<Image>();
-        HelenaSetupMenu.Stretch(black.rectTransform);
+        Image black = EditorUi.CreateUiObject(root.transform, "Fade").AddComponent<Image>();
+        EditorUi.Stretch(black.rectTransform);
         black.color = Color.black;
         black.raycastTarget = false;
         var fade = black.gameObject.AddComponent<CanvasGroup>();
         fade.blocksRaycasts = false;
 
         // over the black: "loading..."
-        var loadGo = HelenaSetupMenu.CreateUiObject(root.transform, "Loading");
-        HelenaSetupMenu.Place((RectTransform)loadGo.transform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 40f), new Vector2(420f, 50f));
+        var loadGo = EditorUi.CreateUiObject(root.transform, "Loading");
+        EditorUi.Place((RectTransform)loadGo.transform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-40f, 40f), new Vector2(420f, 50f));
         var loadGroup = loadGo.AddComponent<CanvasGroup>();
         loadGroup.blocksRaycasts = false;
-        TMP_Text loadText = HelenaSetupMenu.CreateText(loadGo.transform, "Text", 26, TextAlignmentOptions.Right, new Color(0.75f, 0.75f, 0.75f));
-        HelenaSetupMenu.Stretch(loadText.rectTransform);
+        TMP_Text loadText = EditorUi.CreateText(loadGo.transform, "Text", 26, TextAlignmentOptions.Right, new Color(0.75f, 0.75f, 0.75f));
+        EditorUi.Stretch(loadText.rectTransform);
 
         // the operator's line typed (Enter) and the microphone (V)
-        var consoleGo = HelenaSetupMenu.CreateUiObject(c, "Console");
-        HelenaSetupMenu.Place((RectTransform)consoleGo.transform, bc, bc, bc, new Vector2(0f, 24f), new Vector2(900f, 44f));
-        var panelGo = HelenaSetupMenu.CreateUiObject(consoleGo.transform, "Panel");
-        HelenaSetupMenu.Stretch((RectTransform)panelGo.transform);
+        var consoleGo = EditorUi.CreateUiObject(c, "Console");
+        EditorUi.Place((RectTransform)consoleGo.transform, bc, bc, bc, new Vector2(0f, 24f), new Vector2(900f, 44f));
+        var panelGo = EditorUi.CreateUiObject(consoleGo.transform, "Panel");
+        EditorUi.Stretch((RectTransform)panelGo.transform);
         var panel = panelGo.AddComponent<CanvasGroup>();
         panel.blocksRaycasts = false;
-        Image pb = HelenaSetupMenu.CreateUiObject(panelGo.transform, "Back").AddComponent<Image>();
-        HelenaSetupMenu.Stretch(pb.rectTransform);
+        Image pb = EditorUi.CreateUiObject(panelGo.transform, "Back").AddComponent<Image>();
+        EditorUi.Stretch(pb.rectTransform);
         pb.color = new Color(0f, 0f, 0f, 0.75f);
         pb.raycastTarget = false;
-        TMP_Text input = HelenaSetupMenu.CreateText(panelGo.transform, "Input", 24, TextAlignmentOptions.Left, new Color(0.85f, 0.95f, 0.85f));
-        HelenaSetupMenu.Stretch(input.rectTransform);
+        TMP_Text input = EditorUi.CreateText(panelGo.transform, "Input", 24, TextAlignmentOptions.Left, new Color(0.85f, 0.95f, 0.85f));
+        EditorUi.Stretch(input.rectTransform);
         input.margin = new Vector4(16f, 4f, 16f, 4f);
-        TMP_Text echo = HelenaSetupMenu.CreateText(consoleGo.transform, "Echo", 20, TextAlignmentOptions.Center, new Color(0.7f, 0.85f, 0.7f));
-        HelenaSetupMenu.Place(echo.rectTransform, bc, bc, bc, new Vector2(0f, 50f), new Vector2(900f, 30f));
+        TMP_Text echo = EditorUi.CreateText(consoleGo.transform, "Echo", 20, TextAlignmentOptions.Center, new Color(0.7f, 0.85f, 0.7f));
+        EditorUi.Place(echo.rectTransform, bc, bc, bc, new Vector2(0f, 50f), new Vector2(900f, 30f));
         var console = consoleGo.AddComponent<CommandConsole>();
-        HelenaSetupMenu.SetReference(console, CommandConsole.SettingsField, settings);
-        HelenaSetupMenu.SetReference(console, CommandConsole.PanelField, panel);
-        HelenaSetupMenu.SetReference(console, CommandConsole.InputTextField, input);
-        HelenaSetupMenu.SetReference(console, CommandConsole.EchoTextField, echo);
+        EditorSerialized.SetReference(console, CommandConsole.SettingsField, settings);
+        EditorSerialized.SetReference(console, CommandConsole.PanelField, panel);
+        EditorSerialized.SetReference(console, CommandConsole.InputTextField, input);
+        EditorSerialized.SetReference(console, CommandConsole.EchoTextField, echo);
         VoiceBuilder.ConfigurePlugins();
         VoiceCommandInput voice = VoiceBuilder.Build(c, null, null, null, settings, console);
 
@@ -1340,44 +1358,47 @@ internal static class IniciacaoBuilder
         audio.playOnAwake = false;
         audio.spatialBlend = 0f;
         var d = go.AddComponent<CutsceneDirector>();
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.CinemaCameraField, cam);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.SettingsField, settings);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.AudioField, audio);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.BarsField, bars);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.FadeField, fade);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.SubtitleGroupField, subGroup);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.SubtitleTextField, sub);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.SkipHintField, hint);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.VoiceInputField, voice);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.ConsoleField, console);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.PromptGroupField, promptGroup);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.PromptTextField, prompt);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.ThoughtViewField, thoughts);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.LoadingGroupField, loadGroup);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.LoadingTextField, loadText);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.ScareGroupField, scare);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.ScareTintField, tint);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.ScareNoiseField, noise);
+        EditorSerialized.SetReference(d, CutsceneDirector.CinemaCameraField, cam);
+        EditorSerialized.SetReference(d, CutsceneDirector.SettingsField, settings);
+        EditorSerialized.SetReference(d, CutsceneDirector.AudioField, audio);
+        EditorSerialized.SetReference(d, CutsceneDirector.BarsField, bars);
+        EditorSerialized.SetReference(d, CutsceneDirector.FadeField, fade);
+        EditorSerialized.SetReference(d, CutsceneDirector.SubtitleGroupField, subGroup);
+        EditorSerialized.SetReference(d, CutsceneDirector.SubtitleTextField, sub);
+        EditorSerialized.SetReference(d, CutsceneDirector.SkipHintField, hint);
+        EditorSerialized.SetReference(d, CutsceneDirector.VoiceInputField, voice);
+        EditorSerialized.SetReference(d, CutsceneDirector.ConsoleField, console);
+        EditorSerialized.SetReference(d, CutsceneDirector.PromptGroupField, promptGroup);
+        EditorSerialized.SetReference(d, CutsceneDirector.PromptTextField, prompt);
+        EditorSerialized.SetReference(d, CutsceneDirector.ThoughtViewField, thoughts);
+        EditorSerialized.SetReference(d, CutsceneDirector.LoadingGroupField, loadGroup);
+        EditorSerialized.SetReference(d, CutsceneDirector.LoadingTextField, loadText);
+        EditorSerialized.SetReference(d, CutsceneDirector.ScareGroupField, scare);
+        EditorSerialized.SetReference(d, CutsceneDirector.ScareTintField, tint);
+        EditorSerialized.SetReference(d, CutsceneDirector.ScareNoiseField, noise);
         return d;
     }
 
     // ================================================================== the script
     private static SerializedProperty steps;
 
+    // Adds a step.
     private static void Add(CutsceneStep step)
     {
         steps.arraySize++;
         steps.GetArrayElementAtIndex(steps.arraySize - 1).managedReferenceValue = step;
     }
 
+    // A mark of a set by name (short: used on almost every line of the cutscene).
     private static Transform F(Transform set, string name)
     {
         Transform t = set.Find(name);
-        if (t == null) t = HelenaSetupMenu.FindDeep(set, name);
+        if (t == null) t = EditorScene.FindDeep(set, name);
         if (t == null) missing.Add($"{set.name}/{name}");
         return t;
     }
 
+    // Step shorthands, so the cutscene below reads like a script.
     private static SayStep Say(CutsceneActor who, string pt, string en) => new SayStep { actor = who, textPt = pt, textEn = en, pauseAfter = 0.35f };
     private static ThoughtStep Think(string pt, string en) => new ThoughtStep { textPt = pt, textEn = en, pauseAfter = 0.3f };
     private static OperatorLineStep You(string pt, string en) => new OperatorLineStep { textPt = pt, textEn = en };
@@ -1394,43 +1415,48 @@ internal static class IniciacaoBuilder
     private static HandheldStep Hand(float amount) => new HandheldStep { amount = amount };
     private static ParallelStep Together(params CutsceneStep[] list) => new ParallelStep { steps = new List<CutsceneStep>(list) };
 
+    // Lighting presets of the sets: day, office, night, van.
     private static LightingStep Day(Light sun) => new LightingStep
     {
         sun = sun, sunAngles = new Vector3(35f, -40f, 0f), sunColor = new Color(1f, 0.93f, 0.82f), sunIntensity = 1.1f,
         ambient = new Color(0.5f, 0.52f, 0.55f), sky = new Color(0.67f, 0.72f, 0.78f), fog = true, fogColor = new Color(0.67f, 0.72f, 0.78f), fogStart = 25f, fogEnd = 140f,
     };
 
+    // Office lighting.
     private static LightingStep OfficeLight(Light sun) => new LightingStep
     {
         sun = sun, sunAngles = new Vector3(28f, 195f, 0f), sunColor = new Color(1f, 0.88f, 0.7f), sunIntensity = 1.3f,
         ambient = new Color(0.36f, 0.34f, 0.32f), sky = new Color(0.78f, 0.84f, 0.9f), fog = false,
     };
 
+    // Night street lighting.
     private static LightingStep NightLight(Light sun) => new LightingStep
     {
         sun = sun, sunAngles = new Vector3(45f, 30f, 0f), sunColor = new Color(0.55f, 0.65f, 0.9f), sunIntensity = 0.12f,
         ambient = new Color(0.09f, 0.1f, 0.15f), sky = new Color(0.05f, 0.07f, 0.13f), fog = true, fogColor = new Color(0.05f, 0.07f, 0.12f), fogStart = 18f, fogEnd = 110f,
     };
 
+    // Van interior lighting.
     private static LightingStep VanLight(Light sun) => new LightingStep
     {
         sun = sun, sunAngles = new Vector3(45f, 30f, 0f), sunColor = new Color(0.55f, 0.65f, 0.9f), sunIntensity = 0.05f,
         ambient = new Color(0.05f, 0.05f, 0.07f), sky = new Color(0.04f, 0.05f, 0.1f), fog = true, fogColor = new Color(0.04f, 0.05f, 0.09f), fogStart = 10f, fogEnd = 70f,
     };
 
+    // Builds cutscene 01 (every shot, line and move).
     private static Cutscene BuildCutscene(CutsceneDirector d, Light sun, Transform house, Transform car, Transform office, Transform night, Transform van,
                                           CutsceneActor mary, CutsceneActor michael, CutsceneActor pig, CutsceneActor arms)
     {
         var go = new GameObject("Cutscene_01_Iniciacao");
         var cutscene = go.AddComponent<Cutscene>();
-        HelenaSetupMenu.SetReference(cutscene, Cutscene.DirectorField, d);
-        HelenaSetupMenu.SetString(cutscene, Cutscene.IdField, "iniciacao_01");
+        EditorSerialized.SetReference(cutscene, Cutscene.DirectorField, d);
+        EditorSerialized.SetString(cutscene, Cutscene.IdField, "iniciacao_01");
         var cso = new SerializedObject(cutscene);
         cso.FindProperty("once").boolValue = false;
         cso.FindProperty(Cutscene.ClearScreenAtEndField).boolValue = false;
         cso.ApplyModifiedPropertiesWithoutUndo();
         var trigger = go.AddComponent<CutsceneTrigger>();
-        HelenaSetupMenu.SetReference(trigger, CutsceneTrigger.CutsceneField, cutscene);
+        EditorSerialized.SetReference(trigger, CutsceneTrigger.CutsceneField, cutscene);
         var tso = new SerializedObject(trigger);
         tso.FindProperty(CutsceneTrigger.WhenField).enumValueIndex = (int)CutsceneTrigger.When.SceneStart;
         tso.FindProperty("delay").floatValue = 0.2f;

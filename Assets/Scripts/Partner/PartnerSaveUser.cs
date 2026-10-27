@@ -12,12 +12,14 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class PartnerSaveUser : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string InteractorField = nameof(interactor);
     public const string CombatField = nameof(combat);
     public const string SaveScreenField = nameof(saveScreen);
     public const string SaveSystemField = nameof(saveSystem);
 
+    // Her animator (seat / turn clips), interactor and combat (stopped first), and the save screen / save system the station opens.
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private PartnerInteractor interactor;
     [SerializeField] private PartnerCombat combat;
@@ -27,6 +29,7 @@ public class PartnerSaveUser : MonoBehaviour
     [Header("Walking in / out")]
     [Tooltip("Max speed in the gap (her walk clip is 1.8 m/s).")]
     [SerializeField] private float walkSpeed = 1.3f;
+    // Scripted walk acceleration / braking (m/s²).
     [SerializeField] private float acceleration = 3f;
     [SerializeField] private float deceleration = 3.5f;
     [Tooltip("How fast she steers while walking (deg/s).")]
@@ -35,6 +38,7 @@ public class PartnerSaveUser : MonoBehaviour
     [SerializeField] private float handoffDistance = 0.6f;
     [Tooltip("Above this angle she turns in place with the turn clip instead of steering (deg).")]
     [SerializeField] private float clipTurnAngle = 50f;
+    // How close counts as arrived on the scripted walk (m).
     [SerializeField] private float arriveTolerance = 0.02f;
     [Tooltip("She heads for the walk-in point until this close, then curves into the gap (m).")]
     [SerializeField] private float entryRadius = 0.35f;
@@ -44,14 +48,17 @@ public class PartnerSaveUser : MonoBehaviour
     [SerializeField] private Vector2 sitGuide = new Vector2(0.3f, 0.8f);
     [Tooltip("Hips released from the chair while she stands up (she leaves the seat around 0.35).")]
     [SerializeField] private Vector2 standRelease = new Vector2(0.25f, 0.45f);
+    // Time to push the chair in / pull it out (s).
     [SerializeField] private float chairMoveTime = 0.6f;
     [Tooltip("Walking out, the chair goes back in once she is this far from where she stood up (m).")]
     [SerializeField] private float chairClearDistance = 0.45f;
     [Tooltip("Typing before the save screen appears (s).")]
     [SerializeField] private float typingDelay = 1.2f;
 
+    // Steps of a seat use.
     private enum Step { None, Approach, ToEntry, WalkIn, TurnToDesk, SitDown, ScootIn, Typing, ScreenOpen, Activity, ScootOut, StandUp, TurnOut, WalkOut }
 
+    // Her agent, her hips bone (guided onto the chair), the station, the walk-in point, the step and a timer.
     private NavMeshAgent agent;
     private Transform hips;
     private SaveStation station;
@@ -60,14 +67,18 @@ public class PartnerSaveUser : MonoBehaviour
     private float timer;
     private float speed;        // scripted walk speed
     private float chairPull;    // 0 = at the desk, 1 = pulled out
+    // She already turned with the clip; the seated activity in progress (null = saving).
     private bool clipTurned;
     private ISeatActivity activity;
 
+    // Raised when she starts / ends using a station.
     public event Action<SaveStation> Started;
     public event Action<SaveStation> Finished;
 
+    // She is using a station.
     public bool IsBusy => step != Step.None;
 
+    // Gets the agent and hips; checks the references.
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -78,6 +89,7 @@ public class PartnerSaveUser : MonoBehaviour
         }
     }
 
+    // Listens to the save screen closing.
     private void Start()
     {
         hips = partnerAnimator.GetBone(HumanBodyBones.Hips);
@@ -107,6 +119,7 @@ public class PartnerSaveUser : MonoBehaviour
         return true;
     }
 
+    // Runs the current step.
     private void Update()
     {
         switch (step)
@@ -171,6 +184,7 @@ public class PartnerSaveUser : MonoBehaviour
         }
     }
 
+    // NavMesh walk to the station, then the scripted walk-in.
     private void UpdateApproach()
     {
         // another command sent her somewhere else: give up
@@ -195,6 +209,7 @@ public class PartnerSaveUser : MonoBehaviour
         step = Step.ToEntry;
     }
 
+    // Stops in front of the chair and sits down.
     private void StartSitting()
     {
         partnerAnimator.SetScriptedSpeed(0f);
@@ -204,6 +219,7 @@ public class PartnerSaveUser : MonoBehaviour
         step = Step.SitDown;
     }
 
+    // Save screen closed: saves (if asked) and stands up.
     private void OnScreenClosed(SaveScreen.Result result, int slot)
     {
         if (step != Step.ScreenOpen) return;
@@ -223,6 +239,7 @@ public class PartnerSaveUser : MonoBehaviour
         if (step == Step.Activity) step = Step.ScootOut;
     }
 
+    // Tells the seated activity she left the seat.
     private void EndActivity()
     {
         ISeatActivity a = activity;
@@ -245,6 +262,7 @@ public class PartnerSaveUser : MonoBehaviour
         Finished?.Invoke(station);
     }
 
+    // Back to the agent; the sequence is over.
     private void Finish()
     {
         RestoreAgent(transform.position);
@@ -253,6 +271,7 @@ public class PartnerSaveUser : MonoBehaviour
         Finished?.Invoke(station);
     }
 
+    // Ends the scripted control and gives the body back to the agent at a point.
     private void RestoreAgent(Vector3 at)
     {
         partnerAnimator.EndScripted();
@@ -274,6 +293,7 @@ public class PartnerSaveUser : MonoBehaviour
         transform.position += error * weight;
     }
 
+    // How strongly her hips are held on the seat in the current step (0..1).
     private float SeatWeight()
     {
         switch (step)
@@ -356,6 +376,7 @@ public class PartnerSaveUser : MonoBehaviour
         return Quaternion.Angle(transform.rotation, want) < 1f;
     }
 
+    // Moves the chair toward its target pull; true once there.
     private bool MoveChair(float target)
     {
         float rate = chairMoveTime > 0f ? Time.deltaTime / chairMoveTime : 1f;
@@ -364,6 +385,7 @@ public class PartnerSaveUser : MonoBehaviour
         return Mathf.Approximately(chairPull, target);
     }
 
+    // A vector flattened onto the floor.
     private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 }
 

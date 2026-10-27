@@ -9,6 +9,7 @@ using UnityEngine.UI;
 // targets and her own health. The floating labels are created here, one per hostile, and reused.
 public class CombatHud : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string EncounterField = nameof(encounter);
     public const string CameraSystemField = nameof(cameraSystem);
     public const string SettingsField = nameof(settings);
@@ -19,6 +20,7 @@ public class CombatHud : MonoBehaviour
     public const string ListField = nameof(list);
     public const string PartnerBarField = nameof(partnerBar);
 
+    // The encounter, the camera system (projection), the settings, her health, the panel, the labels parent and the texts.
     [SerializeField] private CombatEncounter encounter;
     [SerializeField] private SecurityCameraSystem cameraSystem;
     [SerializeField] private CameraSettings settings;
@@ -30,24 +32,29 @@ public class CombatHud : MonoBehaviour
     [Tooltip("Fill of her health bar (anchored left, its width is scaled).")]
     [SerializeField] private Image partnerBar;
 
+    // Colors: hostile, the focused one, healthy.
     [Header("Look")]
     [SerializeField] private Color hostile = new Color(1f, 0.25f, 0.2f);
     [SerializeField] private Color focusColor = new Color(1f, 0.85f, 0.25f);
     [SerializeField] private Color healthy = new Color(0.4f, 1f, 0.5f);
     [Tooltip("Labels float this high above the hostile's feet (m).")]
     [SerializeField] private float labelHeight = 2.1f;
+    // Floating bar size (px), fade time (s) and list refresh interval (s).
     [SerializeField] private Vector2 labelBarSize = new Vector2(60f, 6f);
     [SerializeField] private float fadeTime = 0.3f;
     [SerializeField] private float listRefresh = 0.15f;
 
+    // One floating label over a hostile.
     private class Label
     {
+        // Its parts: root, number, bar fill and its image.
         public RectTransform Root;
         public TMP_Text Number;
         public RectTransform Fill;
         public Image FillImage;
     }
 
+    // Labels by hostile, the reusable pool, the text builder, labels to remove, her bar width and the list timer.
     private readonly Dictionary<Health, Label> labels = new Dictionary<Health, Label>();
     private readonly List<Label> pool = new List<Label>();
     private readonly StringBuilder sb = new StringBuilder();
@@ -55,6 +62,7 @@ public class CombatHud : MonoBehaviour
     private float partnerBarWidth;
     private float listTimer;
 
+    // Checks references; hidden at start.
     private void Awake()
     {
         if (encounter == null || cameraSystem == null || group == null || labelsRoot == null)
@@ -67,20 +75,24 @@ public class CombatHud : MonoBehaviour
         if (partnerBar != null) partnerBarWidth = partnerBar.rectTransform.sizeDelta.x;
     }
 
+    // Listens to the focus changes.
     private void OnEnable()
     {
         if (encounter != null) encounter.TargetsChanged += RefreshList;
         if (encounter != null) encounter.FocusChanged += OnFocusChanged;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (encounter != null) encounter.TargetsChanged -= RefreshList;
         if (encounter != null) encounter.FocusChanged -= OnFocusChanged;
     }
 
+    // Focus changed: refresh the list now.
     private void OnFocusChanged(Health focus) => RefreshList();
 
+    // Fades with the combat; places a label over each engaged hostile seen by the active camera; refreshes the list.
     private void LateUpdate()
     {
         bool on = encounter.InCombat;
@@ -147,11 +159,13 @@ public class CombatHud : MonoBehaviour
         }
     }
 
+    // Hides every label.
     private void HideAllLabels()
     {
         foreach (Label l in labels.Values) l.Root.gameObject.SetActive(false);
     }
 
+    // A label from the pool (created when empty).
     private Label TakeLabel()
     {
         if (pool.Count > 0)

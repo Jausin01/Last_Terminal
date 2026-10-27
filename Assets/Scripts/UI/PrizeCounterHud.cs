@@ -7,6 +7,7 @@ using UnityEngine;
 // every prize with its price (bought ones marked) and what to say.
 public class PrizeCounterHud : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string CounterField = nameof(counter);
     public const string PartnerField = nameof(partner);
     public const string SettingsField = nameof(settings);
@@ -15,6 +16,7 @@ public class PrizeCounterHud : MonoBehaviour
     public const string BodyField = nameof(body);
     public const string PromptField = nameof(prompt);
 
+    // The counter, her transform (is she there?), the settings, the panel and its texts.
     [SerializeField] private PrizeCounter counter;
     [SerializeField] private Transform partner;
     [SerializeField] private CameraSettings settings;
@@ -22,34 +24,41 @@ public class PrizeCounterHud : MonoBehaviour
     [SerializeField] private TMP_Text header;
     [SerializeField] private TMP_Text body;
     [SerializeField] private TMP_Text prompt;
+    // Fade time (s).
     [SerializeField] private float fadeTime = 0.25f;
 
+    // Prize list buffer, text builder, rebuild pending, and the last values shown.
     private readonly List<OutfitDefinition> prizes = new List<OutfitDefinition>();
     private readonly StringBuilder sb = new StringBuilder();
     private bool dirty = true;
     private int shownChips = -1, shownCoins = -1;
     private bool shownCashier;
 
+    // Checks references; hidden at start.
     private void Awake()
     {
         if (counter == null || partner == null || group == null || header == null || body == null || prompt == null) { enabled = false; return; }
         group.alpha = 0f;
     }
 
+    // Listens to the counter's changes.
     private void OnEnable()
     {
         if (counter != null) counter.Changed += MarkDirty;
         if (settings != null) settings.Changed += MarkDirty;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (counter != null) counter.Changed -= MarkDirty;
         if (settings != null) settings.Changed -= MarkDirty;
     }
 
+    // Something changed: rebuild on the next LateUpdate.
     private void MarkDirty() => dirty = true;
 
+    // Fades in while she is at the counter; rebuilds on change.
     private void LateUpdate()
     {
         bool here = counter.IsAtAnyPlace(partner.position);

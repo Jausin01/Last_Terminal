@@ -4,12 +4,16 @@ using UnityEngine.EventSystems;
 // On a window's title bar (OsWindow): dragging it moves the window, kept inside the screen.
 public class OsWindowDrag : MonoBehaviour, IBeginDragHandler, IDragHandler
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string WindowField = nameof(window);
 
+    // The window this bar moves.
     [SerializeField] private RectTransform window;
 
+    // Offset from the pointer to the window's pivot when the drag started.
     private Vector2 grab;
 
+    // Drag started: remember the offset; window on top.
     public void OnBeginDrag(PointerEventData e)
     {
         if (window == null) return;
@@ -19,6 +23,7 @@ public class OsWindowDrag : MonoBehaviour, IBeginDragHandler, IDragHandler
         window.SetAsLastSibling();
     }
 
+    // Moves the window with the pointer, keeping the title bar on screen.
     public void OnDrag(PointerEventData e)
     {
         if (window == null) return;

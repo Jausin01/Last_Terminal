@@ -10,11 +10,14 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class PartnerEvasion : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string HealthField = nameof(health);
 
+    // What she is doing: nothing, a dodge, going down, down, getting up.
     public enum Move { None, Dodging, GoingDown, Down, GettingUp }
 
+    // Her animator (evade clips) and health (invulnerable / reduced damage).
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private Health health;
     [Header("Dodge (normalized time of the clip)")]
@@ -29,23 +32,28 @@ public class PartnerEvasion : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float downDamageScale = 0.35f;
     [Tooltip("Getting up (clip backward): back to standing here (normalized).")]
     [SerializeField, Range(0f, 1f)] private float upAt = 0.05f;
+    // Blend into the evade clips (s).
     [SerializeField] private float blendTime = 0.15f;
     [Tooltip("A clip that never starts gives up after this long (s).")]
     [SerializeField] private float timeout = 4f;
 
+    // Her agent, the move, whether its clip started, time waiting for it.
     private NavMeshAgent agent;
     private Move move;
     private bool entered;
     private float timer;
+    // What to do once she is up, and a destination given meanwhile (resumed after).
     private Action afterGettingUp;
     private bool hasPendingDestination;
     private Vector3 pendingDestination;
 
+    // State read by the commands, her damage and the HUD.
     public Move Current => move;
     public bool IsBusy => move == Move.Dodging || move == Move.GoingDown || move == Move.GettingUp;
     public bool IsDown => move == Move.Down;
     public bool IsCrouched => move == Move.GoingDown || move == Move.Down;
 
+    // Checks the references.
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -56,8 +64,10 @@ public class PartnerEvasion : MonoBehaviour
         }
     }
 
+    // Disabled: back to standing.
     private void OnDisable() => Cancel();
 
+    // "Dodge": a leap back with an invulnerable window.
     public bool Dodge()
     {
         if (!enabled || move != Move.None || partnerAnimator.IsScripted || partnerAnimator.IsAttacking || partnerAnimator.IsPickingUp) return false;
@@ -66,6 +76,7 @@ public class PartnerEvasion : MonoBehaviour
         return true;
     }
 
+    // "Duck": she crouches and stays down.
     public bool Duck()
     {
         if (!enabled || move != Move.None || partnerAnimator.IsScripted || partnerAnimator.IsAttacking || partnerAnimator.IsPickingUp) return false;
@@ -96,6 +107,7 @@ public class PartnerEvasion : MonoBehaviour
         Finish(false);
     }
 
+    // Starts a move: holds her in place.
     private void Begin(Move next)
     {
         move = next;
@@ -117,6 +129,7 @@ public class PartnerEvasion : MonoBehaviour
         agent.velocity = Vector3.zero;
     }
 
+    // Follows the clip: invulnerable window, down threshold, getting-up end; a move order gets her up first.
     private void Update()
     {
         if (move == Move.None) return;
@@ -152,6 +165,7 @@ public class PartnerEvasion : MonoBehaviour
         }
     }
 
+    // Move over: damage back to normal, then the destination / action that waited.
     private void Finish(bool resume)
     {
         move = Move.None;

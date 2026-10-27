@@ -5,6 +5,7 @@ using UnityEngine;
 // with real clips later by assigning AudioClips where the components play them.
 public static class OperatorSounds
 {
+    // Every synthesized sound (the enum is stored by number: add new ones at the end).
     public enum Kind
     {
         Click, Beep, Brew, Sip, Rattle, Glug, Paper,
@@ -13,9 +14,11 @@ public static class OperatorSounds
         Metal, KeyBeep, Denied, Accepted, PowerButton, Tick, Knob, Locker, Drawer
     }
 
+    // Sample rate and the clips made so far.
     private const int Rate = 22050;
     private static readonly Dictionary<Kind, AudioClip> Cache = new Dictionary<Kind, AudioClip>();
 
+    // The clip of a kind (made on first use).
     public static AudioClip Get(Kind kind)
     {
         if (Cache.TryGetValue(kind, out AudioClip clip) && clip != null) return clip;
@@ -24,11 +27,13 @@ public static class OperatorSounds
         return clip;
     }
 
+    // Plays a kind once on a source.
     public static void Play(AudioSource source, Kind kind, float volume = 1f)
     {
         if (source != null) source.PlayOneShot(Get(kind), volume);
     }
 
+    // Synthesizes one kind from the building blocks below.
     private static AudioClip Make(Kind kind)
     {
         float[] d;
@@ -88,6 +93,7 @@ public static class OperatorSounds
         return d;
     }
 
+    // Low-passed noise with an exponential decay.
     private static float[] Noise(System.Random rng, float seconds, float amp, float decay)
     {
         int n = Mathf.Max(1, (int)(seconds * Rate));
@@ -111,6 +117,7 @@ public static class OperatorSounds
         return all.ToArray();
     }
 
+    // Adds two sounds (clipped to -1..1).
     private static float[] Mix(float[] a, float[] b)
     {
         var d = new float[Mathf.Max(a.Length, b.Length)];
@@ -118,6 +125,7 @@ public static class OperatorSounds
         return d;
     }
 
+    // Short fade in / out against clicks.
     private static float Fade(int i, int n) => Mathf.Clamp01(i / 40f) * Mathf.Clamp01((n - i) / 80f);
 
     // the coffee machine: grinding hum, then hissing and dripping
@@ -169,6 +177,7 @@ public static class OperatorSounds
         return Mix(d, Noise(rng, 0.06f, 0.8f, 50f));
     }
 
+    // Four short descending tones (water glug).
     private static float[] Glug()
     {
         var all = new List<float>();

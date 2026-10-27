@@ -8,6 +8,7 @@ using UnityEngine;
 // Safe Zone: she can be left alone here (the operator may close the camera program and get up from the PC).
 public class Room : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string DisplayNameField = nameof(displayName);
     public const string DisplayNamePtField = nameof(displayNamePt);
     public const string SizeField = nameof(size);
@@ -17,6 +18,7 @@ public class Room : MonoBehaviour
 
     [Tooltip("English name: also the lexicon key the commands use.")]
     [SerializeField] private string displayName = "Room";
+    // Portuguese name, and the floor area size (m).
     [SerializeField] private string displayNamePt = "";
     [SerializeField] private Vector2 size = new Vector2(8f, 8f);
     [Tooltip("Optional: where she stands when sent here (marked on the map).")]
@@ -26,18 +28,21 @@ public class Room : MonoBehaviour
     [Tooltip("She can be left alone here: the operator can leave the PC (she sits on the floor and waits).")]
     [SerializeField] private bool safeZone;
 
+    // Read-only data.
     public string DisplayName => displayName;
     public Vector2 Size => size;
     public Transform Spot => spot;
     public Room[] OpenTo => openTo;
     public bool SafeZone => safeZone;
 
+    // Name in a language.
     public string NameIn(GameLanguage language) =>
         language == GameLanguage.Portuguese && !string.IsNullOrEmpty(displayNamePt) ? displayNamePt : displayName;
 
     // floor rectangle in world XZ (rooms are axis aligned)
     public Rect FloorRect => new Rect(transform.position.x - size.x * 0.5f, transform.position.z - size.y * 0.5f, size.x, size.y);
 
+    // Is a point inside the area (floor plane)?
     public bool Contains(Vector3 worldPosition) => FloorRect.Contains(new Vector2(worldPosition.x, worldPosition.z));
 
     // margin > 0 grows the area (doors on its walls), < 0 keeps away from the walls
@@ -48,6 +53,7 @@ public class Room : MonoBehaviour
         return r.Contains(new Vector2(worldPosition.x, worldPosition.z));
     }
 
+    // Gizmo of the area and its spot.
     private void OnDrawGizmos()
     {
         Gizmos.color = new Color(0.3f, 0.8f, 1f, 0.5f);

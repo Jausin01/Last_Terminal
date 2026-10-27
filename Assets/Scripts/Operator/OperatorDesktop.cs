@@ -9,6 +9,7 @@ using UnityEngine.UI;
 // one opens in a viewer window. Every text follows the game language (CameraSettings).
 public class OperatorDesktop : DesktopScreen
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string GroupField = nameof(group);
     public const string SettingsField = nameof(settings);
     public const string StoryField = nameof(story);
@@ -33,12 +34,14 @@ public class OperatorDesktop : DesktopScreen
     public const string ViewerScrollField = nameof(viewerScroll);
     public const string AudioField = nameof(audioSource);
 
+    // The desktop group, the language / story sources, the files it can show and the click sound source.
     [SerializeField] private CanvasGroup group;
     [SerializeField] private CameraSettings settings;
     [SerializeField] private StoryProgress story;
     [SerializeField] private OperatorFile[] files = new OperatorFile[0];
     [SerializeField] private AudioSource audioSource;
 
+    // The three desktop icons, their labels, the clock.
     [Header("Desktop")]
     [SerializeField] private Button programButton;
     [SerializeField] private Button filesButton;
@@ -50,6 +53,7 @@ public class OperatorDesktop : DesktopScreen
     [Tooltip("Line on the taskbar (why he can't get up, etc.).")]
     [SerializeField] private TMP_Text status;
 
+    // The files window: panel, title, list content and close button.
     [Header("Files window")]
     [SerializeField] private CanvasGroup filesWindow;
     [SerializeField] private TMP_Text filesTitle;
@@ -58,6 +62,7 @@ public class OperatorDesktop : DesktopScreen
     [SerializeField] private OperatorFileRow fileTemplate;
     [SerializeField] private Button filesClose;
 
+    // The viewer window: panel, title, body, close button, scroll.
     [Header("Viewer")]
     [SerializeField] private CanvasGroup viewer;
     [SerializeField] private TMP_Text viewerTitle;
@@ -65,16 +70,20 @@ public class OperatorDesktop : DesktopScreen
     [SerializeField] private Button viewerClose;
     [SerializeField] private ScrollRect viewerScroll;
 
+    // Rows made for the list, the unlocked files, open or not, status line time left.
     private readonly List<GameObject> rows = new List<GameObject>();
     private readonly List<OperatorFile> unlocked = new List<OperatorFile>();
     private bool open;
     private float statusTimer;
 
+    // The desktop is showing.
     public override bool IsOpen => open;
 
+    // Current language helpers.
     private GameLanguage Language => settings != null ? settings.Language : GameLanguage.English;
     private bool Pt => Language == GameLanguage.Portuguese;
 
+    // Wires the buttons; everything starts hidden.
     private void Awake()
     {
         if (group == null || programButton == null || filesButton == null || standButton == null)
@@ -94,23 +103,27 @@ public class OperatorDesktop : DesktopScreen
         Show(viewer, false);
     }
 
+    // Refreshes on language / story changes.
     private void OnEnable()
     {
         if (settings != null) settings.Changed += Refresh;
         if (story != null) story.FlagSet += OnFlag;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (settings != null) settings.Changed -= Refresh;
         if (story != null) story.FlagSet -= OnFlag;
     }
 
+    // A new flag may unlock files.
     private void OnFlag(string flag)
     {
         if (open) Refresh();
     }
 
+    // Shows / hides the desktop (and closes its windows).
     public override void SetOpen(bool value)
     {
         open = value;
@@ -135,20 +148,24 @@ public class OperatorDesktop : DesktopScreen
         return false;
     }
 
+    // CCTV.EXE / stand up: tells the station.
     private void OnProgram()
     {
         Click();
         RaiseProgram();
     }
 
+    // Stand up button: tells the station.
     private void OnStand()
     {
         Click();
         RaiseStand();
     }
 
+    // Click sound.
     private void Click() => OperatorSounds.Play(audioSource, OperatorSounds.Kind.Click, 0.7f);
 
+    // Texts in the current language and the NEW count.
     private void Refresh()
     {
         programLabel.text = "CCTV.EXE";
@@ -175,8 +192,10 @@ public class OperatorDesktop : DesktopScreen
         return fresh;
     }
 
+    // Was the file opened before (story flag)?
     private bool IsRead(OperatorFile f) => story != null && story.Has(StoryProgress.ReadPrefix + f.Id);
 
+    // Opens the files window.
     private void OpenFiles()
     {
         Click();
@@ -185,6 +204,7 @@ public class OperatorDesktop : DesktopScreen
         BuildList();
     }
 
+    // Closes the files window (and the viewer).
     private void CloseFiles()
     {
         Click();
@@ -192,6 +212,7 @@ public class OperatorDesktop : DesktopScreen
         Show(viewer, false);
     }
 
+    // Rebuilds the file list (one row per unlocked file).
     private void BuildList()
     {
         if (fileList == null || fileTemplate == null) return;
@@ -208,6 +229,7 @@ public class OperatorDesktop : DesktopScreen
         }
     }
 
+    // Opens a file in the viewer and marks it read.
     private void OpenFile(OperatorFile f)
     {
         Click();
@@ -218,12 +240,14 @@ public class OperatorDesktop : DesktopScreen
         if (story != null && !IsRead(f)) story.Set(StoryProgress.ReadPrefix + f.Id);   // refreshes (FlagSet)
     }
 
+    // Closes the viewer.
     private void CloseViewer()
     {
         Click();
         Show(viewer, false);
     }
 
+    // Shows / hides a window and its clicks.
     private static void Show(CanvasGroup g, bool on)
     {
         if (g == null) return;
@@ -232,6 +256,7 @@ public class OperatorDesktop : DesktopScreen
         g.blocksRaycasts = on;
     }
 
+    // Clock and the status line's timeout.
     private void Update()
     {
         if (!open) return;

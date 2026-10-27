@@ -7,6 +7,7 @@ using UnityEngine.UI;
 // after a moment, with LOAD LAST SAVE (back where she saved, alive) and RESTART (the scene from the start).
 public class GameOverScreen : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string DamageField = nameof(damage);
     public const string HealthField = nameof(health);
     public const string SaveSystemField = nameof(saveSystem);
@@ -16,23 +17,28 @@ public class GameOverScreen : MonoBehaviour
     public const string LoadButtonField = nameof(loadButton);
     public const string RestartButtonField = nameof(restartButton);
 
+    // Her damage events, her health, the save system and the screen's panel.
     [SerializeField] private PartnerDamage damage;
     [SerializeField] private Health health;
     [SerializeField] private SaveSystem saveSystem;
     [SerializeField] private CanvasGroup group;
     [Tooltip("Full-screen red, flashed on each hit.")]
     [SerializeField] private Graphic flash;
+    // Detail line and the two buttons.
     [SerializeField] private TMP_Text detail;
     [SerializeField] private Button loadButton;
     [SerializeField] private Button restartButton;
+    // Delay before SIGNAL LOST (s) and its fade (s); hit flash opacity and time (s).
     [SerializeField] private float delay = 2.2f;
     [SerializeField] private float fadeTime = 1.2f;
     [SerializeField, Range(0f, 1f)] private float flashAlpha = 0.35f;
     [SerializeField] private float flashTime = 0.35f;
 
+    // Hit flash time left, and when the screen appears (-1 = not dying).
     private float flashTimer;
     private float showAt = -1f;
 
+    // Checks references; hooks the buttons; hidden at start.
     private void Awake()
     {
         if (damage == null || health == null || saveSystem == null || group == null)
@@ -47,6 +53,7 @@ public class GameOverScreen : MonoBehaviour
         if (restartButton != null) restartButton.onClick.AddListener(Restart);
     }
 
+    // Listens to her damage / death.
     private void OnEnable()
     {
         if (damage == null || health == null) return;
@@ -54,6 +61,7 @@ public class GameOverScreen : MonoBehaviour
         health.Damaged += OnDamaged;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (damage == null || health == null) return;
@@ -61,8 +69,10 @@ public class GameOverScreen : MonoBehaviour
         health.Damaged -= OnDamaged;
     }
 
+    // Hit: red flash.
     private void OnDamaged(int amount) => flashTimer = flashTime;
 
+    // Died: the screen shows after the delay.
     private void OnDied()
     {
         showAt = Time.unscaledTime + delay;
@@ -70,6 +80,7 @@ public class GameOverScreen : MonoBehaviour
         if (detail != null) detail.text = $"SUBJECT: NO VITAL SIGNS\n<size=70%>{System.DateTime.Now:HH:mm:ss}  -  FEED TERMINATED</size>";
     }
 
+    // Flash fade; the screen fades in after the delay.
     private void Update()
     {
         if (flash != null)
@@ -83,6 +94,7 @@ public class GameOverScreen : MonoBehaviour
         if (Time.unscaledTime >= showAt) Show(true, t);
     }
 
+    // Shows / hides the panel (clickable only when on).
     private void Show(bool on, float alpha)
     {
         group.alpha = on ? alpha : 0f;
@@ -90,6 +102,7 @@ public class GameOverScreen : MonoBehaviour
         group.blocksRaycasts = on;
     }
 
+    // Loads the most recent save (restart if none).
     private void LoadLastSave()
     {
         int slot = saveSystem.LatestSlot();
@@ -99,6 +112,7 @@ public class GameOverScreen : MonoBehaviour
         Show(false, 0f);
     }
 
+    // Reloads the scene from the start.
     private void Restart()
     {
         int index = SceneManager.GetActiveScene().buildIndex;

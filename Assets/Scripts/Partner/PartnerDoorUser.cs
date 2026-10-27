@@ -2,7 +2,9 @@ using System;
 using UnityEngine;
 using UnityEngine.AI;
 
+// What she was asked to do with a door.
 public enum DoorAction { PassThrough, Open, Close }
+// How it went.
 public enum DoorResult { Done, Locked, NeedsOperator, Unlocked, Cancelled }
 
 // Her side of a door, with the three Mixamo door clips:
@@ -16,10 +18,12 @@ public enum DoorResult { Done, Locked, NeedsOperator, Unlocked, Cancelled }
 [RequireComponent(typeof(NavMeshAgent))]
 public class PartnerDoorUser : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string InteractorField = nameof(interactor);
     public const string CombatField = nameof(combat);
 
+    // Her animator (door clips), interactor and combat (stopped first), and the short scripted walk to the start pose.
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private PartnerInteractor interactor;
     [SerializeField] private PartnerCombat combat;
@@ -34,30 +38,37 @@ public class PartnerDoorUser : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float pushClosedTime = 0.188f;
     [Tooltip("Outwards: door pulled open (~45 deg), she stepped aside. Open stops here; Close starts here backwards.")]
     [SerializeField, Range(0f, 1f)] private float pullOpenTime = 0.463f;
+    // Outwards backwards: her hand has left the handle.
     [SerializeField, Range(0f, 1f)] private float pullClosedTime = 0.02f;
     [Tooltip("Pass through: she is standing on the other side.")]
     [SerializeField, Range(0f, 1f)] private float passEndTime = 0.985f;
+    // Locked: the try ends here.
     [SerializeField, Range(0f, 1f)] private float lockedEndTime = 0.95f;
     [Tooltip("Closing: part of the clip during which the leaf comes from where it is to her hand.")]
     [SerializeField, Range(0.01f, 0.5f)] private float closeCatchSpan = 0.12f;
     [Tooltip("Blend back to standing after the clip (s).")]
     [SerializeField] private float exitTime = 0.3f;
+    // Max time for the scripted walk-in (s).
     [SerializeField] private float enterTimeout = 1.5f;
 
+    // Leaf angle (deg) by frame of the inwards (push) clip.
     [Header("Leaf angle (deg) by clip time")]
     [SerializeField] private AnimationCurve inwardsLeaf = FramesCurve(192,
         1, 0, 79, 0, 82, 5, 85, 11, 88, 18, 91, 22, 94, 26, 97, 28, 100, 31, 103, 34, 106, 38, 109, 42, 112, 50, 115, 60,
         118, 69, 121, 76, 124, 78, 127, 79, 130, 76, 133, 73, 136, 70, 139, 64, 142, 60, 145, 58, 148, 55, 151, 49, 154, 42,
         157, 32, 160, 23, 163, 18, 166, 15, 169, 14, 172, 9, 175, 3, 177, 0, 192, 0);
+    // Leaf angle (deg) by frame of the outwards (pull) clip.
     [SerializeField] private AnimationCurve outwardsLeaf = FramesCurve(124,
         1, 0, 20, 0, 22, 1, 25, 5, 28, 11, 31, 17, 34, 23, 37, 28, 40, 33, 43, 37, 46, 40, 49, 42, 52, 44, 55, 45, 64, 45,
         67, 43, 70, 40, 73, 37, 76, 34, 79, 31, 82, 26, 85, 18, 88, 10, 91, 3, 93, 0, 124, 0);
 
+    // Part of the clip the leaf rattles in, how far (deg) and how fast (Hz).
     [Header("Locked: the leaf rattles while she pulls the handle")]
     [SerializeField] private Vector2 rattleWindow = new Vector2(0.115f, 0.69f);
     [SerializeField] private float rattleAngle = 0.8f;
     [SerializeField] private float rattleFrequency = 9f;
 
+    // Where she stands for each clip (pass / close / locked, push and pull side).
     [Header("Start poses (door space from the hinge: x toward the handle, z toward the side the leaf opens to)")]
     [SerializeField] private Vector2 pushStart = new Vector2(0.50f, -0.72f);
     [SerializeField] private Vector2 pullStart = new Vector2(0.37f, 0.88f);
@@ -68,8 +79,10 @@ public class PartnerDoorUser : MonoBehaviour
     [Tooltip("Sliding (security) doors: distance from the door center where she tries it.")]
     [SerializeField] private float slidingTryDistance = 0.6f;
 
+    // Steps of a door use.
     private enum Step { None, Approach, WalkIn, Face, Play, Exit }
 
+    // Her agent, the step, the door, the action and its result, the clip with its time range and direction, the start pose, a key to use, walk-in done, leaf driven by her, clip time, the leaf angle at the start and a timer.
     private NavMeshAgent agent;
     private Step step;
     private Door door;
@@ -87,14 +100,17 @@ public class PartnerDoorUser : MonoBehaviour
     private float leafStart;
     private float timer;
 
+    // Raised when she starts / ends a door action.
     public event Action<Door, DoorAction> Started;
     public event Action<Door, DoorAction, DoorResult> Finished;
 
+    // She is using a door.
     public bool IsBusy => step != Step.None;
     // still walking there on the NavMesh: another command may send her elsewhere (cancels the door)
     public bool IsInterruptible => step == Step.None || step == Step.Approach;
     public Door CurrentDoor => door;
 
+    // Gets the agent; checks the references.
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -178,6 +194,7 @@ public class PartnerDoorUser : MonoBehaviour
         return true;
     }
 
+    // A start pose point in world space from a hinge offset.
     private static Vector3 HingePoint(Door target, Vector2 offset)
     {
         Vector3 hinge = target.HingeLocal;
@@ -192,6 +209,7 @@ public class PartnerDoorUser : MonoBehaviour
         poseForward = new Vector3(f.x, 0f, f.z).normalized;
     }
 
+    // Chooses the clip, the part of it played and the direction.
     private void SetClip(PartnerAnimator.DoorClip c, float from, float to, bool reverse)
     {
         clip = c;
@@ -200,6 +218,7 @@ public class PartnerDoorUser : MonoBehaviour
         backward = reverse;
     }
 
+    // Runs the current step.
     private void Update()
     {
         switch (step)
@@ -223,6 +242,7 @@ public class PartnerDoorUser : MonoBehaviour
         }
     }
 
+    // NavMesh walk to the start pose, then the scripted walk-in.
     private void UpdateApproach()
     {
         // another command sent her somewhere else: give up
@@ -246,6 +266,7 @@ public class PartnerDoorUser : MonoBehaviour
         step = Step.WalkIn;
     }
 
+    // Faces the door and plays the clip; the leaf is driven by her hand.
     private void StartClip()
     {
         // the door may have changed while she walked (operator, another command...)
@@ -269,6 +290,7 @@ public class PartnerDoorUser : MonoBehaviour
         step = Step.Play;
     }
 
+    // Advances the clip; the leaf follows the curve (or rattles when locked).
     private void UpdatePlay()
     {
         timer += Time.deltaTime;
@@ -297,6 +319,7 @@ public class PartnerDoorUser : MonoBehaviour
         door.SetManualAngle(LeafAngle(clipTime));
     }
 
+    // Leaf angle at a clip time (closing: catches the leaf from where it is).
     private float LeafAngle(float t)
     {
         float angle = Mathf.Max(0f, (clip == PartnerAnimator.DoorClip.Inwards ? inwardsLeaf : outwardsLeaf).Evaluate(t));
@@ -306,6 +329,7 @@ public class PartnerDoorUser : MonoBehaviour
         return Mathf.Lerp(leafStart, angle, Mathf.SmoothStep(0f, 1f, played / closeCatchSpan));
     }
 
+    // Releases the leaf and blends back to standing.
     private void StopClip()
     {
         if (driving)
@@ -319,12 +343,14 @@ public class PartnerDoorUser : MonoBehaviour
         step = Step.Exit;
     }
 
+    // Back to the agent with the result.
     private void Finish()
     {
         EndScriptedHere();
         Done(result);
     }
 
+    // Stops at once and reports Cancelled.
     private void Cancel()
     {
         if (!IsBusy) return;
@@ -340,6 +366,7 @@ public class PartnerDoorUser : MonoBehaviour
     // Ends at once, standing where she is (e.g. a save is loaded).
     public void Abort() => Cancel();
 
+    // Ends the scripted control: snaps her to the NavMesh and gives the body back to the agent.
     private void EndScriptedHere()
     {
         partnerAnimator.SetScriptedRootMotion(false);
@@ -351,6 +378,7 @@ public class PartnerDoorUser : MonoBehaviour
         agent.isStopped = false;
     }
 
+    // Clears the state and raises Finished.
     private void Done(DoorResult outcome)
     {
         Door used = door;
@@ -376,5 +404,6 @@ public class PartnerDoorUser : MonoBehaviour
         return new AnimationCurve(keys);
     }
 
+    // A vector flattened onto the floor.
     private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 }

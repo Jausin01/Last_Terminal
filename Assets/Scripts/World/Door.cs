@@ -9,8 +9,10 @@ using UnityEngine.AI;
 // Doors are numbered (plates above them, DoorSign): "open door 2".
 public class Door : MonoBehaviour
 {
+    // Hinged leaf or sliding panel.
     public enum Kind { Hinged, Sliding }
 
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string DisplayNameField = nameof(displayName);
     public const string KindField = nameof(kind);
     public const string MovingPartField = nameof(movingPart);
@@ -23,16 +25,20 @@ public class Door : MonoBehaviour
     public const string OpenAngleField = nameof(openAngle);
     public const string NumberField = nameof(number);
 
+    // Name for the map / commands.
     [SerializeField] private string displayName = "Door";
     [Tooltip("Number on its plates (0 = none).")]
     [SerializeField, Min(0)] private int number;
+    // How it moves.
     [SerializeField] private Kind kind = Kind.Hinged;
     [Tooltip("Leaf (hinged, pivot on the hinge) or panel (sliding).")]
     [SerializeField] private Transform movingPart;
+    // Status lamp (optional) and the NavMesh obstacle that cuts the path while closed.
     [SerializeField] private Renderer lamp;
     [SerializeField] private NavMeshObstacle obstacle;
     [Tooltip("The camera operator opens / closes it from the facility map.")]
     [SerializeField] private bool remoteControlled;
+    // Starts open / starts locked.
     [SerializeField] private bool startOpen;
     [SerializeField] private bool locked;
     [Tooltip("Key that unlocks it (her inventory), if any.")]
@@ -41,28 +47,35 @@ public class Door : MonoBehaviour
     [Header("Motion")]
     [Tooltip("Hinged: how far the leaf opens (deg). 80 = where her door clips leave it.")]
     [SerializeField] private float openAngle = 80f;
+    // Sliding panel travel (m).
     [SerializeField] private float slideDistance = 1.2f;
     [Tooltip("Seconds to open or close.")]
     [SerializeField] private float moveTime = 0.8f;
 
+    // Lamp colors: open, closed, locked.
     [Header("Lamp")]
     [SerializeField] private Color openColor = new Color(0.2f, 1f, 0.3f);
     [SerializeField] private Color closedColor = new Color(1f, 0.15f, 0.1f);
     [SerializeField] private Color lockedColor = new Color(1f, 0.65f, 0.1f);
 
+    // Shader ids of the lamp material.
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
+    // Closed pose of the moving part.
     private Quaternion closedRotation;
     private Vector3 closedPosition;
     private float amount;          // 0 closed .. 1 open
+    // Wanted state, lamp property block, driven by her hand (manual) and that angle.
     private bool wantOpen;
     private MaterialPropertyBlock block;
     private bool manual;
     private float manualAngle;
 
+    // Raised when it opens / closes / locks.
     public event Action<Door> Changed;
 
+    // Read-only state for commands, the map and her door user.
     public string DisplayName => displayName;
     public int Number => number;
     public bool IsOpen => wantOpen;
@@ -78,6 +91,7 @@ public class Door : MonoBehaviour
     // the hinge (leaf pivot) in this door's local space; +Z = the side the leaf opens toward
     public Vector3 HingeLocal => movingPart != null ? transform.InverseTransformPoint(movingPart.position) : Vector3.zero;
 
+    // Stores the closed pose; applies the start state.
     private void Awake()
     {
         block = new MaterialPropertyBlock();
@@ -93,6 +107,7 @@ public class Door : MonoBehaviour
         UpdateLamp();
     }
 
+    // Opens (false if locked).
     public bool Open()
     {
         if (manual) return false;
@@ -104,6 +119,7 @@ public class Door : MonoBehaviour
         return true;
     }
 
+    // Closes.
     public bool Close()
     {
         if (manual) return false;
@@ -115,8 +131,10 @@ public class Door : MonoBehaviour
         return true;
     }
 
+    // Opens if closed, closes if open.
     public bool Toggle() => wantOpen ? Close() : Open();
 
+    // Locks / unlocks (closes it when locking).
     public void SetLocked(bool value)
     {
         if (locked == value) return;
@@ -145,6 +163,7 @@ public class Door : MonoBehaviour
         return true;
     }
 
+    // Leaf angle while her hand drives it (deg).
     public void SetManualAngle(float degrees)
     {
         if (!manual) return;
@@ -169,6 +188,7 @@ public class Door : MonoBehaviour
     // x such that SmoothStep(0, 1, x) = y
     private static float InverseSmoothStep(float y) => 0.5f - Mathf.Sin(Mathf.Asin(1f - 2f * y) / 3f);
 
+    // Moves toward the wanted state (unless driven by her hand).
     private void Update()
     {
         if (manual) return;
@@ -180,6 +200,7 @@ public class Door : MonoBehaviour
         if (Mathf.Approximately(amount, target)) UpdateObstacle();
     }
 
+    // Poses the moving part and toggles the NavMesh obstacle.
     private void Apply()
     {
         if (movingPart == null) return;
@@ -194,6 +215,7 @@ public class Door : MonoBehaviour
         if (obstacle != null) obstacle.enabled = !(wantOpen && amount >= 1f);
     }
 
+    // Lamp color by state.
     private void UpdateLamp()
     {
         if (lamp == null) return;

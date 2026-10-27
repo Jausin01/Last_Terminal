@@ -17,6 +17,7 @@ using UnityEngine.SceneManagement;
 // Last Terminal/4 places some of them in the test scene (PlaceTestEnemies).
 public static class EnemyBuilder
 {
+    // Enemy art paths: root, clips, model, source texture, its material name and the game texture.
     private const string Root = "Assets/Characters/Enemies";
     private const string AnimFolder = Root + "/Animations";
     private const string ModelPath = Root + "/K_Burnt.fbx";
@@ -55,11 +56,13 @@ public static class EnemyBuilder
     // weapons: damage added to the attack (0 = can't do it with this), extra reach, mass
     private struct WeaponDef
     {
+        // Name, extra damage per attack type, extra reach (m), mass.
         public string Name;
         public int SwipeDamage, SmashDamage;
         public float Reach, Mass;
     }
 
+    // Every enemy weapon.
     private static readonly WeaponDef[] Weapons =
     {
         new WeaponDef { Name = "Knife", SwipeDamage = 12, SmashDamage = 0, Reach = 0.1f, Mass = 0.3f },
@@ -82,8 +85,10 @@ public static class EnemyBuilder
         ("Killer", new[] { "Axe", "Sledgehammer", "Machete", "Sickle", "Cleaver" }),
     };
 
+    // One attack of an enemy type.
     private struct AttackDef
     {
+        // Slot, pick weight, range (m), hit / exit time (normalized), cooldown (s), damage.
         public EnemyAttackSlot Slot;
         public float Weight, Range, HitTime, ExitTime, Cooldown;
         public int Damage;
@@ -92,18 +97,26 @@ public static class EnemyBuilder
     // hit / exit times measured on the clips (hand speed peak, end of the follow-through)
     private static AttackDef SwipeAttack(int damage, float weight) =>
         new AttackDef { Slot = EnemyAttackSlot.Swipe, Weight = weight, Range = 1.1f, HitTime = 0.4f, ExitTime = 0.68f, Cooldown = 1.2f, Damage = damage };
+    // Attack shorthands.
     private static AttackDef SmashAttack(int damage, float weight) =>
         new AttackDef { Slot = EnemyAttackSlot.Smash, Weight = weight, Range = 1f, HitTime = 0.335f, ExitTime = 0.46f, Cooldown = 1.6f, Damage = damage };
+    // A bite attack.
     private static AttackDef BiteAttack(int damage, float weight) =>
         new AttackDef { Slot = EnemyAttackSlot.Bite, Weight = weight, Range = 0.9f, HitTime = 0.24f, ExitTime = 0.72f, Cooldown = 2f, Damage = damage };
 
+    // One enemy type's recipe.
     private struct TypeDef
     {
+        // Names and lexicon key; health and stagger threshold.
         public string Name, DisplayName, Key;
         public int Health, StaggerDamage;
+        // Movement: walk / run speeds and their clip speeds, turn speed, step-in time.
         public float WalkSpeed, WalkClipSpeed, RunSpeed, RunClipSpeed, TurnSpeed, StepIn;
+        // Behavior flags.
         public bool Runs, Screams, Killer;
+        // Senses (m / deg), lose distance, attack speed, stagger time, wander pause.
         public float Sight, SightAngle, Hear, FeedHear, Lose, AttackSpeed, StaggerTime, WanderPause;
+        // Its attacks.
         public AttackDef[] Attacks;
     }
 
@@ -136,10 +149,11 @@ public static class EnemyBuilder
         },
     };
 
+    // Menu 7: material, controller, types, weapon and enemy prefabs.
     [MenuItem("Last Terminal/7 - Build Enemies (Animator, Types, Weapons, Prefabs)")]
     public static void Build()
     {
-        Shader lit = HelenaSetupMenu.DefaultLitShader();
+        Shader lit = EditorAssets.DefaultLitShader();
         if (lit == null) return;
         if (AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath) == null || AssetDatabase.LoadAssetAtPath<Texture2D>(TexturePath) == null)
         {
@@ -152,17 +166,17 @@ public static class EnemyBuilder
 
         if (!BuildController(out AnimatorController ctrl, out AnimatorOverrideController killer)) return;
 
-        HelenaSetupMenu.EnsureFolder("Assets", "Prefabs");
-        HelenaSetupMenu.EnsureFolder("Assets/Prefabs", "Enemies");
-        HelenaSetupMenu.EnsureFolder("Assets/Prefabs", "EnemyWeapons");
-        HelenaSetupMenu.EnsureFolder("Assets", "Data");
-        HelenaSetupMenu.EnsureFolder("Assets/Data", "Enemies");
-        HelenaSetupMenu.EnsureFolder(Root, "Materials");
-        HelenaSetupMenu.EnsureFolder(WeaponArt, "Materials");
+        EditorAssets.EnsureFolder("Assets", "Prefabs");
+        EditorAssets.EnsureFolder("Assets/Prefabs", "Enemies");
+        EditorAssets.EnsureFolder("Assets/Prefabs", "EnemyWeapons");
+        EditorAssets.EnsureFolder("Assets", "Data");
+        EditorAssets.EnsureFolder("Assets/Data", "Enemies");
+        EditorAssets.EnsureFolder(Root, "Materials");
+        EditorAssets.EnsureFolder(WeaponArt, "Materials");
 
         // model material
         var mi = (ModelImporter)AssetImporter.GetAtPath(ModelPath);
-        Material body = HelenaSetupMenu.MakeMaterial(Root + "/Materials/M_Burnt.mat", EnsureGameTexture(), 0.15f, false, lit);
+        Material body = EditorAssets.MakeMaterial(Root + "/Materials/M_Burnt.mat", EnsureGameTexture(), 0.15f, false, lit);
         mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), ModelMaterialName), body);
         mi.SaveAndReimport();
         if (body.GetTexture("_BaseMap") == null) Debug.LogError($"[Enemies] M_Burnt has no texture: check {TexturePath}.");
@@ -226,6 +240,7 @@ public static class EnemyBuilder
         return null;
     }
 
+    // Builds the enemy Animator controller (+ the killer's override).
     private static bool BuildController(out AnimatorController ctrl, out AnimatorOverrideController killer)
     {
         ctrl = null;
@@ -294,6 +309,7 @@ public static class EnemyBuilder
         return true;
     }
 
+    // Adds a state with a clip at a graph position.
     private static void AddState(AnimatorStateMachine sm, string name, AnimationClip clip, Vector3 position)
     {
         AnimatorState s = sm.AddState(name, position);
@@ -370,7 +386,7 @@ public static class EnemyBuilder
         var mi = AssetImporter.GetAtPath(fbxPath) as ModelImporter;
         var model = AssetDatabase.LoadAssetAtPath<GameObject>(fbxPath);
         if (mi == null || model == null) { Debug.LogWarning("[Enemies] Weapon model not found: " + fbxPath); return null; }
-        Material mat = HelenaSetupMenu.MakeMaterial($"{WeaponArt}/Materials/M_EW_{def.Name}.mat",
+        Material mat = EditorAssets.MakeMaterial($"{WeaponArt}/Materials/M_EW_{def.Name}.mat",
             AssetDatabase.LoadAssetAtPath<Texture2D>($"{WeaponArt}/T_EW_{def.Name}.png"), 0.3f, false, lit);
         mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "M_EW_" + def.Name), mat);
         mi.SaveAndReimport();
@@ -381,9 +397,9 @@ public static class EnemyBuilder
         visual.name = "Model";
         visual.transform.SetParent(root.transform, false);
 
-        Transform grip = HelenaSetupMenu.FindDeep(visual.transform, "GripPoint");
-        Transform tip = HelenaSetupMenu.FindDeep(visual.transform, "Tip");
-        Transform up = HelenaSetupMenu.FindDeep(visual.transform, "UpHint");
+        Transform grip = EditorScene.FindDeep(visual.transform, "GripPoint");
+        Transform tip = EditorScene.FindDeep(visual.transform, "Tip");
+        Transform up = EditorScene.FindDeep(visual.transform, "UpHint");
         if (grip == null || tip == null || up == null)
         {
             Debug.LogWarning($"[Enemies] {fbxPath}: markers GripPoint / Tip / UpHint missing.");
@@ -440,7 +456,7 @@ public static class EnemyBuilder
         col.height = 1.8f;
         col.radius = 0.3f;
         var health = root.AddComponent<Health>();
-        HelenaSetupMenu.SetInt(health, Health.MaxHealthField, t.Health);
+        EditorSerialized.SetInt(health, Health.MaxHealthField, t.Health);
 
         var visual = (GameObject)PrefabUtility.InstantiatePrefab(model, preview);
         visual.name = "Model";
@@ -478,7 +494,7 @@ public static class EnemyBuilder
         var enemy = (GameObject)PrefabUtility.InstantiatePrefab(basePrefab, preview);
         Animator animator = enemy.GetComponentInChildren<Animator>();
         Transform hand = animator != null ? animator.GetBoneTransform(HumanBodyBones.RightHand) : null;
-        Transform index = hand != null ? HelenaSetupMenu.FindDeep(hand, "mixamorig:RightHandIndex1") : null;
+        Transform index = hand != null ? EditorScene.FindDeep(hand, "mixamorig:RightHandIndex1") : null;
         if (index == null && animator != null) index = animator.GetBoneTransform(HumanBodyBones.RightIndexProximal);
         if (hand == null || index == null)
         {
@@ -516,9 +532,9 @@ public static class EnemyBuilder
         Vector3 grip = h + along * length * GripAlong + palm * length * GripPalm;
 
         Vector3 forward = enemy.forward;
-        Transform gripMark = HelenaSetupMenu.FindDeep(weapon, "GripPoint");
-        Transform tipMark = HelenaSetupMenu.FindDeep(weapon, "Tip");
-        Transform upMark = HelenaSetupMenu.FindDeep(weapon, "UpHint");
+        Transform gripMark = EditorScene.FindDeep(weapon, "GripPoint");
+        Transform tipMark = EditorScene.FindDeep(weapon, "Tip");
+        Transform upMark = EditorScene.FindDeep(weapon, "UpHint");
         Vector3 g = weapon.InverseTransformPoint(gripMark.position);
         Vector3 t = weapon.InverseTransformPoint(tipMark.position) - g;
         Vector3 u = Vector3.ProjectOnPlane(weapon.InverseTransformPoint(upMark.position) - g, t);

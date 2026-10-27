@@ -10,6 +10,7 @@ using UnityEngine;
 // Wheel: RouletteRotor (pocket i of Order at angle i * 360/37 from its local +x toward +z, tools/casino_convert.py).
 public class RouletteGame : ButtonPanel
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string RotorField = nameof(rotor);
     public const string BallField = nameof(ball);
     public const string BankField = nameof(bank);
@@ -27,21 +28,28 @@ public class RouletteGame : ButtonPanel
     public const string ViewAtField = nameof(viewAt);
     public const char SpinKey = 'S';
 
+    // Pocket numbers in wheel order (European wheel), and the red numbers.
     public static readonly int[] Order = { 0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1,
                                            20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26 };
+    // The red numbers of the wheel.
     private static readonly HashSet<int> Reds = new HashSet<int> { 1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36 };
 
+    // Bet types the operator can say, and why a bet can't be placed.
     public enum BetKind { Straight, Red, Black, Even, Odd, Low, High, Dozen1, Dozen2, Dozen3 }
     public enum BetResult { Ok, Spinning, BelowMinimum, AboveMaximum, NotEnoughChips, NoSuchNumber }
 
+    // One bet on the layout: its type, the number (straight bets), the amount and its chip objects.
     public class Bet
     {
+        // What kind of bet.
         public BetKind Kind;
         public int Number;     // straight only
+        // Chips on it, and the chip objects stacked on its cell.
         public int Amount;
         public readonly List<GameObject> Chips = new List<GameObject>();
     }
 
+    // The wheel's rotor, the ball, the operator's chips, the chip prefab and the sound source.
     [SerializeField] private Transform rotor;
     [SerializeField] private Transform ball;
     [SerializeField] private ChipBank bank;
@@ -52,6 +60,7 @@ public class RouletteGame : ButtonPanel
     [SerializeField] private Vector3 numberOne;              // center of the cell of 1 (on the felt)
     [SerializeField] private Vector3 columnStep;             // 1 -> 4
     [SerializeField] private Vector3 rowStep;                // 1 -> 2
+    // The zero cell and the three dozen cells.
     [SerializeField] private Vector3 zeroSpot;
     [SerializeField] private Vector3[] dozenSpots = new Vector3[3];
     [Tooltip("1-18, EVEN, RED, BLACK, ODD, 19-36")]
@@ -61,14 +70,17 @@ public class RouletteGame : ButtonPanel
     [Tooltip("Where won chips go (the player's side).")]
     [SerializeField] private Vector3 playerSpot;
 
+    // The game camera's position and look-at point (local space).
     [Header("Game camera (local space): a player's view of her at the wheel")]
     [SerializeField] private Vector3 viewFrom;
     [SerializeField] private Vector3 viewAt;
 
+    // Table limits per bet.
     [Header("Rules")]
     [SerializeField] private int minBet = 1;
     [SerializeField] private int maxBet = 500;
 
+    // Wheel geometry and spin timing (pockets, ball track, how long it spins / drops, start speeds, chip move time).
     [Header("Wheel")]
     [SerializeField] private float pocketRadius = 0.215f;
     [SerializeField] private float pocketHeight = 0.968f;   // the rotor's disc (world height)
@@ -80,31 +92,42 @@ public class RouletteGame : ButtonPanel
     [SerializeField] private float ballSpeed = 900f;
     [SerializeField] private float chipTime = 0.45f;
 
+    // Height of one chip.
     private const float ChipHeight = 0.0046f;
+    // The bets on the layout now.
     private readonly List<Bet> bets = new List<Bet>();
     private readonly List<(BetKind kind, int number, int amount)> lastBets = new List<(BetKind, int, int)>();
+    // Amount used when a bet names none ("on red") and whether the game is open.
     private int stake = 10;
     private bool open;
+    // Chip pool and a property block for the chip faces.
     private readonly List<GameObject> chipPool = new List<GameObject>();
     private MaterialPropertyBlock block;
+    // Spin state: rotor speed, ball angle, time since the spin started, spinning, the result.
     private float rotorOmega;
     private float ballAngle;
     private float t;
     private bool spinning;
     private int result = -1;
+    // Chips won / staked on the last spin (the HUD and her line).
     private int lastWin, lastStake;
+    // Where the ball started its drop into the pocket.
     private Vector3 dropFrom;
+    // Generated click sounds (ball ticks, chips) and the tick timer.
     private AudioClip tick, clack;
     private float tickTimer;
 
+    // A chip sliding away (to the house or the player) and the list of them.
     private class Tween { public Transform T; public Vector3 From, To; public float Time, Duration; public bool Hide; }
     private readonly List<Tween> tweens = new List<Tween>();
 
+    // Raised when a spin starts and when the spin had no bets (she says so).
     public event Action<RouletteGame> SpinStarted;
     public event Action<RouletteGame, int, int, int> Landed;   // result, chips won (back to the player), chips staked
     public event Action<RouletteGame> NoBets;
     public event Action Changed;   // bets, the stake, the result (the HUD)
 
+    // State read by the HUD and the commands.
     public IReadOnlyList<Bet> Bets => bets;
     public bool IsSpinning => spinning;
     public int LastResult => result;
@@ -118,12 +141,15 @@ public class RouletteGame : ButtonPanel
     public bool IsOpen => open;          // she is the croupier now (between "let's play roulette" and "I'm done")
     public bool HasLastBets => lastBets.Count > 0;
 
+    // Where she stands and how she uses the wheel as a button panel (she stays until the game ends).
     public override float StandDistance => 0.32f;
     public override float HoldTime => 600f;   // she stays at the wheel until the game ends
     public override bool KeepHandUp => false;
 
+    // Is this number red?
     public static bool IsRed(int n) => Reds.Contains(n);
 
+    // Checks the references, hides the ball and makes the click sounds.
     private void Awake()
     {
         block = new MaterialPropertyBlock();
@@ -209,6 +235,7 @@ public class RouletteGame : ButtonPanel
         Changed?.Invoke();
     }
 
+    // Rebuilds the chip stack of a bet on its cell.
     private void Restack(Bet bet)
     {
         foreach (GameObject c in bet.Chips) c.SetActive(false);
@@ -223,6 +250,7 @@ public class RouletteGame : ButtonPanel
             }
     }
 
+    // The cell of a bet on the layout (local space).
     public Vector3 Spot(Bet bet)
     {
         switch (bet.Kind)
@@ -262,6 +290,7 @@ public class RouletteGame : ButtonPanel
         }
     }
 
+    // The game camera's view for GameCameraDirector.
     public override bool TryGetGameView(out Vector3 from, out Vector3 lookAt)
     {
         from = transform.TransformPoint(viewFrom);
@@ -276,6 +305,7 @@ public class RouletteGame : ButtonPanel
         return char.ToUpperInvariant(key) == SpinKey;
     }
 
+    // "Spin": the result is drawn now (the animation then lands the ball on it); the bets are remembered for "same bets".
     public override void Press(char key)
     {
         if (char.ToUpperInvariant(key) != SpinKey || spinning) return;
@@ -295,6 +325,7 @@ public class RouletteGame : ButtonPanel
         Changed?.Invoke();
     }
 
+    // Animates the rotor, the ball around the track and its drop into the result's pocket; then settles the bets.
     private void Update()
     {
         UpdateTweens();
@@ -334,6 +365,7 @@ public class RouletteGame : ButtonPanel
         Settle();
     }
 
+    // World position of a number's pocket (it turns with the rotor).
     private Vector3 Pocket(int number)
     {
         int i = Array.IndexOf(Order, number);
@@ -344,12 +376,14 @@ public class RouletteGame : ButtonPanel
         return w;
     }
 
+    // A point on the ball track at an angle.
     private static Vector3 Track(Vector3 axis, float degrees, float radius, float height)
     {
         float a = degrees * Mathf.Deg2Rad;
         return new Vector3(axis.x + Mathf.Cos(a) * radius, height, axis.z + Mathf.Sin(a) * radius);
     }
 
+    // Pays every bet on the result: lost chips go to the house, won chips (bet + winnings) to the player.
     private void Settle()
     {
         int won = 0;
@@ -394,6 +428,7 @@ public class RouletteGame : ButtonPanel
         return go;
     }
 
+    // Sends chips sliding away (and hides them at the end).
     private void MoveAway(List<GameObject> chips, Vector3 localTo)
     {
         Vector3 to = transform.TransformPoint(localTo);
@@ -402,6 +437,7 @@ public class RouletteGame : ButtonPanel
         chips.Clear();
     }
 
+    // Advances the chip slides.
     private void UpdateTweens()
     {
         for (int i = tweens.Count - 1; i >= 0; i--)
@@ -422,8 +458,10 @@ public class RouletteGame : ButtonPanel
         if (audioSource != null && clip != null) audioSource.PlayOneShot(clip);
     }
 
+    // A short decaying sine tone (procedural click sound).
     private static AudioClip Tone(float seconds, float frequency)
     {
+        // Sample rate of the generated sounds.
         const int rate = 22050;
         int n = Mathf.CeilToInt(seconds * rate);
         var data = new float[n];

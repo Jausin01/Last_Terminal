@@ -10,12 +10,15 @@ using UnityEditor;
 // - Centered: crouched clips (feeding, getting up): XZ baked on the center of mass, so the two line up
 public class EnemyImport : AssetPostprocessor
 {
+    // Folder watched.
     public const string Folder = "Assets/Characters/Enemies/";
     public const float ModelHeight = 5.065f;     // K_Burnt in the file (Mixamo upload)
+    // Height enemies are scaled to (m); file names that loop; "whole clip" range marker.
     public const float TargetHeight = 1.8f;
     static readonly string[] LoopKeywords = { "idle", "walk", "run", "feed" };
     const float FullRange = -1f;
 
+    // How root motion is handled per clip.
     enum RootMode { Baked, Extracted, Centered }
 
     // file -> clips cut from it (Unity frames start at 0; FullRange = whole file)
@@ -75,6 +78,7 @@ public class EnemyImport : AssetPostprocessor
         mi.clipAnimations = result.ToArray();
     }
 
+    // Loop and root settings of one clip.
     static void Configure(ModelImporterClipAnimation c, bool loop, RootMode mode)
     {
         c.loopTime = loop;
@@ -90,6 +94,7 @@ public class EnemyImport : AssetPostprocessor
         c.keepOriginalPositionXZ = mode == RootMode.Baked;
     }
 
+    // Does the file name contain one of the keywords?
     static bool HasKeyword(string fileName, string[] keywords)
     {
         string n = fileName.ToLowerInvariant();

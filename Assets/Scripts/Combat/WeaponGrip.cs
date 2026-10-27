@@ -11,6 +11,7 @@ public static class WeaponGrip
 {
     public const int FingerSegments = 15;   // thumb, index, middle, ring, little x proximal / intermediate / distal
 
+    // Finger bones of each hand, in segment order (same order as Weapon.RightFingers / LeftFingers).
     private static readonly HumanBodyBones[] RightBones =
     {
         HumanBodyBones.RightThumbProximal, HumanBodyBones.RightThumbIntermediate, HumanBodyBones.RightThumbDistal,
@@ -19,6 +20,7 @@ public static class WeaponGrip
         HumanBodyBones.RightRingProximal, HumanBodyBones.RightRingIntermediate, HumanBodyBones.RightRingDistal,
         HumanBodyBones.RightLittleProximal, HumanBodyBones.RightLittleIntermediate, HumanBodyBones.RightLittleDistal,
     };
+    // Finger bones of the left hand (same order as the right).
     private static readonly HumanBodyBones[] LeftBones =
     {
         HumanBodyBones.LeftThumbProximal, HumanBodyBones.LeftThumbIntermediate, HumanBodyBones.LeftThumbDistal,
@@ -44,6 +46,7 @@ public static class WeaponGrip
         return true;
     }
 
+    // Right-hand frame from the hand bones: origin (mid palm), fingers, across (toward the index), normal (out of the palm).
     public static bool TryRightFrame(Animator animator, out Vector3 origin, out Vector3 fingers, out Vector3 across, out Vector3 normal)
     {
         Transform hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
@@ -119,6 +122,7 @@ public static class WeaponGrip
     // Two-bone IK in world space: keeps the elbow in the bend plane of the animation.
     public static void SolveTwoBone(Transform upper, Transform lower, Transform end, Vector3 target)
     {
+        // Smallest distance used (avoids degenerate angles).
         const float eps = 0.0001f;
         Vector3 a = upper.position, b = lower.position, c = end.position;
         float lab = (b - a).magnitude, lcb = (c - b).magnitude;

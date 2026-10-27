@@ -10,10 +10,12 @@ using UnityEngine.SceneManagement;
 // by anything that calls Set / Add (the coffee machine, the pinball).
 public class StoryProgress : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string SaveSystemField = nameof(saveSystem);
     public const string EncounterField = nameof(encounter);
     public const string KeypadsField = nameof(keypads);
 
+    // Flag names set by the game itself.
     public const string VisitedPrefix = "visited_";
     public const string ReadPrefix = "read_";
     public const string FirstSave = "first_save";
@@ -27,15 +29,20 @@ public class StoryProgress : MonoBehaviour
     [Tooltip("Optional: a code accepted = \"keypad_solved\".")]
     [SerializeField] private Keypad[] keypads = new Keypad[0];
 
+    // The flags set and the counters.
     private readonly HashSet<string> flags = new HashSet<string>();
     private readonly Dictionary<string, int> counters = new Dictionary<string, int>();
 
+    // Raised when a flag is set (null = many changed: a load).
     public event Action<string> FlagSet;
 
+    // Flag of the current scene ("visited_<scene>").
     private static string SceneFlag => VisitedPrefix + SceneManager.GetActiveScene().name;
 
+    // This scene counts as visited.
     private void Awake() => flags.Add(SceneFlag);
 
+    // Listens to saves, kills and keypads.
     private void OnEnable()
     {
         if (saveSystem != null) saveSystem.Saved += OnSaved;
@@ -43,6 +50,7 @@ public class StoryProgress : MonoBehaviour
         foreach (Keypad k in keypads) if (k != null) k.Used += OnKeypadUsed;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (saveSystem != null) saveSystem.Saved -= OnSaved;
@@ -50,9 +58,11 @@ public class StoryProgress : MonoBehaviour
         foreach (Keypad k in keypads) if (k != null) k.Used -= OnKeypadUsed;
     }
 
+    // A save / a kill / a code accepted set their flags.
     private void OnSaved(int slot) => Set(FirstSave);
     private void OnTargetDown(Health target) => Set(FirstKill);
 
+    // A keypad was used: sets its flag when it opened.
     private void OnKeypadUsed(Keypad keypad, Keypad.Result result)
     {
         if (result == Keypad.Result.Accepted) Set(KeypadSolved);
@@ -61,12 +71,14 @@ public class StoryProgress : MonoBehaviour
     // empty = always true (a file with no requirement)
     public bool Has(string flag) => string.IsNullOrEmpty(flag) || flags.Contains(flag);
 
+    // Sets a flag (raises FlagSet the first time).
     public void Set(string flag)
     {
         if (string.IsNullOrEmpty(flag) || !flags.Add(flag)) return;
         FlagSet?.Invoke(flag);
     }
 
+    // Value of a counter.
     public int Count(string key) => counters.TryGetValue(key, out int n) ? n : 0;
 
     // a counter; flags "<key>_<n>" are set as it passes 1, 5, 10, 25 (e.g. "coffee_5")
@@ -80,6 +92,7 @@ public class StoryProgress : MonoBehaviour
         return now;
     }
 
+    // Writes the flags and counters into a save.
     public void CaptureInto(SaveData data)
     {
         data.storyFlags = new List<string>(flags);

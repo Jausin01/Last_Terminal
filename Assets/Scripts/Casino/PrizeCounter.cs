@@ -9,6 +9,7 @@ using UnityEngine.AI;
 // She has to be there (the cashier's Spot / the locker's Spot): an order given from farther away waits until she is.
 public class PrizeCounter : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string BankField = nameof(bank);
     public const string OutfitField = nameof(outfit);
     public const string SpotField = nameof(spot);
@@ -16,8 +17,10 @@ public class PrizeCounter : MonoBehaviour
     public const string RateField = nameof(chipsPerCoin);
     public const string CasesField = nameof(cases);
 
+    // Why an exchange / purchase did or didn't happen (Helena says it).
     public enum Result { Ok, NothingToExchange, TooExpensive, AlreadyOwned, NotAPrize }
 
+    // The operator's chips / coins, her outfits (prizes = outfits with a price), where she stands, her agent.
     [SerializeField] private ChipBank bank;
     [SerializeField] private PartnerOutfit outfit;
     [Tooltip("Where she stands at the counter.")]
@@ -25,16 +28,20 @@ public class PrizeCounter : MonoBehaviour
     [SerializeField] private NavMeshAgent partner;
     [Tooltip("Chips for one prize coin.")]
     [SerializeField, Min(1)] private int chipsPerCoin = 1;
+    // How close she must be to a spot to use it (m, on the floor plane).
     [SerializeField] private float reach = 1.2f;
     [Tooltip("The prize lockers of the gallery.")]
     [SerializeField] private PrizeCase[] cases = new PrizeCase[0];
 
+    // An order waiting for her to arrive: what to do, where she was sent, which spot it needs.
     private Action pending;
     private Vector3 pendingDestination;
     private Vector3 pendingSpot;
 
+    // Raised after an exchange or a purchase (the HUD refreshes).
     public event Action Changed;
 
+    // Values read by the HUD and the commands.
     public ChipBank Bank => bank;
     public int ChipsPerCoin => chipsPerCoin;
     public Transform Spot => spot;
@@ -43,6 +50,7 @@ public class PrizeCounter : MonoBehaviour
     // she is at the counter
     public bool IsHere(Vector3 position) => spot != null && IsNear(spot.position, position);
 
+    // Is a position within reach of a place (ignoring height)?
     public bool IsNear(Vector3 place, Vector3 position) => Flat(position - place).magnitude <= reach;
 
     // at the counter or in front of a locker (the panel shows)
@@ -73,6 +81,7 @@ public class PrizeCounter : MonoBehaviour
         into.Sort((a, b) => a.Price.CompareTo(b.Price));
     }
 
+    // Does she already own this prize?
     public bool IsOwned(OutfitDefinition o) => outfit != null && outfit.IsOwned(o);
 
     // amount <= 0 = all the chips
@@ -88,6 +97,7 @@ public class PrizeCounter : MonoBehaviour
         return Result.Ok;
     }
 
+    // Buys a prize with coins (unlocks the outfit).
     public Result Buy(OutfitDefinition prize)
     {
         if (prize == null || prize.Price <= 0) return Result.NotAPrize;
@@ -107,8 +117,10 @@ public class PrizeCounter : MonoBehaviour
         pendingDestination = partner != null ? partner.destination : place;
     }
 
+    // Drops the order waiting for her arrival.
     public void CancelPending() => pending = null;
 
+    // Runs the waiting order once she has arrived and stopped (dropped if she was sent elsewhere).
     private void Update()
     {
         if (pending == null || partner == null) return;
@@ -119,5 +131,6 @@ public class PrizeCounter : MonoBehaviour
         a();
     }
 
+    // A vector flattened onto the floor.
     private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 }

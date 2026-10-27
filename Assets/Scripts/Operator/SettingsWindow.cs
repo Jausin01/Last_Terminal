@@ -9,6 +9,7 @@ using UnityEngine.UI;
 // Restore defaults keeps the language. Esc / OK / X close it. Built by Last Terminal/16.
 public class SettingsWindow : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string SettingsField = nameof(settings);
     public const string AudioField = nameof(audioSource);
     public const string GroupField = nameof(group);
@@ -19,6 +20,7 @@ public class SettingsWindow : MonoBehaviour
     [Serializable]
     public class Label
     {
+        // The text, and what it says in each language.
         public TMP_Text text;
         public string en;
         public string pt;
@@ -28,6 +30,7 @@ public class SettingsWindow : MonoBehaviour
     [Serializable]
     public class Choice
     {
+        // The two buttons.
         public Button a;
         public Button b;
     }
@@ -36,49 +39,63 @@ public class SettingsWindow : MonoBehaviour
     [Serializable]
     public class Level
     {
+        // The slider and the text showing its value.
         public Slider slider;
         public TMP_Text value;
     }
 
+    // Every control of the window (wired by Last Terminal/16).
     [Serializable]
     public class Refs
     {
+        // Title, close (X), OK and "Restore defaults".
         public TMP_Text title;
         public Button close;
         public Button ok;
         public Button defaults;
+        // Cameras: pan control (mouse / keyboard) and the pan speed of each.
         public Choice pan = new Choice();
         public Level mouseSpeed = new Level();
         public Level keyboardSpeed = new Level();
+        // Picture: the CCTV filter toggle and its strength.
         public Button filter;
         public Level filterStrength = new Level();
+        // Sound: master volume.
         public Level volume = new Level();
+        // Language: Portuguese / English, and the subtitles toggle.
         public Choice language = new Choice();
         public Button subtitles;
     }
 
+    // The settings this window edits (they save themselves).
     [SerializeField] private CameraSettings settings;
     [Tooltip("Clicks (2D).")]
     [SerializeField] private AudioSource audioSource;
+    // The window's CanvasGroup, its controls and its fixed texts.
     [SerializeField] private CanvasGroup group;
     [SerializeField] private Refs refs = new Refs();
     [SerializeField] private Label[] labels = new Label[0];
 
+    // Colors of a chosen / normal button and their texts.
     [Header("Look")]
     [SerializeField] private Color chosen = new Color(0.05f, 0.12f, 0.42f);
     [SerializeField] private Color chosenText = Color.white;
     [SerializeField] private Color normal = new Color(0.86f, 0.86f, 0.84f);
     [SerializeField] private Color normalText = new Color(0.08f, 0.08f, 0.1f);
 
+    // Shown now; a refresh is setting the controls (their callbacks are ignored then).
     private bool open;
     private bool refreshing;
 
+    // Shown now, and raised when it closes (the station / dialog continue).
     public bool IsOpen => open;
     public event Action Closed;
 
+    // Language helpers.
     private bool Pt => settings != null && settings.Language == GameLanguage.Portuguese;
     private string T(string en, string pt) => Pt ? pt : en;
 
+    // Wires every control to its setting; starts hidden.
     private void Awake()
     {
         if (settings == null || group == null)
@@ -103,16 +120,19 @@ public class SettingsWindow : MonoBehaviour
         Show(false);
     }
 
+    // Refreshes when a setting changes.
     private void OnEnable()
     {
         if (settings != null) settings.Changed += Refresh;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (settings != null) settings.Changed -= Refresh;
     }
 
+    // Opens on top, showing the current values.
     public void Open()
     {
         if (open) return;
@@ -121,6 +141,7 @@ public class SettingsWindow : MonoBehaviour
         Refresh();
     }
 
+    // Hides it and raises Closed.
     public void Close()
     {
         if (!open) return;
@@ -128,6 +149,7 @@ public class SettingsWindow : MonoBehaviour
         Closed?.Invoke();
     }
 
+    // Shows / hides it and its clicks.
     private void Show(bool on)
     {
         open = on;
@@ -136,6 +158,7 @@ public class SettingsWindow : MonoBehaviour
         group.blocksRaycasts = on;
     }
 
+    // A button that clicks and runs an action.
     private void Wire(Button b, Action action)
     {
         if (b == null) return;
@@ -146,6 +169,7 @@ public class SettingsWindow : MonoBehaviour
         });
     }
 
+    // A slider's range and the setting it changes.
     private void Slide(Level level, float min, float max, Action<float> set)
     {
         if (level.slider == null) return;
@@ -174,12 +198,14 @@ public class SettingsWindow : MonoBehaviour
         refreshing = false;
     }
 
+    // Paints the chosen one of two buttons.
     private void Pick(Choice c, bool first)
     {
         Paint(c.a, first);
         Paint(c.b, !first);
     }
 
+    // An on / off button: painted and labeled "[X] On" / "[  ] Off".
     private void Toggle(Button b, bool on, string onText, string offText)
     {
         if (b == null) return;
@@ -188,6 +214,7 @@ public class SettingsWindow : MonoBehaviour
         if (t != null) t.text = on ? "[X]  " + onText : "[  ]  " + offText;
     }
 
+    // Colors a button as chosen or normal.
     private void Paint(Button b, bool on)
     {
         if (b == null) return;
@@ -196,6 +223,7 @@ public class SettingsWindow : MonoBehaviour
         if (t != null) t.color = on ? chosenText : normalText;
     }
 
+    // Sets a slider without raising its callback, and its value text.
     private static void Set(Level level, float value, string shown)
     {
         if (level.slider != null) level.slider.SetValueWithoutNotify(value);

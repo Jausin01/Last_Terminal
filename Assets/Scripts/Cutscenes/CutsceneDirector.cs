@@ -15,6 +15,7 @@ using UnityEngine.InputSystem;
 // and the scare effect work in both modes.
 public class CutsceneDirector : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string CameraSystemField = nameof(cameraSystem);
     public const string ShotCameraField = nameof(shotCamera);
     public const string StationField = nameof(station);
@@ -44,6 +45,7 @@ public class CutsceneDirector : MonoBehaviour
     public const string ScareTintField = nameof(scareTint);
     public const string ScareNoiseField = nameof(scareNoise);
 
+    // Story flag prefix of a played cutscene (cutscene_<id>).
     public const string PlayedPrefix = "cutscene_";
 
     [Tooltip("The operator's cameras. Empty = cinema mode (the Cinema Camera below).")]
@@ -58,6 +60,7 @@ public class CutsceneDirector : MonoBehaviour
     [SerializeField] private OperatorStation station;
     [Tooltip("Optional: cutscenes wait for the fight to end.")]
     [SerializeField] private CombatEncounter encounter;
+    // Helena (as an actor, her animator and her voice), the story flags, the settings and the voice / sound source.
     [SerializeField] private CutsceneActor helena;
     [SerializeField] private PartnerAnimator helenaAnimator;
     [SerializeField] private PartnerVoice helenaVoice;
@@ -66,41 +69,52 @@ public class CutsceneDirector : MonoBehaviour
     [SerializeField] private AudioSource audioSource;
     [Tooltip("The operator's microphone and command line: what he says in a cutscene (OperatorLineStep).")]
     [SerializeField] private VoiceCommandInput voiceInput;
+    // The typed command line (it takes the operator's line too).
     [SerializeField] private CommandConsole console;
 
     [Header("Screen")]
     [Tooltip("The black bars (alpha).")]
     [SerializeField] private CanvasGroup bars;
+    // Full-screen fade, subtitles and the "Esc: skip" hint.
     [SerializeField] private CanvasGroup fade;
     [SerializeField] private CanvasGroup subtitleGroup;
     [SerializeField] private TMP_Text subtitleText;
     [SerializeField] private TMP_Text skipHint;
     [Tooltip("\"Say: ...\" while the operator has a line.")]
     [SerializeField] private CanvasGroup promptGroup;
+    // The operator's line to say.
     [SerializeField] private TMP_Text promptText;
     [Tooltip("The thoughts block in the top-left corner (ThoughtStep).")]
     [SerializeField] private ThoughtView thoughtView;
     [Tooltip("Old thought balloon: used only when there is no Thought View.")]
     [SerializeField] private CanvasGroup thoughtGroup;
+    // Text of the old balloon.
     [SerializeField] private TMP_Text thoughtText;
     [Tooltip("\"Loading...\" over the black (LoadingStep).")]
     [SerializeField] private CanvasGroup loadingGroup;
+    // The loading text.
     [SerializeField] private TMP_Text loadingText;
     [Tooltip("Scare effect (ScareStep): a colored flash and static noise.")]
     [SerializeField] private CanvasGroup scareGroup;
+    // The scare overlay's tint and noise images.
     [SerializeField] private UnityEngine.UI.Image scareTint;
     [SerializeField] private UnityEngine.UI.RawImage scareNoise;
 
+    // Esc skips the cutscene.
     [Header("Input")]
     [SerializeField] private InputAction skip = new InputAction("Skip", InputActionType.Button, "<Keyboard>/escape");
 
+    // Actors used in the current cutscene (put back at the end) and whether a skip was asked.
     private readonly HashSet<CutsceneActor> used = new HashSet<CutsceneActor>();
     private bool skipRequested;
+    // Screen state: subtitle time left, black bars target, how long Helena's current line lasts.
     private float subtitleTimer;
     private float barsTarget;
     private float partnerLineDuration;
+    // The operator's line: what was heard, and whether we are listening for it.
     private string heardLine;
     private bool listening;
+    // Time left on the old thought balloon.
     private float thoughtTimer;
     // cinema camera: the shot's pose, then sway / shake / zoom kick added each frame
     private Vector3 camPos;
@@ -111,6 +125,7 @@ public class CutsceneDirector : MonoBehaviour
     private float swayScale = 1f;
     private Texture2D noiseTex;
 
+    // State read by the steps, triggers and other systems.
     public bool IsPlaying { get; private set; }
     public Cutscene Current { get; private set; }
     public StoryProgress Story => story;
@@ -120,18 +135,21 @@ public class CutsceneDirector : MonoBehaviour
     public bool IsCinema => cameraSystem == null && cinemaCamera != null;
     public Camera CinemaCamera => cinemaCamera;
 
+    // Raised when a cutscene starts / ends (music, HUD, the station listen).
     public event Action<Cutscene> Started;
     public event Action<Cutscene> Finished;
 
     // the operator is watching, she is free
     public bool CanStart => !IsPlaying && (IsCinema || CanStartOperator);
 
+    // Operator mode: he is at the camera program, no fight, and Helena is free (not scripted, dead, picking up or attacking).
     private bool CanStartOperator =>
         cameraSystem != null && cameraSystem.isActiveAndEnabled
         && (station == null || station.Current == OperatorStation.Mode.Operator)
         && (encounter == null || !encounter.InCombat)
         && (helenaAnimator == null || ((!helenaAnimator.IsScripted || (helena != null && helena.IsResting)) && !helenaAnimator.IsDead && !helenaAnimator.IsPickingUp && !helenaAnimator.IsAttacking));
 
+    // Checks the references and hides every overlay.
     private void Awake()
     {
         if (cameraSystem == null && cinemaCamera == null)
@@ -157,6 +175,7 @@ public class CutsceneDirector : MonoBehaviour
         if (promptGroup != null) promptGroup.alpha = 0f;
     }
 
+    // Listens to Esc and to Helena's lines (their length).
     private void OnEnable()
     {
         skip.Enable();
@@ -164,6 +183,7 @@ public class CutsceneDirector : MonoBehaviour
         if (helenaVoice != null) helenaVoice.LineStarted += OnPartnerLine;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         skip.performed -= OnSkip;
@@ -171,13 +191,16 @@ public class CutsceneDirector : MonoBehaviour
         if (helenaVoice != null) helenaVoice.LineStarted -= OnPartnerLine;
     }
 
+    // Esc: skip the rest (if the cutscene allows it).
     private void OnSkip(InputAction.CallbackContext ctx)
     {
         if (IsPlaying && Current != null && Current.Skippable) skipRequested = true;
     }
 
+    // Helena started a line: remember how long it lasts.
     private void OnPartnerLine(string text, float seconds) => partnerLineDuration = seconds;
 
+    // Starts a cutscene if none is playing and it can start now.
     public bool Play(Cutscene cutscene)
     {
         if (cutscene == null || !CanStart) return false;
@@ -262,6 +285,7 @@ public class CutsceneDirector : MonoBehaviour
         catch (Exception e) { Debug.LogException(e, this); Debug.LogWarning($"[Cutscene] step failed: {step.Summary}", this); return false; }
     }
 
+    // Ends a step at once, logging (not throwing) a failure.
     private void SafeFinish(CutsceneStep step)
     {
         try { step.Finish(this); }
@@ -294,6 +318,7 @@ public class CutsceneDirector : MonoBehaviour
         return duration;
     }
 
+    // Helena says one of her voice lines; returns how long it lasts.
     public float SayPartnerLine(PartnerLine line)
     {
         if (helenaVoice == null) return 0f;
@@ -313,11 +338,13 @@ public class CutsceneDirector : MonoBehaviour
         if (console != null) console.BeginOverride(OnOperatorSaid);
     }
 
+    // What the operator said / typed while a line was expected.
     private void OnOperatorSaid(string text)
     {
         if (listening) heardLine = text;
     }
 
+    // Takes the line the operator said (once).
     public bool TryTakeHeard(out string text)
     {
         text = heardLine;
@@ -337,6 +364,7 @@ public class CutsceneDirector : MonoBehaviour
         if (promptGroup != null) promptGroup.alpha = 1f;
     }
 
+    // Stops listening for the operator's line.
     public void EndListening()
     {
         if (!listening) return;
@@ -347,13 +375,16 @@ public class CutsceneDirector : MonoBehaviour
         if (console != null) console.EndOverride();
     }
 
+    // Stops the voice recording.
     public void StopVoice()
     {
         if (audioSource != null) audioSource.Stop();
     }
 
+    // Hides the subtitle.
     public void HideSubtitle() => subtitleTimer = 0f;
 
+    // Cuts the operator's view to a security camera.
     public void CutTo(SecurityCamera cam)
     {
         if (cam == null || cameraSystem == null) return;
@@ -362,6 +393,7 @@ public class CutsceneDirector : MonoBehaviour
         if (shotCamera != null && cam != shotCamera) shotCamera.gameObject.SetActive(false);
     }
 
+    // A free shot: the cinema camera (cinema mode) or the model-less shot camera framed from a transform.
     public void Shot(Transform from, Room room, string label, float fieldOfView)
     {
         if (from == null) return;
@@ -382,6 +414,7 @@ public class CutsceneDirector : MonoBehaviour
         cameraSystem.Switch(shotCamera);
     }
 
+    // Fades the black screen to an alpha over time.
     public IEnumerator FadeTo(float alpha, float duration)
     {
         if (fade == null) yield break;
@@ -396,11 +429,13 @@ public class CutsceneDirector : MonoBehaviour
         fade.alpha = alpha;
     }
 
+    // Sets the black screen alpha at once.
     public void SetFade(float alpha)
     {
         if (fade != null) fade.alpha = alpha;
     }
 
+    // Plays a sound (at a point in the world, or on the director's source).
     public void PlaySound(AudioClip clip, Transform at, float volume)
     {
         if (clip == null) return;
@@ -422,18 +457,21 @@ public class CutsceneDirector : MonoBehaviour
         return duration;
     }
 
+    // Hides the thought.
     public void HideThought()
     {
         thoughtTimer = 0f;
         if (thoughtView != null) thoughtView.Hide();
     }
 
+    // Shows / hides the loading text.
     public void ShowLoading(string text)
     {
         if (loadingText != null) loadingText.text = text;
         if (loadingGroup != null) loadingGroup.alpha = 1f;
     }
 
+    // Hides the loading screen.
     public void HideLoading()
     {
         if (loadingGroup != null) loadingGroup.alpha = 0f;
@@ -453,6 +491,7 @@ public class CutsceneDirector : MonoBehaviour
         scareNoise.uvRect = new Rect(UnityEngine.Random.value, UnityEngine.Random.value, 1.6f, 0.9f);
     }
 
+    // A 128x128 grey static noise texture (made once).
     private static Texture2D MakeNoise()
     {
         var tex = new Texture2D(128, 128, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Repeat };
@@ -480,6 +519,7 @@ public class CutsceneDirector : MonoBehaviour
         if (fieldOfView > 0f) camFov = fieldOfView;
     }
 
+    // The cinema camera's base pose.
     public void GetCinemaPose(out Vector3 position, out Quaternion rotation, out float fieldOfView)
     {
         position = camPos;
@@ -487,6 +527,7 @@ public class CutsceneDirector : MonoBehaviour
         fieldOfView = camFov;
     }
 
+    // Cinema mode: the camera pose with the handheld sway, shake and zoom kick.
     private void LateUpdate()
     {
         if (!IsCinema) return;
@@ -501,6 +542,7 @@ public class CutsceneDirector : MonoBehaviour
         cinemaCamera.fieldOfView = Mathf.Clamp(camFov + fovKick, 5f, 120f);
     }
 
+    // Fades the bars, the thought balloon and the subtitles.
     private void Update()
     {
         if (bars != null) bars.alpha = Mathf.MoveTowards(bars.alpha, barsTarget, Time.unscaledDeltaTime * 3f);

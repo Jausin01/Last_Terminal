@@ -16,11 +16,14 @@ using UnityEditor;
 // Some files are cut into specific clips, or mirrored (see Clips).
 public class HelenaImport : AssetPostprocessor
 {
+    // Folder watched.
     public const string Folder = "Assets/Characters/Helena/";
+    // File names that loop; turn clips; "whole clip" range marker.
     static readonly string[] LoopKeywords = { "idle", "walk", "run", "jog", "sprint", "strafe" };
     const string TurnKeyword = "turn";
     const float FullRange = -1f;
 
+    // How root motion is handled per clip.
     enum RootMode { Baked, Turn, Travel }
 
     // root rotation based on the body orientation (the clip turns her body away from her facing)
@@ -114,6 +117,7 @@ public class HelenaImport : AssetPostprocessor
         mi.clipAnimations = result.ToArray();
     }
 
+    // Loop and root settings of one clip.
     static void Configure(ModelImporterClipAnimation c, bool loop, RootMode mode, bool centerOfMass, bool bodyOrientation)
     {
         c.loopTime = loop;
@@ -131,6 +135,7 @@ public class HelenaImport : AssetPostprocessor
         c.keepOriginalPositionXZ = !centerOfMass;
     }
 
+    // Does the file name contain one of the keywords?
     static bool HasKeyword(string fileName, string[] keywords)
     {
         string n = fileName.ToLowerInvariant();

@@ -3,6 +3,7 @@ using UnityEditor;
 // Static props under Assets/Art/Props/: no rig, no animation, no cameras/lights from the FBX.
 public class PropImport : AssetPostprocessor
 {
+    // Folder watched.
     public const string Folder = "Assets/Art/Props/";
 
     void OnPreprocessModel()

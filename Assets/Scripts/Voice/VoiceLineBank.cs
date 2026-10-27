@@ -138,15 +138,19 @@ public enum PartnerLine
     NoTag = 122,
 }
 
+// The asset holding every line.
 [CreateAssetMenu(menuName = "Last Terminal/Voice/Voice Line Bank", fileName = "VoiceLineBank")]
 public class VoiceLineBank : ScriptableObject
 {
+    // One line: id, text per language and the recorded takes.
     [Serializable]
     public class Entry
     {
+        // Which line this is.
         [SerializeField] private PartnerLine line;
         [Tooltip("When she says it (for the voice actress).")]
         [SerializeField] private string context;
+        // Subtitle text per language and the takes per language.
         [SerializeField, TextArea] private string english;
         [SerializeField, TextArea] private string portuguese;
         [SerializeField] private AudioClip[] englishClips = new AudioClip[0];
@@ -162,12 +166,14 @@ public class VoiceLineBank : ScriptableObject
             this.portuguese = portuguese;
         }
 
+        // Read-only access.
         public PartnerLine Line => line;
         public string Context => context;
         public string Text(GameLanguage language) => language == GameLanguage.Portuguese ? portuguese : english;
         public AudioClip[] Clips(GameLanguage language) => language == GameLanguage.Portuguese ? portugueseClips : englishClips;
 
 #if UNITY_EDITOR
+        // Assigns the takes (the editor menu that imports the audio).
         public void EditorSetClips(GameLanguage language, AudioClip[] clips)
         {
             if (language == GameLanguage.Portuguese) portugueseClips = clips;
@@ -176,12 +182,16 @@ public class VoiceLineBank : ScriptableObject
 #endif
     }
 
+    // All the lines.
     [SerializeField] private List<Entry> entries = new List<Entry>();
 
+    // Lookup by line id (built on first use).
     private Dictionary<PartnerLine, Entry> lookup;
 
+    // Every entry (editor tools).
     public IReadOnlyList<Entry> Entries => entries;
 
+    // Finds a line's entry.
     public bool TryGet(PartnerLine line, out Entry entry)
     {
         if (lookup == null)
@@ -193,6 +203,7 @@ public class VoiceLineBank : ScriptableObject
         return lookup.TryGetValue(line, out entry);
     }
 
+    // The list changed in the inspector: rebuild the lookup.
     private void OnValidate() => lookup = null;
 
 #if UNITY_EDITOR

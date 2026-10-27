@@ -7,6 +7,7 @@ using UnityEngine;
 [RequireComponent(typeof(Weapon))]
 public class MeleeWeapon : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string DamageField = nameof(damage);
     public const string HitRadiusField = nameof(hitRadius);
     public const string WindupSpeedField = nameof(windupSpeed);
@@ -14,10 +15,12 @@ public class MeleeWeapon : MonoBehaviour
     public const string RecoverySpeedField = nameof(recoverySpeed);
     public const string HitStopField = nameof(hitStop);
 
+    // Damage of one hit.
     [SerializeField, Min(0)] private int damage = 20;
     [Tooltip("Radius of the capsule from the grip to the tip (m).")]
     [SerializeField, Min(0.01f)] private float hitRadius = 0.06f;
 
+    // Playback speed of each phase of the swing (wind-up, strike, recovery).
     [Header("Feel (playback speed of each phase)")]
     [SerializeField, Range(0.3f, 2f)] private float windupSpeed = 1f;
     [SerializeField, Range(0.3f, 2f)] private float strikeSpeed = 1f;
@@ -25,8 +28,10 @@ public class MeleeWeapon : MonoBehaviour
     [Tooltip("Freeze on impact (s). Longer = heavier.")]
     [SerializeField, Range(0f, 0.3f)] private float hitStop = 0.06f;
 
+    // The Weapon on the same object (its markers give the hit capsule).
     private Weapon weapon;
 
+    // Values read by PartnerMelee.
     public int Damage => damage;
     public float HitRadius => hitRadius;
     public float WindupSpeed => windupSpeed;
@@ -34,6 +39,7 @@ public class MeleeWeapon : MonoBehaviour
     public float RecoverySpeed => recoverySpeed;
     public float HitStop => hitStop;
 
+    // The hit capsule: from the grip to the tip, in world space.
     public Vector3 HitStart => Weapon.GripPoint.position;
     public Vector3 HitEnd => Weapon.Muzzle.position;
 

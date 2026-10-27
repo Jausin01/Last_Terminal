@@ -6,12 +6,14 @@ using System.Text;
 public struct ParsedCommand
 {
     public string Text;                  // normalized text
+    // The action asked (None = only names were said: "the bedroom" = go there).
     public CommandVerb Verb;
     public List<string> Keys;            // names found, in order (several keys can share a phrase: "ammo")
     public CommandModifier Modifier;     // which one: other / left / right / nearest / farthest
     public int Number;                   // "enemy 2" (0 = none)
     public bool Pronoun;                 // "it", "isso"... = the last target
 
+    // Was this name key said?
     public bool HasKey(string key) => Keys != null && Keys.Contains(key);
 }
 
@@ -19,8 +21,10 @@ public struct ParsedCommand
 // the words of the verb aren't reused for names.
 public class CommandParser
 {
+    // One phrase of the lexicon, split in words, with what it means (only one of Verb / Modifier / Number / Key is used).
     private class Phrase
     {
+        // Its normalized words, and its meaning.
         public string[] Words;
         public CommandVerb Verb;
         public CommandModifier Modifier;
@@ -28,12 +32,14 @@ public class CommandParser
         public string Key;
     }
 
+    // All the lexicon's phrases by kind, longest first, and the pronouns.
     private readonly List<Phrase> verbPhrases = new List<Phrase>();
     private readonly List<Phrase> namePhrases = new List<Phrase>();
     private readonly List<Phrase> modifierPhrases = new List<Phrase>();
     private readonly List<Phrase> numberPhrases = new List<Phrase>();
     private readonly HashSet<string> pronouns = new HashSet<string>();
 
+    // The vocabulary this parser was built from.
     public CommandLexicon Lexicon { get; }
 
     public CommandParser(CommandLexicon lexicon)
@@ -59,6 +65,7 @@ public class CommandParser
         numberPhrases.Sort((a, b) => b.Words.Length.CompareTo(a.Words.Length));
     }
 
+    // Adds one phrase (normalized, split in words) to a list.
     private static void Add(List<Phrase> list, string text, CommandVerb verb, string key,
                             CommandModifier modifier = CommandModifier.None, int number = 0)
     {
@@ -67,6 +74,7 @@ public class CommandParser
         list.Add(new Phrase { Words = n.Split(' '), Verb = verb, Key = key, Modifier = modifier, Number = number });
     }
 
+    // Reads a command: the verb (longest phrase), a modifier, every name, a number and a pronoun; words used once are not reused.
     public ParsedCommand Parse(string text)
     {
         string normalized = Normalize(text);
@@ -132,6 +140,7 @@ public class CommandParser
         return result;
     }
 
+    // First position where a phrase matches unused words (-1 = nowhere).
     private static int Find(string[] words, bool[] used, string[] phrase)
     {
         for (int at = 0; at + phrase.Length <= words.Length; at++)
@@ -139,6 +148,7 @@ public class CommandParser
         return -1;
     }
 
+    // Does the phrase match the words starting at this position (* = word prefix)?
     private static bool MatchesAt(string[] words, bool[] used, string[] phrase, int at)
     {
         if (at + phrase.Length > words.Length) return false;
@@ -152,6 +162,7 @@ public class CommandParser
         return true;
     }
 
+    // Marks words as used.
     private static void Mark(bool[] used, int at, int length)
     {
         for (int i = at; i < at + length; i++) used[i] = true;

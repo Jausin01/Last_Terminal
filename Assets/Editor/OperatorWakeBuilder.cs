@@ -5,19 +5,22 @@ using UnityEngine.Rendering.Universal;
 
 // Last Terminal/16 (OperatorSceneSetup) -> RoomSystems/WakeUp: after the pig in the van (cutscene 01) he wakes up on
 // the cot of the operator room, confused, then angry at how he was brought. A cinema cutscene with its own eyes
-// (WakeCamera), the screen and director of the story cutscenes (IniciacaoBuilder.BuildScreenAndDirector), the shots
+// (WakeCamera), the screen and director of the story cutscenes (InitiationBuilder.BuildScreenAndDirector), the shots
 // made around the cot (wherever it is), and the cutscene (Cutscene_Acordar, id "operator_wake"). OperatorStation
 // plays it when the room starts until it has been seen, and puts him at Spot_WakeEnd when it ends (or Esc).
 // RoomSystems is rebuilt by the menu: tune the steps / shots after you are happy with the build, or keep a copy.
 internal static class OperatorWakeBuilder
 {
+    // Cutscene id, the story audio folder, and his eye height seated / standing (m).
     internal const string Id = "operator_wake";
-    private const string IniAudio = "Assets/Audio/Iniciacao";
+    private const string InitiationAudio = "Assets/Audio/Iniciacao";
     private const float SitEye = 1.12f;
     private const float StandEye = 1.62f;
 
+    // The steps list being filled.
     private static SerializedProperty steps;
 
+    // Builds the wake-up cutscene: camera, shots around the cot, steps.
     internal static Cutscene Build(Transform sys, GameObject cot, Vector3 roomCenter, GameObject pc, GameObject door,
                                    CameraSettings settings, StoryProgress story, out Transform wakeEnd)
     {
@@ -69,19 +72,19 @@ internal static class OperatorWakeBuilder
         camGo.transform.SetPositionAndRotation(lying.position, lying.rotation);
 
         // ---------------------------------------------------------------- the screen and the director
-        CutsceneDirector d = IniciacaoBuilder.BuildScreenAndDirector(cam, settings, out GameObject canvasGo);
+        CutsceneDirector d = InitiationBuilder.BuildScreenAndDirector(cam, settings, out GameObject canvasGo);
         canvasGo.name = "WakeUI";
         canvasGo.transform.SetParent(root, false);
         canvasGo.GetComponent<Canvas>().sortingOrder = 40;   // over the room's own screen
         d.transform.SetParent(root, false);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.StoryField, story);
+        EditorSerialized.SetReference(d, CutsceneDirector.StoryField, story);
 
         // ---------------------------------------------------------------- the cutscene
         var go = new GameObject("Cutscene_Acordar");
         go.transform.SetParent(root, false);
         var cutscene = go.AddComponent<Cutscene>();
-        HelenaSetupMenu.SetReference(cutscene, Cutscene.DirectorField, d);
-        HelenaSetupMenu.SetString(cutscene, Cutscene.IdField, Id);
+        EditorSerialized.SetReference(cutscene, Cutscene.DirectorField, d);
+        EditorSerialized.SetString(cutscene, Cutscene.IdField, Id);
         var so = new SerializedObject(cutscene);
         steps = so.FindProperty(Cutscene.StepsField);
         steps.ClearArray();
@@ -90,7 +93,7 @@ internal static class OperatorWakeBuilder
         Add(new FadeStep { toBlack = true, duration = 0f });
         Add(new CameraShotStep { shot = lying, label = "", fieldOfView = 62f });
         Add(new HandheldStep { amount = 0.6f });
-        Add(new SoundStep { clip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{IniAudio}/Heartbeat.wav"), volume = 0.7f });
+        Add(new SoundStep { clip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{InitiationAudio}/Heartbeat.wav"), volume = 0.7f });
         Add(Wait(1.4f));
         Add(Think("...minha cabeça.", "...my head."));
         // the eyes open: blinks on the ceiling lamps
@@ -130,16 +133,19 @@ internal static class OperatorWakeBuilder
         return cutscene;
     }
 
+    // Adds a step.
     private static void Add(CutsceneStep step)
     {
         steps.arraySize++;
         steps.GetArrayElementAtIndex(steps.arraySize - 1).managedReferenceValue = step;
     }
 
+    // Step shorthands: a thought, a wait, a camera move.
     private static ThoughtStep Think(string pt, string en) => new ThoughtStep { textPt = pt, textEn = en, pauseAfter = 0.3f };
     private static WaitStep Wait(float s) => new WaitStep { seconds = s };
     private static CameraMoveStep Move(Transform to, float s, float fov = 0f) => new CameraMoveStep { to = to, seconds = s, fieldOfView = fov };
 
+    // A shot transform (position + orientation).
     private static Transform Shot(Transform parent, string name, Vector3 position, Vector3 forward, Vector3 up)
     {
         var t = new GameObject(name).transform;
@@ -148,12 +154,14 @@ internal static class OperatorWakeBuilder
         return t;
     }
 
+    // A vector flattened onto the floor.
     private static Vector3 Flat(Vector3 v)
     {
         v.y = 0f;
         return v.sqrMagnitude > 1e-6f ? v.normalized : Vector3.forward;
     }
 
+    // Center of an object's renderers.
     private static Vector3 Center(GameObject go)
     {
         var rs = new List<Renderer>(go.GetComponentsInChildren<Renderer>());

@@ -5,18 +5,23 @@ using UnityEngine.AI;
 // (PartnerAnimator.FloorSit), and gets up when he comes back. OperatorStation decides when (only in a safe zone).
 public class PartnerRest : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string AgentField = nameof(agent);
     public const string HealthField = nameof(health);
 
+    // Her animator (floor-sit pose), her agent (stopped) and her health.
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private NavMeshAgent agent;
     [SerializeField] private Health health;
+    // Blend times to sit down / stand up (s).
     [SerializeField] private float sitBlend = 0.9f;
     [SerializeField] private float standBlend = 0.7f;
 
+    // Sitting and waiting now.
     private bool resting;
 
+    // Read by the station and the cutscenes.
     public bool IsResting => resting;
 
     // free to sit: not in the middle of something (a door, a seat, a pick up, an attack, hurt)
@@ -37,6 +42,7 @@ public class PartnerRest : MonoBehaviour
     // someone else takes her from here (a cutscene starts with her still sitting): no longer resting, pose kept
     public void Release() => resting = false;
 
+    // He came back: she stands up and is free again.
     public void Wake()
     {
         if (!resting) return;

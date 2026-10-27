@@ -4,13 +4,17 @@ using UnityEngine;
 // Hit points for the partner and enemies. UI, animation and voice feedback listen to the events.
 public class Health : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string MaxHealthField = nameof(maxHealth);
 
+    // Hit points when full.
     [SerializeField, Min(1)] private int maxHealth = 100;
 
+    // Hit points now.
     private int current;
 
     public event Action<int, int> Changed;   // current, max
+    // Raised once when the hit points reach 0.
     public event Action Died;
     public event Action<int> Damaged;        // damage actually taken (after evasion), before Died
 
@@ -18,11 +22,13 @@ public class Health : MonoBehaviour
     public bool Invulnerable { get; set; }
     public float DamageScale { get; set; } = 1f;
 
+    // State read by the HUD, the AI and the commands.
     public int Current => current;
     public int Max => maxHealth;
     public bool IsFull => current >= maxHealth;
     public bool IsDead => current <= 0;
 
+    // Starts full.
     private void Awake()
     {
         current = maxHealth;
@@ -60,6 +66,7 @@ public class Health : MonoBehaviour
         Changed?.Invoke(current, maxHealth);
     }
 
+    // Takes damage (scaled while ducking, none while invulnerable, at least 1); raises Damaged and, at 0, Died.
     public void TakeDamage(int amount)
     {
         if (IsDead || amount <= 0 || Invulnerable) return;

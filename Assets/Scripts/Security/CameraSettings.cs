@@ -6,8 +6,10 @@ using UnityEngine;
 // Several scenes open at once (his room + a location) each have one: a change in one reaches the others.
 public class CameraSettings : MonoBehaviour
 {
+    // Camera pan input.
     public enum PanControl { Mouse, Keyboard }
 
+    // PlayerPrefs keys.
     private const string PanControlKey = "cam_pan_control";
     private const string MouseSpeedKey = "cam_mouse_speed";
     private const string KeyboardSpeedKey = "cam_keyboard_speed";
@@ -21,9 +23,11 @@ public class CameraSettings : MonoBehaviour
     public const PanControl DefaultPan = PanControl.Mouse;
     public const float DefaultMouseSpeed = 60f, DefaultKeyboardSpeed = 50f, DefaultFilterStrength = 0.8f, DefaultVolume = 1f;
 
+    // Defaults (overwritten by Load).
     [SerializeField] private PanControl panControl = PanControl.Mouse;
     [Tooltip("Pan speed when the cursor touches the screen edge (deg/s).")]
     [SerializeField, Range(10f, 150f)] private float mousePanSpeed = 60f;
+    // Keyboard pan speed, CCTV filter on / strength, language and subtitles.
     [SerializeField, Range(10f, 150f)] private float keyboardPanSpeed = 50f;
     [SerializeField] private bool filterEnabled = true;
     [SerializeField, Range(0f, 1f)] private float filterStrength = 0.8f;
@@ -32,9 +36,12 @@ public class CameraSettings : MonoBehaviour
     [Tooltip("Every sound of the game (AudioListener.volume).")]
     [SerializeField, Range(0f, 1f)] private float masterVolume = 1f;
 
+    // Raised when a value changes (this or another scene's settings).
     public event Action Changed;
+    // One instance saved: the others reload.
     private static event Action<CameraSettings> AnySaved;
 
+    // Read-only values.
     public PanControl Pan => panControl;
     public float MousePanSpeed => mousePanSpeed;
     public float KeyboardPanSpeed => keyboardPanSpeed;
@@ -44,9 +51,12 @@ public class CameraSettings : MonoBehaviour
     public bool SubtitlesEnabled => subtitles;
     public float MasterVolume => masterVolume;
 
+    // Reads the saved values.
     private void Awake() => Load();
 
+    // Listens to the other instances.
     private void OnEnable() => AnySaved += OnOtherSaved;
+    // Stops listening.
     private void OnDisable() => AnySaved -= OnOtherSaved;
 
     // another scene's settings changed: the same values here
@@ -57,6 +67,7 @@ public class CameraSettings : MonoBehaviour
         Changed?.Invoke();
     }
 
+    // Reads PlayerPrefs (defaults when missing).
     private void Load()
     {
         panControl = (PanControl)PlayerPrefs.GetInt(PanControlKey, (int)panControl);
@@ -70,6 +81,7 @@ public class CameraSettings : MonoBehaviour
         AudioListener.volume = masterVolume;
     }
 
+    // Setters: clamp, save and notify.
     public void SetPanControl(PanControl value) { panControl = value; Save(); }
     public void SetMousePanSpeed(float value) { mousePanSpeed = Mathf.Clamp(value, 10f, 150f); Save(); }
     public void SetKeyboardPanSpeed(float value) { keyboardPanSpeed = Mathf.Clamp(value, 10f, 150f); Save(); }
@@ -79,6 +91,7 @@ public class CameraSettings : MonoBehaviour
     public void SetSubtitles(bool value) { subtitles = value; Save(); }
     public void SetMasterVolume(float value) { masterVolume = Mathf.Clamp01(value); Save(); }
 
+    // Back to the defaults.
     public void RestoreDefaults()
     {
         panControl = DefaultPan;
@@ -91,6 +104,7 @@ public class CameraSettings : MonoBehaviour
         Save();
     }
 
+    // Writes PlayerPrefs and tells the other instances.
     private void Save()
     {
         PlayerPrefs.SetInt(PanControlKey, (int)panControl);

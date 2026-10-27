@@ -7,6 +7,7 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Last Terminal/Operator E-mail", fileName = "OperatorEmail")]
 public class OperatorEmail : ScriptableObject
 {
+    // Sender, subject per language, shown date and body per language.
     [SerializeField] private string fromName = "";
     [SerializeField] private string fromAddress = "";
     [SerializeField] private string subjectEn = "";
@@ -27,21 +28,26 @@ public class OperatorEmail : ScriptableObject
     [Tooltip("Played in Portuguese.")]
     [SerializeField] private AudioClip voicePt;
 
+    // Story flag prefix that marks an e-mail as read.
     public const string ReadPrefix = "read_mail_";
 
+    // Read by the fake OS.
     public string FromName => fromName;
     public string FromAddress => fromAddress;
     public string Date => date;
     public string RequiredFlag => requiredFlag;
     public int Order => order;
     public OperatorFile Attachment => attachment;
+    // The recording for a language (null = none yet).
     public AudioClip Voice(GameLanguage l) => l == GameLanguage.Portuguese ? voicePt : voiceEn;
     public string Id => name;
 
+    // Subject / body in a language (English when the Portuguese one is empty).
     public string Subject(GameLanguage l) => l == GameLanguage.Portuguese && !string.IsNullOrEmpty(subjectPt) ? subjectPt : subjectEn;
     public string Body(GameLanguage l) => l == GameLanguage.Portuguese && !string.IsNullOrEmpty(bodyPt) ? bodyPt : bodyEn;
 
 #if UNITY_EDITOR
+    // Editor: sets the content (room builder, only for new e-mails).
     public void EditorSet(string from, string address, string sEn, string sPt, string when, string bEn, string bPt, string flag, int sortOrder, OperatorFile attached)
     {
         fromName = from; fromAddress = address; subjectEn = sEn; subjectPt = sPt; date = when; bodyEn = bEn; bodyPt = bPt;

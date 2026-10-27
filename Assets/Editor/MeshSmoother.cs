@@ -9,6 +9,7 @@ using UnityEngine;
 // Same vertex count / order / UVs / bind poses: a drop-in replacement for the original mesh.
 public static class MeshSmoother
 {
+    // A smoothed copy of the mesh where it is weighted to these bones.
     public static Mesh SmoothByBones(SkinnedMeshRenderer source, string[] boneNames, int iterations, int weightIterations = 10,
                                      float lambda = 0.5f, float mu = -0.53f, float weightGain = 1.4f)
     {

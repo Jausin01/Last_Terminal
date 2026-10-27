@@ -7,15 +7,18 @@ using UnityEngine;
 [RequireComponent(typeof(BoxCollider))]
 public class EvidenceItem : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string HighlightField = nameof(highlight);
     public const string ZoomDistanceField = nameof(zoomDistance);
 
+    // Its title and text (shown on the panel), per language.
     [SerializeField] private string titleEn = "";
     [SerializeField] private string titlePt = "";
     [SerializeField, TextArea(3, 12)] private string textEn = "";
     [SerializeField, TextArea(3, 12)] private string textPt = "";
     [Tooltip("What he thinks looking at it (top-left block). Empty = nothing.")]
     [SerializeField, TextArea(1, 4)] private string thoughtEn = "";
+    // His thought in Portuguese.
     [SerializeField, TextArea(1, 4)] private string thoughtPt = "";
     [Tooltip("StoryProgress flag needed for it to be there (empty = always).")]
     [SerializeField] private string requiredFlag = "";
@@ -26,28 +29,34 @@ public class EvidenceItem : MonoBehaviour
     [Tooltip("The frame drawn around it while the mouse is over it.")]
     [SerializeField] private LineRenderer highlight;
 
+    // Its click area.
     private BoxCollider box;
 
+    // Read by the board.
     public string RequiredFlag => requiredFlag;
     public string SeenFlag => seenFlag;
     public BoxCollider Box => box != null ? box : box = GetComponent<BoxCollider>();
 
+    // Title / text / thought in a language (English when the Portuguese one is empty).
     public string Title(GameLanguage l) => l == GameLanguage.Portuguese && !string.IsNullOrEmpty(titlePt) ? titlePt : titleEn;
     public string Text(GameLanguage l) => l == GameLanguage.Portuguese && !string.IsNullOrEmpty(textPt) ? textPt : textEn;
     public string Thought(GameLanguage l) => l == GameLanguage.Portuguese && !string.IsNullOrEmpty(thoughtPt) ? thoughtPt : thoughtEn;
 
+    // Not clickable until he looks at the board.
     private void Awake()
     {
         box = GetComponent<BoxCollider>();
         SetClickable(false);
     }
 
+    // Clickable only while he looks at the board.
     public void SetClickable(bool on)
     {
         Box.enabled = on;
         if (!on) SetHighlight(false);
     }
 
+    // The frame around it while the mouse is over it.
     public void SetHighlight(bool on)
     {
         if (highlight != null) highlight.enabled = on;
@@ -62,6 +71,7 @@ public class EvidenceItem : MonoBehaviour
     }
 
 #if UNITY_EDITOR
+    // Editor: sets the content (room builder).
     public void EditorSet(string tEn, string tPt, string bEn, string bPt, string thEn, string thPt, string flag, string seen)
     {
         titleEn = tEn; titlePt = tPt; textEn = bEn; textPt = bPt; thoughtEn = thEn; thoughtPt = thPt;
@@ -70,6 +80,7 @@ public class EvidenceItem : MonoBehaviour
     }
 #endif
 
+    // Draws the click box and the zoom distance in the Scene view.
     private void OnDrawGizmosSelected()
     {
         var b = GetComponent<BoxCollider>();

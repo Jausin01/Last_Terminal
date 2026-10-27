@@ -83,57 +83,71 @@ public enum CommandModifier
     Farthest = 5,
 }
 
+// The vocabulary of one language (an asset): phrases for every verb, name, modifier and number, plus pronouns.
 [CreateAssetMenu(menuName = "Last Terminal/Commands/Command Lexicon", fileName = "CommandLexicon")]
 public class CommandLexicon : ScriptableObject
 {
+    // The phrases that mean one verb.
     [Serializable]
     public class VerbPhrases
     {
+        // The verb and the phrases that say it.
         [SerializeField] private CommandVerb verb;
         [SerializeField] private string[] phrases = new string[0];
 
         public VerbPhrases() { }
         public VerbPhrases(CommandVerb verb, string[] phrases) { this.verb = verb; this.phrases = phrases; }
+        // Read by the parser.
         public CommandVerb Verb => verb;
         public IReadOnlyList<string> Phrases => phrases;
     }
 
+    // The phrases that name one thing (a room, a door, an item...: the key).
     [Serializable]
     public class NamePhrases
     {
+        // The thing's key and the phrases that name it.
         [SerializeField] private string key;
         [SerializeField] private string[] phrases = new string[0];
 
         public NamePhrases() { }
         public NamePhrases(string key, string[] phrases) { this.key = key; this.phrases = phrases; }
+        // Read by the parser.
         public string Key => key;
         public IReadOnlyList<string> Phrases => phrases;
     }
 
+    // The phrases of one modifier ("the other one", "the left one").
     [Serializable]
     public class ModifierPhrases
     {
+        // The modifier and its phrases.
         [SerializeField] private CommandModifier modifier;
         [SerializeField] private string[] phrases = new string[0];
 
         public ModifierPhrases() { }
         public ModifierPhrases(CommandModifier modifier, string[] phrases) { this.modifier = modifier; this.phrases = phrases; }
+        // Read by the parser.
         public CommandModifier Modifier => modifier;
         public IReadOnlyList<string> Phrases => phrases;
     }
 
+    // The spoken forms of one number ("two", "dois").
     [Serializable]
     public class NumberPhrases
     {
+        // The number and its spoken forms.
         [SerializeField] private int value;
         [SerializeField] private string[] phrases = new string[0];
 
         public NumberPhrases() { }
         public NumberPhrases(int value, string[] phrases) { this.value = value; this.phrases = phrases; }
+        // Read by the parser.
         public int Value => value;
         public IReadOnlyList<string> Phrases => phrases;
     }
 
+    // The language of this asset and its phrase lists (edited in the Inspector; menu 3 adds the missing defaults).
     [SerializeField] private GameLanguage language;
     [SerializeField] private List<VerbPhrases> verbs = new List<VerbPhrases>();
     [SerializeField] private List<NamePhrases> names = new List<NamePhrases>();
@@ -143,6 +157,7 @@ public class CommandLexicon : ScriptableObject
     [Tooltip("Words that mean the last thing she was told about (\"it\", \"isso\").")]
     [SerializeField] private string[] pronouns = new string[0];
 
+    // Read by the parser and the voice recognizer (its word list).
     public GameLanguage Language => language;
     public IReadOnlyList<VerbPhrases> Verbs => verbs;
     public IReadOnlyList<NamePhrases> Names => names;
@@ -183,11 +198,13 @@ public class CommandLexicon : ScriptableObject
         }
     }
 
+    // Removes names that are no longer used (menu 3 cleanup).
     public void EditorRemoveNames(IEnumerable<string> keys)
     {
         foreach (string k in keys) names.RemoveAll(x => x.Key == k);
     }
 
+    // First phrase of a verb entry (its identity when merging defaults).
     private static string FirstPhrase(VerbPhrases v) => v.Phrases.Count > 0 ? v.Phrases[0] : "";
 #endif
 }

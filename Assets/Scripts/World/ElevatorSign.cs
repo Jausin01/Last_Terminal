@@ -5,31 +5,37 @@ using UnityEngine;
 // language) and a stripe in the color of the key it needs (none = grey). Edit the stop asset to change the text.
 public class ElevatorSign : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string ElevatorField = nameof(elevator);
     public const string TextField = nameof(text);
     public const string StripeField = nameof(stripe);
     public const string SettingsField = nameof(settings);
 
+    // The elevator, the sign text and the key-color stripe.
     [SerializeField] private Elevator elevator;
     [SerializeField] private TMP_Text text;
     [SerializeField] private Renderer stripe;
     [Tooltip("Optional: the language of the sign follows the settings.")]
     [SerializeField] private CameraSettings settings;
 
+    // Shader ids.
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
+    // Follows language changes.
     private void OnEnable()
     {
         if (settings != null) settings.Changed += Refresh;
         Refresh();
     }
 
+    // Stops following.
     private void OnDisable()
     {
         if (settings != null) settings.Changed -= Refresh;
     }
 
+    // Number, destination name and key color.
     private void Refresh()
     {
         if (elevator == null) return;

@@ -11,10 +11,13 @@ public class ScrollingScenery : MonoBehaviour
     [Tooltip("Small up and down bumps of the road, applied to this object (m).")]
     [SerializeField] private float bump = 0f;
 
+    // Rest position (the bumps move around it).
     private Vector3 basePosition;
 
+    // Remembers the rest position.
     private void Awake() => basePosition = transform.localPosition;
 
+    // Slides every child backward, wrapping around; adds road bumps.
     private void Update()
     {
         float step = speed * Time.deltaTime;

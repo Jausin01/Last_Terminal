@@ -19,6 +19,7 @@ using UnityEngine.UI;
 // the arms' animator made by menu 3 (PrepareAssets). His files: Assets/Data/Operator/Files (created once, edit freely).
 internal static class OperatorRoomBuilder
 {
+    // Art, arms, data and file paths.
     internal const string ArtFolder = "Assets/Art/Props/Operator";
     internal const string ArmsFolder = "Assets/Art/FirstPerson";
     private const string ArmsModelPath = ArmsFolder + "/SM_FPArms.fbx";
@@ -26,9 +27,11 @@ internal static class OperatorRoomBuilder
     private const string DataFolder = "Assets/Data/Operator";
     private const string FilesFolder = DataFolder + "/Files";
     private const float ArmsEye = 1.7432f;   // the arms' camera bone height in the model
+    // Where the office is built (far from the level); materials that need alpha clip.
     private static readonly Vector3 RoomOrigin = new Vector3(200f, 0f, 200f);
     private static readonly string[] ClipMaterials = { "M_Op_Plant_01", "M_Op_TrashCan_00" };
 
+    // URP Lit property ids.
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private static readonly int EmissionMapId = Shader.PropertyToID("_EmissionMap");
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -36,6 +39,7 @@ internal static class OperatorRoomBuilder
     // what the room needs from the rest of the scene (BuildLocation)
     internal class Rig
     {
+        // Scene parts the room is wired to: the CCTV view camera, listener and canvas, the behaviours switched with the camera program, the camera system, her rest / transform, targets, encounter, voice, session, settings and story.
         public Camera ViewCamera;
         public AudioListener ViewListener;
         public Canvas OperatorCanvas;
@@ -69,7 +73,7 @@ internal static class OperatorRoomBuilder
             Debug.LogWarning($"[Operator] {folder} not found: copy the Art folder of the package into Assets.");
             return;
         }
-        HelenaSetupMenu.EnsureFolder(folder, "Materials");
+        EditorAssets.EnsureFolder(folder, "Materials");
         foreach (string guid in AssetDatabase.FindAssets("t:Model", new[] { folder }))
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
@@ -83,7 +87,7 @@ internal static class OperatorRoomBuilder
             {
                 if (!n.StartsWith("M_")) continue;
                 var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{folder}/T_{n.Substring(2)}.png");
-                Material m = HelenaSetupMenu.MakeMaterial($"{folder}/Materials/{n}.mat", tex, 0.15f, System.Array.IndexOf(ClipMaterials, n) >= 0, lit);
+                Material m = EditorAssets.MakeMaterial($"{folder}/Materials/{n}.mat", tex, 0.15f, System.Array.IndexOf(ClipMaterials, n) >= 0, lit);
                 if (n == "M_Op_CoffeeMachine") Glow(m, tex, Color.white * 0.45f);
                 mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), n), m);
                 changed = true;
@@ -92,6 +96,7 @@ internal static class OperatorRoomBuilder
         }
     }
 
+    // Makes a material glow (emission map + color).
     internal static void Glow(Material m, Texture2D map, Color c)
     {
         m.EnableKeyword("_EMISSION");
@@ -169,11 +174,12 @@ internal static class OperatorRoomBuilder
          "ARCANE QUEST - TABELA DE RECORDES (reset de fábrica: nunca)\n\n1. ???   o recorde que você acabou de bater\n2. H.    \"pra quando você cansar de me vigiar\"\n3. 06\n\nA segunda linha foi escrita à mão, no adesivo debaixo do vidro."),
     };
 
+    // His file assets (made once).
     private static List<OperatorFile> EnsureFiles()
     {
-        HelenaSetupMenu.EnsureFolder("Assets", "Data");
-        HelenaSetupMenu.EnsureFolder("Assets/Data", "Operator");
-        HelenaSetupMenu.EnsureFolder(DataFolder, "Files");
+        EditorAssets.EnsureFolder("Assets", "Data");
+        EditorAssets.EnsureFolder("Assets/Data", "Operator");
+        EditorAssets.EnsureFolder(DataFolder, "Files");
         for (int i = 0; i < Files.Length; i++)
         {
             var f = Files[i];
@@ -197,7 +203,7 @@ internal static class OperatorRoomBuilder
     {
         var link = AssetDatabase.LoadAssetAtPath<OperatorLink>(LinkPath);
         if (link != null) return link;
-        HelenaSetupMenu.EnsureFolder("Assets", "Data");
+        EditorAssets.EnsureFolder("Assets", "Data");
         link = ScriptableObject.CreateInstance<OperatorLink>();
         AssetDatabase.CreateAsset(link, LinkPath);
         return link;
@@ -293,7 +299,7 @@ internal static class OperatorRoomBuilder
             new[] { "Água morna. Gosto de plástico.", "O galão está quase vazio.", "...glub." }, OperatorSounds.Kind.Glug, OperatorInteractable.HandMotion.Push);
 
         // the PC: screen (lock screen glow), used = sit down
-        Material screenMat = HelenaSetupMenu.MakeMaterial($"{ArtFolder}/Materials/M_Op_Screen.mat",
+        Material screenMat = EditorAssets.MakeMaterial($"{ArtFolder}/Materials/M_Op_Screen.mat",
             AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/T_Op_Screen.png"), 0.8f, false, lit);
         Glow(screenMat, AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/T_Op_Screen.png"), Color.white * 0.9f);
         var screen = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -306,14 +312,14 @@ internal static class OperatorRoomBuilder
         screen.GetComponent<Renderer>().sharedMaterial = screenMat;
         FitCollider(pc);
         var pcUse = pc.AddComponent<OperatorPc>();
-        HelenaSetupMenu.SetString(pcUse, OperatorInteractable.LabelEnField, "Computer");
-        HelenaSetupMenu.SetString(pcUse, OperatorInteractable.LabelPtField, "Computador");
+        EditorSerialized.SetString(pcUse, OperatorInteractable.LabelEnField, "Computer");
+        EditorSerialized.SetString(pcUse, OperatorInteractable.LabelPtField, "Computador");
 
         // the coffee machine (south wall)
         GameObject coffee = Model(r, "SM_OpCoffeeMachine", new Vector3(-1.0f, 0f, -3.5f), 0f);
         if (coffee == null) coffee = Placeholder(r, "CoffeeMachine", new Vector3(-1.0f, 0.915f, -3.5f), new Vector3(1.0f, 1.83f, 0.8f), lit);
         FitCollider(coffee);
-        Material dark = HelenaSetupMenu.MakeMaterial($"{ArtFolder}/Materials/M_Op_Dark.mat", null, 0.4f, false, lit);
+        Material dark = EditorAssets.MakeMaterial($"{ArtFolder}/Materials/M_Op_Dark.mat", null, 0.4f, false, lit);
         Plain(coffee.transform, "Tray", new Vector3(-0.18f, 0.115f, 0.45f), new Vector3(0.2f, 0.012f, 0.1f), dark);
         GameObject cupOnTray = Model(coffee.transform, "SM_OpCoffeeCup", new Vector3(-0.18f, 0.122f, 0.45f), 0f);
         if (cupOnTray == null) cupOnTray = Plain(coffee.transform, "Cup", new Vector3(-0.18f, 0.167f, 0.45f), new Vector3(0.08f, 0.09f, 0.08f), dark);
@@ -323,9 +329,9 @@ internal static class OperatorRoomBuilder
         coffeeAudio.playOnAwake = false;
         coffeeAudio.spatialBlend = 0.8f;
         var machine = coffee.AddComponent<CoffeeMachine>();
-        HelenaSetupMenu.SetReference(machine, CoffeeMachine.CupOnTrayField, cupOnTray);
-        HelenaSetupMenu.SetReference(machine, CoffeeMachine.GlowField, coffeeGlow);
-        HelenaSetupMenu.SetReference(machine, CoffeeMachine.AudioField, coffeeAudio);
+        EditorSerialized.SetReference(machine, CoffeeMachine.CupOnTrayField, cupOnTray);
+        EditorSerialized.SetReference(machine, CoffeeMachine.GlowField, coffeeGlow);
+        EditorSerialized.SetReference(machine, CoffeeMachine.AudioField, coffeeAudio);
 
         // cork boards (east wall, over the junk)
         Board(r, "SM_OpCorkBoardA", new Vector3(3.88f, 1.6f, 1.1f), "WHAT I KNOW", "O QUE EU SEI",
@@ -339,7 +345,7 @@ internal static class OperatorRoomBuilder
         BuildDoor(r, new Vector3(-1.53f, 0f, 4.0f), lit);
 
         // lights: two old fluorescent tubes (one stutters), the desk, the monitor
-        Material tube = HelenaSetupMenu.MakeMaterial($"{ArtFolder}/Materials/M_Op_Tube.mat", null, 0.5f, false, lit);
+        Material tube = EditorAssets.MakeMaterial($"{ArtFolder}/Materials/M_Op_Tube.mat", null, 0.5f, false, lit);
         tube.SetColor(BaseColorId, new Color(0.9f, 0.95f, 1f));
         Glow(tube, null, new Color(0.85f, 0.95f, 1f) * 1.5f);
         Tube(r, "TubeA", new Vector3(0.5f, 3.18f, 1.6f), tube, 1.5f, false);
@@ -377,15 +383,15 @@ internal static class OperatorRoomBuilder
         // his screen: HUD, notes, desktop, dialog
         BuildUi(rig, out OperatorRoomHud hud, out OperatorDesktop desktop, out DialogRefs dialog);
         var player = body.AddComponent<FirstPersonPlayer>();
-        HelenaSetupMenu.SetReference(player, FirstPersonPlayer.ControllerField, cc);
-        HelenaSetupMenu.SetReference(player, FirstPersonPlayer.ViewField, roomCam);
-        HelenaSetupMenu.SetReference(player, FirstPersonPlayer.ArmsField, arms);
-        HelenaSetupMenu.SetReference(player, FirstPersonPlayer.CupField, handCup);
-        HelenaSetupMenu.SetReference(player, FirstPersonPlayer.HudField, hud);
-        HelenaSetupMenu.SetReference(player, FirstPersonPlayer.SettingsField, rig.Settings);
-        HelenaSetupMenu.SetReference(player, FirstPersonPlayer.StoryField, rig.Story);
-        HelenaSetupMenu.SetReference(player, FirstPersonPlayer.AudioField, voiceless);
-        HelenaSetupMenu.SetReference(desktop, OperatorDesktop.AudioField, voiceless);
+        EditorSerialized.SetReference(player, FirstPersonPlayer.ControllerField, cc);
+        EditorSerialized.SetReference(player, FirstPersonPlayer.ViewField, roomCam);
+        EditorSerialized.SetReference(player, FirstPersonPlayer.ArmsField, arms);
+        EditorSerialized.SetReference(player, FirstPersonPlayer.CupField, handCup);
+        EditorSerialized.SetReference(player, FirstPersonPlayer.HudField, hud);
+        EditorSerialized.SetReference(player, FirstPersonPlayer.SettingsField, rig.Settings);
+        EditorSerialized.SetReference(player, FirstPersonPlayer.StoryField, rig.Story);
+        EditorSerialized.SetReference(player, FirstPersonPlayer.AudioField, voiceless);
+        EditorSerialized.SetReference(desktop, OperatorDesktop.AudioField, voiceless);
 
         // the station: views, the switch
         var stationGo = new GameObject("OperatorStation");
@@ -395,7 +401,7 @@ internal static class OperatorRoomBuilder
         var station = stationGo.AddComponent<OperatorStation>();
 
         PinballMachine pinball = PinballBuilder.Build(r, lit, new Vector3(-1.35f, 0f, -0.6f), -90f, station, rig.Story);
-        HelenaSetupMenu.SetReference(pcUse, OperatorPc.StationField, station);
+        EditorSerialized.SetReference(pcUse, OperatorPc.StationField, station);
 
         var so = new SerializedObject(station);
         so.FindProperty(OperatorStation.PlayerField).objectReferenceValue = player;
@@ -457,8 +463,8 @@ internal static class OperatorRoomBuilder
         foreach (Renderer rend in arms.GetComponentsInChildren<Renderer>()) rend.shadowCastingMode = ShadowCastingMode.Off;
 
         // the cup sits in the fist of the grab pose (the hand comes up with it when he drinks)
-        Transform hand = HelenaSetupMenu.FindDeep(arms.transform, "hand.R");
-        Transform middle = HelenaSetupMenu.FindDeep(arms.transform, "f_middle.01.R");
+        Transform hand = EditorScene.FindDeep(arms.transform, "hand.R");
+        Transform middle = EditorScene.FindDeep(arms.transform, "f_middle.01.R");
         AnimationClip grab = ArmsClip(FirstPersonPlayer.GrabClip);
         AnimationClip relax = ArmsClip(FirstPersonPlayer.RelaxClip);
         if (hand != null && middle != null && grab != null)
@@ -518,6 +524,7 @@ internal static class OperatorRoomBuilder
         box.size = b.size;
     }
 
+    // A box collider object without a renderer.
     private static GameObject BoxOnly(Transform parent, string name, Vector3 pos, Vector3 size)
     {
         var go = new GameObject(name);
@@ -527,6 +534,7 @@ internal static class OperatorRoomBuilder
         return go;
     }
 
+    // A box with a material.
     private static GameObject Plain(Transform parent, string name, Vector3 pos, Vector3 size, Material mat)
     {
         var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -539,12 +547,14 @@ internal static class OperatorRoomBuilder
         return go;
     }
 
+    // A placeholder box (gray).
     private static GameObject Placeholder(Transform parent, string name, Vector3 pos, Vector3 size, Shader lit)
     {
-        Material m = HelenaSetupMenu.MakeMaterial($"{ArtFolder}/Materials/M_Op_Placeholder.mat", null, 0.2f, false, lit);
+        Material m = EditorAssets.MakeMaterial($"{ArtFolder}/Materials/M_Op_Placeholder.mat", null, 0.2f, false, lit);
         return Plain(parent, name, pos, size, m);
     }
 
+    // Makes an object a "look at" thing with his thoughts and a sound.
     private static void Flavor(GameObject go, string label, string labelPt, string[] en, string[] pt, OperatorSounds.Kind sound, OperatorInteractable.HandMotion hand)
     {
         if (go == null) return;
@@ -552,6 +562,7 @@ internal static class OperatorRoomBuilder
         go.AddComponent<OperatorFlavor>().EditorSet(label, labelPt, en, pt, sound, hand);
     }
 
+    // A cork board with an evidence item.
     private static void Board(Transform parent, string model, Vector3 pos, string titleEn, string titlePt, string en, string pt)
     {
         GameObject board = Model(parent, model, pos, -90f, collider: true);
@@ -559,6 +570,7 @@ internal static class OperatorRoomBuilder
         board.AddComponent<OperatorNoteBoard>().EditorSet("Cork board", "Quadro de cortiça", titleEn, titlePt, en, pt);
     }
 
+    // A point light.
     private static Light PointLight(Transform parent, string name, Vector3 pos, Color color, float intensity, float range)
     {
         var l = new GameObject(name).AddComponent<Light>();
@@ -572,6 +584,7 @@ internal static class OperatorRoomBuilder
         return l;
     }
 
+    // A fluorescent tube (light + glowing fixture, optional flicker).
     private static void Tube(Transform parent, string name, Vector3 pos, Material mat, float intensity, bool flicker)
     {
         GameObject t = Plain(parent, name, pos, new Vector3(1.2f, 0.04f, 0.12f), mat);
@@ -579,10 +592,11 @@ internal static class OperatorRoomBuilder
         Light l = PointLight(parent, name + "Light", pos - Vector3.up * 0.2f, new Color(0.82f, 0.92f, 1f), intensity, 6.5f);
         if (!flicker) return;
         var f = t.AddComponent<OperatorLightFlicker>();
-        HelenaSetupMenu.SetReference(f, OperatorLightFlicker.LampField, l);
-        HelenaSetupMenu.SetReference(f, OperatorLightFlicker.TubeField, t.GetComponent<Renderer>());
+        EditorSerialized.SetReference(f, OperatorLightFlicker.LampField, l);
+        EditorSerialized.SetReference(f, OperatorLightFlicker.TubeField, t.GetComponent<Renderer>());
     }
 
+    // A view point looking at a target.
     private static Transform ViewPoint(Transform parent, string name, Vector3 pos, Vector3 lookAt)
     {
         var t = new GameObject(name).transform;
@@ -595,11 +609,11 @@ internal static class OperatorRoomBuilder
     // a steel door in its frame, locked (OperatorDoor on the leaf)
     private static void BuildDoor(Transform parent, Vector3 pos, Shader lit)
     {
-        Material steel = HelenaSetupMenu.MakeMaterial($"{ArtFolder}/Materials/M_Op_DoorSteel.mat", null, 0.35f, false, lit);
+        Material steel = EditorAssets.MakeMaterial($"{ArtFolder}/Materials/M_Op_DoorSteel.mat", null, 0.35f, false, lit);
         steel.SetColor(BaseColorId, new Color(0.22f, 0.26f, 0.27f));
-        Material frameMat = HelenaSetupMenu.MakeMaterial($"{ArtFolder}/Materials/M_Op_DoorFrame.mat", null, 0.3f, false, lit);
+        Material frameMat = EditorAssets.MakeMaterial($"{ArtFolder}/Materials/M_Op_DoorFrame.mat", null, 0.3f, false, lit);
         frameMat.SetColor(BaseColorId, new Color(0.12f, 0.13f, 0.13f));
-        Material lamp = HelenaSetupMenu.MakeMaterial($"{ArtFolder}/Materials/M_Op_DoorLamp.mat", null, 0.6f, false, lit);
+        Material lamp = EditorAssets.MakeMaterial($"{ArtFolder}/Materials/M_Op_DoorLamp.mat", null, 0.6f, false, lit);
         lamp.SetColor(BaseColorId, new Color(1f, 0.1f, 0.05f));
         Glow(lamp, null, new Color(1f, 0.1f, 0.05f) * 2.5f);
         var door = new GameObject("Door").transform;
@@ -615,9 +629,9 @@ internal static class OperatorRoomBuilder
         Plain(door, "LockLamp", new Vector3(0.6f, 1.25f, -0.05f), new Vector3(0.05f, 0.05f, 0.02f), lamp);
         PointLight(door, "LockGlow", new Vector3(0.6f, 1.25f, -0.2f), new Color(1f, 0.15f, 0.05f), 0.3f, 0.8f);
         var use = leaf.AddComponent<OperatorDoor>();
-        HelenaSetupMenu.SetString(use, OperatorInteractable.LabelEnField, "Door");
-        HelenaSetupMenu.SetString(use, OperatorInteractable.LabelPtField, "Porta");
-        HelenaSetupMenu.SetReference(use, OperatorDoor.LeafField, leaf.transform);
+        EditorSerialized.SetString(use, OperatorInteractable.LabelEnField, "Door");
+        EditorSerialized.SetString(use, OperatorInteractable.LabelPtField, "Porta");
+        EditorSerialized.SetReference(use, OperatorDoor.LeafField, leaf.transform);
     }
 
     // ================================================================== his screen (UI)
@@ -626,13 +640,16 @@ internal static class OperatorRoomBuilder
     private static readonly Color WinBody = new Color(0.97f, 0.97f, 0.95f);
     private static readonly Color Ink = new Color(0.08f, 0.08f, 0.1f);
 
+    // Parts of the "close the program?" dialog.
     internal class DialogRefs
     {
+        // Its group, texts and buttons.
         public CanvasGroup Group;
         public TMP_Text Title, Text, Message, CloseLabel, SettingsLabel, CancelLabel;
         public Button Close, Settings, Cancel;
     }
 
+    // Builds his screen UI (HUD, desktop, dialog).
     private static GameObject BuildUi(Rig rig, out OperatorRoomHud hud, out OperatorDesktop desktop, out DialogRefs dialog)
     {
         int uiLayer = LayerMask.NameToLayer("UI");
@@ -649,74 +666,76 @@ internal static class OperatorRoomBuilder
         Transform c = canvasGo.transform;
 
         hud = BuildRoomHud(c);
-        HelenaSetupMenu.SetReference(hud, OperatorRoomHud.ThoughtsField, ThoughtViewBuilder.Build(c, rig.Settings));
+        EditorSerialized.SetReference(hud, OperatorRoomHud.ThoughtsField, ThoughtViewBuilder.Build(c, rig.Settings));
         desktop = BuildDesktop(c, rig);
         dialog = BuildDialog(c);
         return canvasGo;
     }
 
+    // His room HUD: dot, notes, thoughts.
     internal static OperatorRoomHud BuildRoomHud(Transform canvas)
     {
-        var go = HelenaSetupMenu.CreateUiObject(canvas, "RoomHud");
-        HelenaSetupMenu.Stretch((RectTransform)go.transform);
+        var go = EditorUi.CreateUiObject(canvas, "RoomHud");
+        EditorUi.Stretch((RectTransform)go.transform);
         var group = go.AddComponent<CanvasGroup>();
         group.blocksRaycasts = false;
         Vector2 mid = new Vector2(0.5f, 0.5f), bottom = new Vector2(0.5f, 0f);
-        Image dot = HelenaSetupMenu.CreateUiObject(go.transform, "Dot").AddComponent<Image>();
+        Image dot = EditorUi.CreateUiObject(go.transform, "Dot").AddComponent<Image>();
         dot.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
         dot.raycastTarget = false;
-        HelenaSetupMenu.Place(dot.rectTransform, mid, mid, mid, Vector2.zero, new Vector2(6f, 6f));
-        TMP_Text hover = HelenaSetupMenu.CreateText(go.transform, "Hover", 22, TextAlignmentOptions.Center, new Color(1f, 0.9f, 0.6f));
-        HelenaSetupMenu.Place(hover.rectTransform, mid, mid, mid, new Vector2(0f, -38f), new Vector2(700f, 34f));
-        TMP_Text message = HelenaSetupMenu.CreateText(go.transform, "Message", 26, TextAlignmentOptions.Center, Color.white);
-        HelenaSetupMenu.Place(message.rectTransform, bottom, bottom, bottom, new Vector2(0f, 110f), new Vector2(1100f, 44f));
+        EditorUi.Place(dot.rectTransform, mid, mid, mid, Vector2.zero, new Vector2(6f, 6f));
+        TMP_Text hover = EditorUi.CreateText(go.transform, "Hover", 22, TextAlignmentOptions.Center, new Color(1f, 0.9f, 0.6f));
+        EditorUi.Place(hover.rectTransform, mid, mid, mid, new Vector2(0f, -38f), new Vector2(700f, 34f));
+        TMP_Text message = EditorUi.CreateText(go.transform, "Message", 26, TextAlignmentOptions.Center, Color.white);
+        EditorUi.Place(message.rectTransform, bottom, bottom, bottom, new Vector2(0f, 110f), new Vector2(1100f, 44f));
 
         // the note being read (cork boards)
-        var noteGo = HelenaSetupMenu.CreateUiObject(canvas, "Note");
-        HelenaSetupMenu.Stretch((RectTransform)noteGo.transform);
+        var noteGo = EditorUi.CreateUiObject(canvas, "Note");
+        EditorUi.Stretch((RectTransform)noteGo.transform);
         var noteGroup = noteGo.AddComponent<CanvasGroup>();
         noteGroup.blocksRaycasts = false;
-        Image shade = HelenaSetupMenu.CreateUiObject(noteGo.transform, "Shade").AddComponent<Image>();
-        HelenaSetupMenu.Stretch(shade.rectTransform);
+        Image shade = EditorUi.CreateUiObject(noteGo.transform, "Shade").AddComponent<Image>();
+        EditorUi.Stretch(shade.rectTransform);
         shade.color = new Color(0f, 0f, 0f, 0.8f);
         shade.raycastTarget = false;
-        Image paper = HelenaSetupMenu.CreateUiObject(noteGo.transform, "Paper").AddComponent<Image>();
-        HelenaSetupMenu.Place(paper.rectTransform, mid, mid, mid, Vector2.zero, new Vector2(760f, 540f));
+        Image paper = EditorUi.CreateUiObject(noteGo.transform, "Paper").AddComponent<Image>();
+        EditorUi.Place(paper.rectTransform, mid, mid, mid, Vector2.zero, new Vector2(760f, 540f));
         paper.color = new Color(0.93f, 0.89f, 0.78f);
         paper.raycastTarget = false;
         Vector2 tl = new Vector2(0f, 1f);
-        TMP_Text title = HelenaSetupMenu.CreateText(paper.transform, "Title", 34, TextAlignmentOptions.Top, new Color(0.45f, 0.08f, 0.05f));
-        HelenaSetupMenu.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -26f), new Vector2(700f, 50f));
+        TMP_Text title = EditorUi.CreateText(paper.transform, "Title", 34, TextAlignmentOptions.Top, new Color(0.45f, 0.08f, 0.05f));
+        EditorUi.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -26f), new Vector2(700f, 50f));
         title.fontStyle = FontStyles.Bold | FontStyles.Underline;
-        TMP_Text body = HelenaSetupMenu.CreateText(paper.transform, "Body", 24, TextAlignmentOptions.TopLeft, Ink);
-        HelenaSetupMenu.Place(body.rectTransform, tl, tl, tl, new Vector2(40f, -96f), new Vector2(680f, 390f));
+        TMP_Text body = EditorUi.CreateText(paper.transform, "Body", 24, TextAlignmentOptions.TopLeft, Ink);
+        EditorUi.Place(body.rectTransform, tl, tl, tl, new Vector2(40f, -96f), new Vector2(680f, 390f));
         body.lineSpacing = 12f;
-        TMP_Text noteHint = HelenaSetupMenu.CreateText(paper.transform, "Hint", 16, TextAlignmentOptions.Bottom, new Color(0.35f, 0.3f, 0.25f));
-        HelenaSetupMenu.Place(noteHint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 14f), new Vector2(700f, 26f));
+        TMP_Text noteHint = EditorUi.CreateText(paper.transform, "Hint", 16, TextAlignmentOptions.Bottom, new Color(0.35f, 0.3f, 0.25f));
+        EditorUi.Place(noteHint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 14f), new Vector2(700f, 26f));
 
-        TMP_Text hint = HelenaSetupMenu.CreateText(canvas, "Hint", 18, TextAlignmentOptions.Center, new Color(1f, 0.85f, 0.55f));
-        HelenaSetupMenu.Place(hint.rectTransform, bottom, bottom, bottom, new Vector2(0f, 16f), new Vector2(1240f, 30f));
+        TMP_Text hint = EditorUi.CreateText(canvas, "Hint", 18, TextAlignmentOptions.Center, new Color(1f, 0.85f, 0.55f));
+        EditorUi.Place(hint.rectTransform, bottom, bottom, bottom, new Vector2(0f, 16f), new Vector2(1240f, 30f));
 
         var hud = go.AddComponent<OperatorRoomHud>();
-        HelenaSetupMenu.SetReference(hud, OperatorRoomHud.GroupField, group);
-        HelenaSetupMenu.SetReference(hud, OperatorRoomHud.CrosshairField, dot);
-        HelenaSetupMenu.SetReference(hud, OperatorRoomHud.HoverField, hover);
-        HelenaSetupMenu.SetReference(hud, OperatorRoomHud.MessageField, message);
-        HelenaSetupMenu.SetReference(hud, OperatorRoomHud.NoteGroupField, noteGroup);
-        HelenaSetupMenu.SetReference(hud, OperatorRoomHud.NoteTitleField, title);
-        HelenaSetupMenu.SetReference(hud, OperatorRoomHud.NoteBodyField, body);
-        HelenaSetupMenu.SetReference(hud, OperatorRoomHud.NoteHintField, noteHint);
-        HelenaSetupMenu.SetReference(hud, OperatorRoomHud.HintField, hint);
+        EditorSerialized.SetReference(hud, OperatorRoomHud.GroupField, group);
+        EditorSerialized.SetReference(hud, OperatorRoomHud.CrosshairField, dot);
+        EditorSerialized.SetReference(hud, OperatorRoomHud.HoverField, hover);
+        EditorSerialized.SetReference(hud, OperatorRoomHud.MessageField, message);
+        EditorSerialized.SetReference(hud, OperatorRoomHud.NoteGroupField, noteGroup);
+        EditorSerialized.SetReference(hud, OperatorRoomHud.NoteTitleField, title);
+        EditorSerialized.SetReference(hud, OperatorRoomHud.NoteBodyField, body);
+        EditorSerialized.SetReference(hud, OperatorRoomHud.NoteHintField, noteHint);
+        EditorSerialized.SetReference(hud, OperatorRoomHud.HintField, hint);
         return hud;
     }
 
+    // The PC desktop with his files.
     private static OperatorDesktop BuildDesktop(Transform canvas, Rig rig)
     {
-        var go = HelenaSetupMenu.CreateUiObject(canvas, "Desktop");
-        HelenaSetupMenu.Stretch((RectTransform)go.transform);
+        var go = EditorUi.CreateUiObject(canvas, "Desktop");
+        EditorUi.Stretch((RectTransform)go.transform);
         var group = go.AddComponent<CanvasGroup>();
-        RawImage wall = HelenaSetupMenu.CreateUiObject(go.transform, "Wallpaper").AddComponent<RawImage>();
-        HelenaSetupMenu.Stretch(wall.rectTransform);
+        RawImage wall = EditorUi.CreateUiObject(go.transform, "Wallpaper").AddComponent<RawImage>();
+        EditorUi.Stretch(wall.rectTransform);
         wall.texture = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/T_Op_Wallpaper.png");
         wall.color = wall.texture != null ? Color.white : new Color(0.02f, 0.18f, 0.2f);
 
@@ -725,21 +744,21 @@ internal static class OperatorRoomBuilder
         Button stand = Icon(go, "IconStand", "T_Op_IconStand", 2, out TMP_Text standLabel);
 
         // taskbar
-        Image bar = HelenaSetupMenu.CreateUiObject(go.transform, "Taskbar").AddComponent<Image>();
+        Image bar = EditorUi.CreateUiObject(go.transform, "Taskbar").AddComponent<Image>();
         bar.color = WinGray;
-        HelenaSetupMenu.Place(bar.rectTransform, Vector2.zero, new Vector2(1f, 0f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(0f, 40f));
-        Image start = HelenaSetupMenu.CreateUiObject(bar.transform, "Start").AddComponent<Image>();
+        EditorUi.Place(bar.rectTransform, Vector2.zero, new Vector2(1f, 0f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(0f, 40f));
+        Image start = EditorUi.CreateUiObject(bar.transform, "Start").AddComponent<Image>();
         start.color = new Color(0.86f, 0.86f, 0.84f);
         start.raycastTarget = false;
-        HelenaSetupMenu.Place(start.rectTransform, Vector2.zero, new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(6f, 0f), new Vector2(150f, -10f));
-        TMP_Text startText = HelenaSetupMenu.CreateText(start.transform, "Text", 18, TextAlignmentOptions.Center, Ink);
-        HelenaSetupMenu.Stretch(startText.rectTransform);
+        EditorUi.Place(start.rectTransform, Vector2.zero, new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(6f, 0f), new Vector2(150f, -10f));
+        TMP_Text startText = EditorUi.CreateText(start.transform, "Text", 18, TextAlignmentOptions.Center, Ink);
+        EditorUi.Stretch(startText.rectTransform);
         startText.text = "<b>TERMINAL OS</b>";
-        TMP_Text status = HelenaSetupMenu.CreateText(bar.transform, "Status", 17, TextAlignmentOptions.Left, new Color(0.5f, 0.05f, 0.05f));
-        HelenaSetupMenu.Place(status.rectTransform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), new Vector2(40f, 0f), new Vector2(-460f, 0f));
-        TMP_Text clock = HelenaSetupMenu.CreateText(bar.transform, "Clock", 18, TextAlignmentOptions.Center, Ink);
+        TMP_Text status = EditorUi.CreateText(bar.transform, "Status", 17, TextAlignmentOptions.Left, new Color(0.5f, 0.05f, 0.05f));
+        EditorUi.Place(status.rectTransform, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), new Vector2(40f, 0f), new Vector2(-460f, 0f));
+        TMP_Text clock = EditorUi.CreateText(bar.transform, "Clock", 18, TextAlignmentOptions.Center, Ink);
         Vector2 r1 = new Vector2(1f, 0.5f);
-        HelenaSetupMenu.Place(clock.rectTransform, r1, r1, r1, new Vector2(-8f, 0f), new Vector2(90f, 30f));
+        EditorUi.Place(clock.rectTransform, r1, r1, r1, new Vector2(-8f, 0f), new Vector2(90f, 30f));
 
         // files window + viewer
         RectTransform filesBody = Window(go.transform, "FilesWindow", new Vector2(-230f, 30f), new Vector2(520f, 440f), out CanvasGroup filesGroup, out TMP_Text filesTitle, out Button filesClose);
@@ -750,7 +769,7 @@ internal static class OperatorRoomBuilder
         vlg.spacing = 2f;
         vlg.padding = new RectOffset(4, 4, 4, 4);
         listContent.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-        var rowGo = HelenaSetupMenu.CreateUiObject(listContent, "FileRowTemplate");
+        var rowGo = EditorUi.CreateUiObject(listContent, "FileRowTemplate");
         Image rowImg = rowGo.AddComponent<Image>();
         rowImg.color = Color.white;
         var rowButton = rowGo.AddComponent<Button>();
@@ -760,17 +779,17 @@ internal static class OperatorRoomBuilder
         rcb.pressedColor = new Color(0.55f, 0.7f, 1f);
         rowButton.colors = rcb;
         rowGo.AddComponent<LayoutElement>().preferredHeight = 32f;
-        TMP_Text rowLabel = HelenaSetupMenu.CreateText(rowGo.transform, "Label", 19, TextAlignmentOptions.Left, Ink);
-        HelenaSetupMenu.Stretch(rowLabel.rectTransform);
+        TMP_Text rowLabel = EditorUi.CreateText(rowGo.transform, "Label", 19, TextAlignmentOptions.Left, Ink);
+        EditorUi.Stretch(rowLabel.rectTransform);
         rowLabel.margin = new Vector4(12f, 0f, 8f, 0f);
         var row = rowGo.AddComponent<OperatorFileRow>();
-        HelenaSetupMenu.SetReference(row, OperatorFileRow.ButtonField, rowButton);
-        HelenaSetupMenu.SetReference(row, OperatorFileRow.LabelField, rowLabel);
+        EditorSerialized.SetReference(row, OperatorFileRow.ButtonField, rowButton);
+        EditorSerialized.SetReference(row, OperatorFileRow.LabelField, rowLabel);
         rowGo.SetActive(false);
 
         RectTransform viewerBody = Window(go.transform, "Viewer", new Vector2(250f, 10f), new Vector2(660f, 500f), out CanvasGroup viewerGroup, out TMP_Text viewerTitle, out Button viewerClose);
         RectTransform textContent = ScrollArea(viewerBody, out ScrollRect viewerScroll);
-        TMP_Text viewerText = HelenaSetupMenu.CreateText(textContent, "Text", 20, TextAlignmentOptions.TopLeft, Ink);
+        TMP_Text viewerText = EditorUi.CreateText(textContent, "Text", 20, TextAlignmentOptions.TopLeft, Ink);
         RectTransform vt = viewerText.rectTransform;
         vt.anchorMin = new Vector2(0f, 1f); vt.anchorMax = new Vector2(1f, 1f); vt.pivot = new Vector2(0.5f, 1f);
         vt.anchoredPosition = Vector2.zero; vt.sizeDelta = Vector2.zero;
@@ -811,11 +830,12 @@ internal static class OperatorRoomBuilder
         return desktop;
     }
 
+    // A desktop icon.
     private static Button Icon(GameObject go, string name, string tex, int row, out TMP_Text label)
     {
-        var b = HelenaSetupMenu.CreateUiObject(go.transform, name);
+        var b = EditorUi.CreateUiObject(go.transform, name);
         Vector2 tlc = new Vector2(0f, 1f);
-        HelenaSetupMenu.Place((RectTransform)b.transform, tlc, tlc, tlc, new Vector2(24f, -24f - row * 150f), new Vector2(130f, 136f));
+        EditorUi.Place((RectTransform)b.transform, tlc, tlc, tlc, new Vector2(24f, -24f - row * 150f), new Vector2(130f, 136f));
         Image hit = b.AddComponent<Image>();
         hit.color = new Color(1f, 1f, 1f, 0f);
         var button = b.AddComponent<Button>();
@@ -826,36 +846,36 @@ internal static class OperatorRoomBuilder
         cb.pressedColor = new Color(0.3f, 0.5f, 1f, 0.55f);
         cb.selectedColor = new Color(1f, 1f, 1f, 0f);
         button.colors = cb;
-        RawImage pic = HelenaSetupMenu.CreateUiObject(b.transform, "Icon").AddComponent<RawImage>();
+        RawImage pic = EditorUi.CreateUiObject(b.transform, "Icon").AddComponent<RawImage>();
         pic.texture = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/{tex}.png");
         pic.raycastTarget = false;
         Vector2 top = new Vector2(0.5f, 1f);
-        HelenaSetupMenu.Place(pic.rectTransform, top, top, top, new Vector2(0f, -6f), new Vector2(72f, 72f));
-        label = HelenaSetupMenu.CreateText(b.transform, "Label", 17, TextAlignmentOptions.Top, Color.white);
-        HelenaSetupMenu.Place(label.rectTransform, top, top, top, new Vector2(0f, -82f), new Vector2(130f, 52f));
+        EditorUi.Place(pic.rectTransform, top, top, top, new Vector2(0f, -6f), new Vector2(72f, 72f));
+        label = EditorUi.CreateText(b.transform, "Label", 17, TextAlignmentOptions.Top, Color.white);
+        EditorUi.Place(label.rectTransform, top, top, top, new Vector2(0f, -82f), new Vector2(130f, 52f));
         return button;
     }
 
     // a retro window: gray frame, blue title bar with an X; returns the body
     private static RectTransform Window(Transform parent, string name, Vector2 pos, Vector2 size, out CanvasGroup group, out TMP_Text title, out Button close)
     {
-        var go = HelenaSetupMenu.CreateUiObject(parent, name);
+        var go = EditorUi.CreateUiObject(parent, name);
         Vector2 mid = new Vector2(0.5f, 0.5f);
-        HelenaSetupMenu.Place((RectTransform)go.transform, mid, mid, mid, pos, size);
+        EditorUi.Place((RectTransform)go.transform, mid, mid, mid, pos, size);
         group = go.AddComponent<CanvasGroup>();
         Image frame = go.AddComponent<Image>();
         frame.color = WinGray;
         var outline = go.AddComponent<Outline>();
         outline.effectColor = new Color(0.2f, 0.2f, 0.2f);
         outline.effectDistance = new Vector2(2f, -2f);
-        Image bar = HelenaSetupMenu.CreateUiObject(go.transform, "TitleBar").AddComponent<Image>();
+        Image bar = EditorUi.CreateUiObject(go.transform, "TitleBar").AddComponent<Image>();
         bar.color = WinTitle;
-        HelenaSetupMenu.Place(bar.rectTransform, new Vector2(0f, 1f), Vector2.one, new Vector2(0.5f, 1f), new Vector2(0f, -4f), new Vector2(-8f, 30f));
-        title = HelenaSetupMenu.CreateText(bar.transform, "Title", 18, TextAlignmentOptions.Left, Color.white);
-        HelenaSetupMenu.Stretch(title.rectTransform);
+        EditorUi.Place(bar.rectTransform, new Vector2(0f, 1f), Vector2.one, new Vector2(0.5f, 1f), new Vector2(0f, -4f), new Vector2(-8f, 30f));
+        title = EditorUi.CreateText(bar.transform, "Title", 18, TextAlignmentOptions.Left, Color.white);
+        EditorUi.Stretch(title.rectTransform);
         title.margin = new Vector4(10f, 0f, 40f, 0f);
         close = UiButton(bar.transform, "Close", new Vector2(1f, 0.5f), new Vector2(-4f, 0f), new Vector2(28f, 22f), WinGray, "X", 16, Ink, out _);
-        var body = HelenaSetupMenu.CreateUiObject(go.transform, "Body");
+        var body = EditorUi.CreateUiObject(go.transform, "Body");
         var rt = (RectTransform)body.transform;
         rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.pivot = mid;
         rt.offsetMin = new Vector2(6f, 6f); rt.offsetMax = new Vector2(-6f, -40f);
@@ -865,15 +885,15 @@ internal static class OperatorRoomBuilder
     // scroll area (vertical) filling the body; returns its content
     private static RectTransform ScrollArea(RectTransform body, out ScrollRect scroll)
     {
-        var area = HelenaSetupMenu.CreateUiObject(body, "Scroll");
-        HelenaSetupMenu.Stretch((RectTransform)area.transform);
+        var area = EditorUi.CreateUiObject(body, "Scroll");
+        EditorUi.Stretch((RectTransform)area.transform);
         Image back = area.AddComponent<Image>();
         back.color = WinBody;
         scroll = area.AddComponent<ScrollRect>();
-        var viewport = HelenaSetupMenu.CreateUiObject(area.transform, "Viewport");
-        HelenaSetupMenu.Stretch((RectTransform)viewport.transform);
+        var viewport = EditorUi.CreateUiObject(area.transform, "Viewport");
+        EditorUi.Stretch((RectTransform)viewport.transform);
         viewport.AddComponent<RectMask2D>();
-        var content = HelenaSetupMenu.CreateUiObject(viewport.transform, "Content");
+        var content = EditorUi.CreateUiObject(viewport.transform, "Content");
         var ct = (RectTransform)content.transform;
         ct.anchorMin = new Vector2(0f, 1f); ct.anchorMax = Vector2.one; ct.pivot = new Vector2(0.5f, 1f);
         ct.anchoredPosition = Vector2.zero; ct.sizeDelta = Vector2.zero;
@@ -886,10 +906,11 @@ internal static class OperatorRoomBuilder
         return ct;
     }
 
+    // A UI button with a label.
     private static Button UiButton(Transform parent, string name, Vector2 anchor, Vector2 pos, Vector2 size, Color color, string text, float fontSize, Color textColor, out TMP_Text label)
     {
-        var go = HelenaSetupMenu.CreateUiObject(parent, name);
-        HelenaSetupMenu.Place((RectTransform)go.transform, anchor, anchor, anchor, pos, size);
+        var go = EditorUi.CreateUiObject(parent, name);
+        EditorUi.Place((RectTransform)go.transform, anchor, anchor, anchor, pos, size);
         Image img = go.AddComponent<Image>();
         img.color = color;
         var button = go.AddComponent<Button>();
@@ -897,26 +918,27 @@ internal static class OperatorRoomBuilder
         var outline = go.AddComponent<Outline>();
         outline.effectColor = new Color(0.25f, 0.25f, 0.25f);
         outline.effectDistance = new Vector2(1f, -1f);
-        label = HelenaSetupMenu.CreateText(go.transform, "Label", fontSize, TextAlignmentOptions.Center, textColor);
-        HelenaSetupMenu.Stretch(label.rectTransform);
+        label = EditorUi.CreateText(go.transform, "Label", fontSize, TextAlignmentOptions.Center, textColor);
+        EditorUi.Stretch(label.rectTransform);
         label.text = text;
         return button;
     }
 
+    // Builds the "close the program?" dialog.
     internal static DialogRefs BuildDialog(Transform canvas)
     {
         var refs = new DialogRefs();
-        var go = HelenaSetupMenu.CreateUiObject(canvas, "CloseDialog");
-        HelenaSetupMenu.Stretch((RectTransform)go.transform);
+        var go = EditorUi.CreateUiObject(canvas, "CloseDialog");
+        EditorUi.Stretch((RectTransform)go.transform);
         refs.Group = go.AddComponent<CanvasGroup>();
         Image shade = go.AddComponent<Image>();   // blocks clicks to the world behind it
         shade.color = new Color(0f, 0f, 0f, 0.45f);
         RectTransform body = Window(go.transform, "Window", Vector2.zero, new Vector2(560f, 230f), out _, out refs.Title, out Button x);
         Object.DestroyImmediate(x.gameObject);   // the dialog has its own buttons
-        refs.Text = HelenaSetupMenu.CreateText(body, "Text", 22, TextAlignmentOptions.Center, Ink);
-        HelenaSetupMenu.Place(refs.Text.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(520f, 40f));
-        refs.Message = HelenaSetupMenu.CreateText(body, "Message", 17, TextAlignmentOptions.Center, new Color(0.6f, 0.05f, 0.05f));
-        HelenaSetupMenu.Place(refs.Message.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -54f), new Vector2(530f, 50f));
+        refs.Text = EditorUi.CreateText(body, "Text", 22, TextAlignmentOptions.Center, Ink);
+        EditorUi.Place(refs.Text.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(520f, 40f));
+        refs.Message = EditorUi.CreateText(body, "Message", 17, TextAlignmentOptions.Center, new Color(0.6f, 0.05f, 0.05f));
+        EditorUi.Place(refs.Message.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -54f), new Vector2(530f, 50f));
         Vector2 b = new Vector2(0.5f, 0f);
         refs.Close = UiButton(body, "CloseProgram", b, new Vector2(-180f, 32f), new Vector2(160f, 40f), new Color(0.86f, 0.86f, 0.84f), "CLOSE", 18, Ink, out refs.CloseLabel);
         refs.Settings = UiButton(body, "Settings", b, new Vector2(0f, 32f), new Vector2(170f, 40f), new Color(0.86f, 0.86f, 0.84f), "SETTINGS", 18, Ink, out refs.SettingsLabel);

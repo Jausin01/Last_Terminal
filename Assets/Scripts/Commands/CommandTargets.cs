@@ -12,6 +12,7 @@ using UnityEngine;
 // Doors answer to their number too ("door 2").
 public class CommandTargets : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string RoomsField = nameof(rooms);
     public const string DoorsField = nameof(doors);
     public const string PickupsField = nameof(pickups);
@@ -61,19 +62,24 @@ public class CommandTargets : MonoBehaviour
     public const string MaxBetKey = "maxbet";
     public const string SameBetKey = "samebet";
 
+    // A thing she can shoot and the name key it answers to.
     [Serializable]
     public class Shootable
     {
+        // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
         public const string KeyField = nameof(key);
         public const string TargetField = nameof(target);
 
+        // Its name key ("dummy", an enemy type) and its health.
         [SerializeField] private string key = DummyKey;
         [SerializeField] private Health target;
 
+        // Read by the searches and CombatEncounter.
         public string Key => key;
         public Health Target => target;
     }
 
+    // Everything in the scene that can be named (filled by the scene builders).
     [SerializeField] private Room[] rooms = new Room[0];
     [SerializeField] private Door[] doors = new Door[0];
     [SerializeField] private Pickup[] pickups = new Pickup[0];
@@ -103,10 +109,12 @@ public class CommandTargets : MonoBehaviour
     [Header("Room center")]
     [Tooltip("Spots tried around the center, ring after ring (m).")]
     [SerializeField] private float centerStep = 0.75f;
+    // Number of rings of spots tried around the center.
     [SerializeField] private int centerRings = 4;
     [Tooltip("Spots closer than this to a wall are not used (m).")]
     [SerializeField] private float centerWallMargin = 0.6f;
 
+    // Scratch lists of a search, rooms linked by doors / open sides, and the center spots tried.
     private readonly List<Component> candidates = new List<Component>();
     private readonly Dictionary<Room, HashSet<Room>> links = new Dictionary<Room, HashSet<Room>>();
     private readonly List<Vector3> spots = new List<Vector3>();
@@ -114,6 +122,7 @@ public class CommandTargets : MonoBehaviour
     // the last search left a matching thing out because it is farther than the next room
     public bool LastSearchOutOfReach { get; private set; }
 
+    // Links the rooms: by the doors between them, and the sections of one hall (open to each other).
     private void Awake()
     {
         // rooms linked by the doors between them
@@ -144,8 +153,10 @@ public class CommandTargets : MonoBehaviour
         }
     }
 
+    // "The center" with no room named goes here (null = her room's center).
     public Room CenterRoom => centerRoom;
 
+    // Read by the combat, the map and the commands.
     public IReadOnlyList<Room> Rooms => rooms;
     public IReadOnlyList<Door> Doors => doors;
     public IReadOnlyList<Shootable> Shootables => shootables;
@@ -160,6 +171,7 @@ public class CommandTargets : MonoBehaviour
         }
     }
 
+    // The casino's roulette / counter (null when the scene has none) and whether there is blackjack here.
     public RouletteGame Roulette => roulette;
     public PrizeCounter Counter => counter;
     public bool HasBlackjack => tables.Length > 0;
@@ -173,6 +185,7 @@ public class CommandTargets : MonoBehaviour
         }
     }
 
+    // The closest Hold'em table in reach.
     public HoldemGame FindHoldem(Vector3 from)
     {
         candidates.Clear();
@@ -181,6 +194,7 @@ public class CommandTargets : MonoBehaviour
         return Choose(CommandModifier.None, from, null) as HoldemGame;
     }
 
+    // The closest blackjack table in reach.
     public BlackjackGame FindTable(Vector3 from)
     {
         candidates.Clear();
@@ -189,6 +203,7 @@ public class CommandTargets : MonoBehaviour
         return Choose(CommandModifier.None, from, null) as BlackjackGame;
     }
 
+    // The room containing a position (null = outside every room).
     public Room RoomOf(Vector3 position)
     {
         foreach (Room r in rooms)
@@ -206,6 +221,7 @@ public class CommandTargets : MonoBehaviour
         return null;
     }
 
+    // Does this door belong to this room (within the doorway margin)?
     public bool DoorOf(Room room, Door door) => room != null && door != null && room.Contains(door.transform.position, doorwayMargin);
 
     // the same room or the next one (a door between them)
@@ -219,6 +235,7 @@ public class CommandTargets : MonoBehaviour
         return here == null || there == null || IsNextTo(here, there);
     }
 
+    // The door connecting two rooms (null = none).
     public Door DoorBetween(Room a, Room b)
     {
         foreach (Door d in doors)
@@ -286,6 +303,7 @@ public class CommandTargets : MonoBehaviour
         return length < 0.01f || !Physics.Raycast(from, d / length, length - 0.15f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
     }
 
+    // The room named in the command (null = none).
     public Room FindRoom(ParsedCommand cmd)
     {
         foreach (string key in cmd.Keys)
@@ -346,6 +364,7 @@ public class CommandTargets : MonoBehaviour
         return Choose(cmd.Modifier, from, exclude) as Pickup;
     }
 
+    // The closest save computer in reach.
     public SaveStation FindStation(Vector3 from)
     {
         candidates.Clear();
@@ -373,6 +392,7 @@ public class CommandTargets : MonoBehaviour
         return best;
     }
 
+    // Read by the elevator / slot commands.
     public IReadOnlyList<Elevator> Elevators => elevators;
     public IReadOnlyList<SlotMachine> Slots => slots;
 
@@ -460,6 +480,7 @@ public class CommandTargets : MonoBehaviour
         return false;
     }
 
+    // Adds a candidate if it is in reach (else remembers that one was too far).
     private void AddInReach(Component c, Vector3 from)
     {
         if (InReach(from, c.transform.position)) candidates.Add(c);
@@ -503,6 +524,7 @@ public class CommandTargets : MonoBehaviour
         return best;
     }
 
+    // Is any candidate in front of the operator's camera (left / right then use the screen)?
     private bool AnyInFront(Camera view)
     {
         foreach (Component c in candidates)
@@ -510,6 +532,7 @@ public class CommandTargets : MonoBehaviour
         return false;
     }
 
+    // Within the "the door" / "shoot" distance with no name.
     private bool Near(Vector3 position, Vector3 from) => Flat(position - from).magnitude <= nearbyDistance;
 
     // things in her room come first, then the nearest
@@ -520,5 +543,6 @@ public class CommandTargets : MonoBehaviour
         return here != null && here.Contains(position) ? d : d + 1000f;
     }
 
+    // A vector flattened onto the floor.
     private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 }

@@ -8,34 +8,43 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Last Terminal/Outfit", fileName = "Outfit")]
 public class OutfitDefinition : ScriptableObject
 {
+    // Replaces one of her materials with another while this outfit is worn.
     [Serializable]
     public class MaterialSwap
     {
+        // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
         public const string OriginalField = nameof(original);
         public const string ReplacementField = nameof(replacement);
 
+        // The original material, and the one used instead.
         [SerializeField] private Material original;
         [SerializeField] private Material replacement;
 
         public MaterialSwap() { }
         public MaterialSwap(Material original, Material replacement) { this.original = original; this.replacement = replacement; }
+        // Read by PartnerOutfit.
         public Material Original => original;
         public Material Replacement => replacement;
     }
 
+    // Draws one of her parts with another mesh (same vertices / bones, reshaped).
     [Serializable]
     public class MeshSwap
     {
+        // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
         public const string PartField = nameof(part);
         public const string MeshField = nameof(mesh);
 
+        // The part (object name in her model) and the mesh to use.
         [SerializeField] private string part;
         [SerializeField] private Mesh mesh;
 
+        // Read by PartnerOutfit.
         public string Part => part;
         public Mesh Mesh => mesh;
     }
 
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string KeyField = nameof(key);
     public const string DisplayNameField = nameof(displayName);
     public const string DisplayNamePtField = nameof(displayNamePt);
@@ -47,10 +56,12 @@ public class OutfitDefinition : ScriptableObject
     public const string LineField = nameof(line);
     public const string TagLineField = nameof(tagLine);
 
+    // Lexicon key ("outfit_pajama"), name in each language and price in prize coins (0 = free).
     [SerializeField] private string key = "outfit_";
     [SerializeField] private string displayName = "Outfit";
     [SerializeField] private string displayNamePt = "Roupa";
     [SerializeField, Min(0)] private int price;
+    // Material swaps of this outfit.
     [SerializeField] private MaterialSwap[] swaps = new MaterialSwap[0];
     [Tooltip("Parts of her model (object names) drawn with another mesh: same vertices and bones, reshaped (e.g. smoothed).")]
     [SerializeField] private MeshSwap[] meshSwaps = new MeshSwap[0];
@@ -63,12 +74,14 @@ public class OutfitDefinition : ScriptableObject
     [Tooltip("What she answers when asked what her tag says (NoTag: this outfit has none).")]
     [SerializeField] private PartnerLine tagLine = PartnerLine.NoTag;
 
+    // Read by her outfits, the commands, the prize counter and the HUD.
     public string Key => key;
     public string DisplayName(GameLanguage language) => language == GameLanguage.Portuguese ? displayNamePt : displayName;
     public int Price => price;
     public PartnerLine Line => line;
     public PartnerLine TagLine => tagLine;
 
+    // The material to draw instead of an original one (unchanged when not swapped).
     public Material Swap(Material original)
     {
         foreach (MaterialSwap s in swaps)
@@ -84,6 +97,7 @@ public class OutfitDefinition : ScriptableObject
         return null;
     }
 
+    // Is this part hidden / this accessory shown with the outfit?
     public bool Hides(string partName) => Array.IndexOf(hiddenParts, partName) >= 0;
     public bool Shows(string extraName) => Array.IndexOf(extraParts, extraName) >= 0;
 }

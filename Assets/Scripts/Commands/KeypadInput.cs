@@ -6,6 +6,7 @@ using System.Collections.Generic;
 // a code is a list of single digits, which the lexicon (one number per command) can't hold.
 public static class KeypadInput
 {
+    // English words for the keypad keys (digits, confirm, clear).
     private static readonly Dictionary<string, char> English = new Dictionary<string, char>
     {
         { "zero", '0' }, { "one", '1' }, { "two", '2' }, { "three", '3' }, { "four", '4' },
@@ -15,6 +16,7 @@ public static class KeypadInput
         { "clear", Keypad.Clear }, { "delete", Keypad.Clear }, { "erase", Keypad.Clear }, { "cancel", Keypad.Clear }, { "reset", Keypad.Clear },
     };
 
+    // Portuguese words for the keypad keys (digits, confirm, clear).
     private static readonly Dictionary<string, char> Portuguese = new Dictionary<string, char>
     {
         { "zero", '0' }, { "um", '1' }, { "uma", '1' }, { "dois", '2' }, { "duas", '2' }, { "tres", '3' }, { "quatro", '4' },
@@ -34,6 +36,7 @@ public static class KeypadInput
         { "forty", 40 }, { "fifty", 50 }, { "sixty", 60 }, { "seventy", 70 }, { "eighty", 80 }, { "ninety", 90 },
     };
 
+    // Portuguese tens / teens, as whole numbers.
     private static readonly Dictionary<string, int> PortugueseTens = new Dictionary<string, int>
     {
         { "dez", 10 }, { "onze", 11 }, { "doze", 12 }, { "treze", 13 }, { "catorze", 14 }, { "quatorze", 14 }, { "quinze", 15 },
@@ -93,6 +96,7 @@ public static class KeypadInput
         return keys.ToString();
     }
 
+    // Is the word made of digits only?
     private static bool IsNumeral(string w)
     {
         foreach (char c in w)

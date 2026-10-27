@@ -5,8 +5,10 @@ using UnityEngine;
 // Only a note: it does nothing in the game. Shown as a yellow circle + its first line in the Scene view.
 public class DesignNote : MonoBehaviour
 {
+    // The note text.
     [TextArea(2, 8)] public string note = "";
 
+    // Yellow circle and the first line in the Scene view.
     private void OnDrawGizmos()
     {
         Gizmos.color = new Color(1f, 0.82f, 0.2f, 0.9f);

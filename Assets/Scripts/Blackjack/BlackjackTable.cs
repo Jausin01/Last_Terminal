@@ -8,6 +8,7 @@ using UnityEngine;
 // MaterialPropertyBlock (_BaseMap_ST), so all cards share one material.
 public class BlackjackTable : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string SeatField = nameof(seat);
     public const string CardPrefabField = nameof(cardPrefab);
     public const string ChipPrefabField = nameof(chipPrefab);
@@ -28,6 +29,7 @@ public class BlackjackTable : MonoBehaviour
 
     [Tooltip("Her seat (a SaveStation used as a chair: she sits with the save point routine).")]
     [SerializeField] private SaveStation seat;
+    // Prefabs spawned (and pooled) for each card and chip.
     [SerializeField] private GameObject cardPrefab;
     [SerializeField] private GameObject chipPrefab;
     [Tooltip("Deck she holds while dealing (shown in her left hand).")]
@@ -37,6 +39,7 @@ public class BlackjackTable : MonoBehaviour
     [Tooltip("Camera at the player's seat, looking at her: switched on (and to) while a game is on.")]
     [SerializeField] private SecurityCamera tableCamera;
 
+    // Where things are on the table (local space): shoe, discard holder, chip tray, dealer's cards and their spacing, player's cards.
     [Header("Layout (local space, measured on SM_BlackjackTable)")]
     [SerializeField] private Vector3 shoe = new Vector3(0.40f, 0.81f, 0.50f);
     [SerializeField] private Vector3 discard = new Vector3(-0.54f, 0.82f, 0.44f);
@@ -45,14 +48,17 @@ public class BlackjackTable : MonoBehaviour
     [SerializeField] private float dealerSpacing = 0.06f;
     [SerializeField] private Vector3 playerCards = new Vector3(0f, 0.751f, 0.92f);
     [SerializeField] private Vector2 cardCascade = new Vector2(0.024f, -0.034f);   // x, z per card of a hand
+    // Space between the player's hands after a split, the bet spot and the insurance spot.
     [SerializeField] private float handSpacing = 0.21f;
     [SerializeField] private Vector3 betSpot = new Vector3(0f, 0.751f, 1.03f);
     [SerializeField] private Vector3 insuranceSpot = new Vector3(0.20f, 0.751f, 0.81f);
     [Tooltip("Where chips go when they are handed to the player (off the rail).")]
     [SerializeField] private Vector3 playerSide = new Vector3(0f, 0.85f, 1.25f);
 
+    // A card object on the table and what it shows.
     public class CardVisual
     {
+        // The card it shows, its object, the renderer of its face and whether it is turned up.
         public Card Card;
         public Transform Transform;
         public Renderer Front;
@@ -60,29 +66,39 @@ public class BlackjackTable : MonoBehaviour
         public bool Blank;     // both sides show the back (her hole card until it is revealed)
     }
 
+    // A move in progress: from / to position and rotation, timing, arc height, what happens at the end.
     private class Tween
     {
+        // Object moved, start and end pose.
         public Transform Target;
         public Vector3 From, To;
         public Quaternion FromRot, ToRot;
+        // Elapsed time, length, height of the arc in the middle.
         public float Time, Duration, Arc;
+        // Hide the object at the end (chips taken away) and the callback.
         public bool DisableAtEnd;
         public Action Done;
     }
 
+    // Moves in progress and the pools of card / chip objects (reused, never destroyed during a game).
     private readonly List<Tween> tweens = new List<Tween>();
     private readonly List<CardVisual> cardPool = new List<CardVisual>();
     private readonly List<GameObject> chipPool = new List<GameObject>();
+    // Shared property block to pick atlas cells without new materials.
     private MaterialPropertyBlock block;
+    // Shader properties for the atlas cell (URP and built-in names).
     private static readonly int BaseMapSt = Shader.PropertyToID("_BaseMap_ST");
     private static readonly int MainTexSt = Shader.PropertyToID("_MainTex_ST");
 
+    // References the game and the HUD read.
     public SaveStation Seat => seat;
     public Texture CardAtlas => cardAtlas;
     public Transform Deck => deck;
     public SecurityCamera TableCamera => tableCamera;
+    // Something is still moving.
     public bool IsMoving => tweens.Count > 0;
 
+    // Checks the references.
     private void Awake()
     {
         block = new MaterialPropertyBlock();
@@ -99,11 +115,13 @@ public class BlackjackTable : MonoBehaviour
     public Vector3 DealerCardPosition(int index) => World(dealerCards + new Vector3(index * dealerSpacing, index * 0.0004f, 0f));
     public Vector3 PlayerCardPosition(int hand, int hands, int index) =>
         World(playerCards + new Vector3(HandX(hand, hands) + index * cardCascade.x, index * 0.0004f, index * cardCascade.y));
+    // World positions of the bet, insurance, tray, player side and discard spots.
     public Vector3 BetPosition(int hand, int hands, int stack) => World(betSpot + new Vector3(HandX(hand, hands) + stack * 0.062f, 0f, 0f));
     public Vector3 InsurancePosition => World(insuranceSpot);
     public Vector3 TrayPosition => World(chipTray);
     public Vector3 PlayerSidePosition => World(playerSide);
     public Vector3 DiscardPosition => World(discard);
+    // X offset of a hand when there are several (centered on the table).
     private float HandX(int hand, int hands) => (hand - (hands - 1) * 0.5f) * handSpacing;
 
     // card lying on the felt, readable from the player's side; face down = flipped over its length
@@ -135,8 +153,10 @@ public class BlackjackTable : MonoBehaviour
     public static Rect CardUv(Card card) =>
         new Rect((card.Rank - 1) * CardCellU, 1f - ((int)card.Suit + 1) * CardCellV, CardCellU, CardCellV);
 
+    // Atlas cell of the card back.
     public static Rect CardBackUv => new Rect(13 * CardCellU, 1f - CardCellV, CardCellU, CardCellV);
 
+    // Shows one atlas cell on a card's face.
     private void SetCardFace(Renderer front, Rect r)
     {
         if (front == null) return;
@@ -147,6 +167,7 @@ public class BlackjackTable : MonoBehaviour
         front.SetPropertyBlock(block);
     }
 
+    // Slides a card to a place (with a little arc), turning it up or down.
     public void MoveCard(CardVisual card, Vector3 to, bool faceUp, float duration, float arc = 0.06f, Action done = null, float yaw = 0f)
     {
         card.FaceUp = faceUp;
@@ -159,6 +180,7 @@ public class BlackjackTable : MonoBehaviour
         StartTween(card.Transform, to, CardRotation(faceUp, yaw), duration, arc, false, done);
     }
 
+    // Takes a card off the table (back to the pool).
     public void HideCard(CardVisual card) => card.Transform.gameObject.SetActive(false);
 
     // ------------------------------------------------------------------ chips
@@ -180,6 +202,7 @@ public class BlackjackTable : MonoBehaviour
         return chips;
     }
 
+    // One chip of a value from the pool, at a position with a random spin.
     private GameObject SpawnChip(int valueIndex, Vector3 position)
     {
         GameObject go = chipPool.Find(c => !c.activeSelf);
@@ -219,6 +242,7 @@ public class BlackjackTable : MonoBehaviour
         }
     }
 
+    // Takes chips off the table at once (back to the pool).
     public void RemoveChips(List<GameObject> chips)
     {
         if (chips == null) return;
@@ -245,8 +269,10 @@ public class BlackjackTable : MonoBehaviour
         });
     }
 
+    // Callbacks of the moves that ended this frame (run after the loop).
     private readonly List<Action> finished = new List<Action>();
 
+    // Advances every move (smooth step + arc) and runs their callbacks.
     private void Update()
     {
         finished.Clear();

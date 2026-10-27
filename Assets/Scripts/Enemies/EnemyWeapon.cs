@@ -6,12 +6,14 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class EnemyWeapon : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string SwipeDamageField = nameof(swipeDamage);
     public const string SmashDamageField = nameof(smashDamage);
     public const string BiteDamageField = nameof(biteDamage);
     public const string ReachField = nameof(reach);
     public const string DropColliderField = nameof(dropCollider);
 
+    // Damage added to each attack slot (0 = this weapon can't do that attack).
     [SerializeField, Min(0)] private int swipeDamage = 20;
     [SerializeField, Min(0)] private int smashDamage = 25;
     [SerializeField, Min(0)] private int biteDamage;
@@ -20,14 +22,17 @@ public class EnemyWeapon : MonoBehaviour
     [Tooltip("Off while held (shots and her melee hit the enemy, not the weapon).")]
     [SerializeField] private Collider dropCollider;
 
+    // Its rigidbody, the hand it hangs from and its pose there, and whether it was dropped.
     private Rigidbody body;
     private Transform holder;
     private Vector3 heldPosition;
     private Quaternion heldRotation;
     private bool dropped;
 
+    // Extra reach (read by EnemyBrain).
     public float Reach => reach;
 
+    // Damage added to an attack slot.
     public int DamageFor(EnemyAttackSlot slot) => slot switch
     {
         EnemyAttackSlot.Swipe => swipeDamage,
@@ -35,6 +40,7 @@ public class EnemyWeapon : MonoBehaviour
         _ => biteDamage,
     };
 
+    // Remembers its place in the hand; held (kinematic, no collider).
     private void Awake()
     {
         body = GetComponent<Rigidbody>();
@@ -44,6 +50,7 @@ public class EnemyWeapon : MonoBehaviour
         Hold();
     }
 
+    // The enemy died: the weapon falls with physics.
     public void Drop()
     {
         if (dropped) return;
@@ -53,6 +60,7 @@ public class EnemyWeapon : MonoBehaviour
         body.isKinematic = false;
     }
 
+    // A save was loaded: back in the hand.
     public void Reattach()
     {
         if (!dropped) return;
@@ -63,6 +71,7 @@ public class EnemyWeapon : MonoBehaviour
         Hold();
     }
 
+    // Kinematic and without collider while held.
     private void Hold()
     {
         body.isKinematic = true;

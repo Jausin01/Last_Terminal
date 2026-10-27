@@ -8,6 +8,7 @@ using UnityEngine.InputSystem;
 // PartnerCommands.Execute the same way.
 public class CommandConsole : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string CommandsField = nameof(commands);
     public const string CameraSystemField = nameof(cameraSystem);
     public const string SaveScreenField = nameof(saveScreen);
@@ -16,31 +17,39 @@ public class CommandConsole : MonoBehaviour
     public const string InputTextField = nameof(inputText);
     public const string EchoTextField = nameof(echoText);
 
+    // Where a typed line goes (Helena's commands), and what can block typing (camera system, save screen); language for the prompt.
     [SerializeField] private PartnerCommands commands;
     [SerializeField] private SecurityCameraSystem cameraSystem;
     [SerializeField] private SaveScreen saveScreen;
     [SerializeField] private CameraSettings settings;
+    // The console UI: panel (shown while typing), the line being typed, the echo of the last line sent.
     [SerializeField] private CanvasGroup panel;
     [SerializeField] private TMP_Text inputText;
     [SerializeField] private TMP_Text echoText;
+    // Longest line, and how long the echo of the last line stays.
     [SerializeField] private int maxLength = 80;
     [SerializeField] private float echoTime = 3f;
     [Tooltip("Backspace held: first repeat after, then every (s).")]
     [SerializeField] private Vector2 backspaceRepeat = new Vector2(0.4f, 0.05f);
 
+    // Keys: Enter sends (or opens the line), Esc cancels, Backspace deletes (repeats while held).
     [Header("Input")]
     [SerializeField] private InputAction submit = new InputAction("Submit", InputActionType.Button);
     [SerializeField] private InputAction cancel = new InputAction("Cancel", InputActionType.Button, "<Keyboard>/escape");
     [SerializeField] private InputAction backspace = new InputAction("Backspace", InputActionType.Button, "<Keyboard>/backspace");
 
+    // Typing state: open, the text, echo / backspace-repeat timers, the keyboard whose text input is read.
     private bool open;
     private string text = "";
     private float echoTimer;
     private float backspaceTimer;
     private Keyboard keyboard;
+    private System.Action<string> overrideHandler;   // a cutscene waiting for the operator's line
 
+    // The line is open (other systems ignore their keys meanwhile).
     public bool IsOpen => open;
 
+    // Default bindings and reference checks; starts hidden.
     private void Awake()
     {
         if (submit.bindings.Count == 0)
@@ -59,6 +68,7 @@ public class CommandConsole : MonoBehaviour
         if (echoText != null) echoText.text = "";
     }
 
+    // Enables the keys.
     private void OnEnable()
     {
         submit.Enable(); cancel.Enable(); backspace.Enable();
@@ -67,6 +77,7 @@ public class CommandConsole : MonoBehaviour
         backspace.performed += OnBackspace;
     }
 
+    // Closes the line and disables the keys.
     private void OnDisable()
     {
         SetOpen(false);
@@ -76,21 +87,22 @@ public class CommandConsole : MonoBehaviour
         submit.Disable(); cancel.Disable(); backspace.Disable();
     }
 
+    // The line can open: no settings / overlay / save screen on top, and someone to receive it.
     private bool CanOpen => (cameraSystem == null || (!cameraSystem.IsSettingsOpen && !cameraSystem.IsOverlayOpen && (!cameraSystem.IsLocked || overrideHandler != null)))
                             && (commands != null || overrideHandler != null)
                             && (saveScreen == null || !saveScreen.IsOpen);
 
-    private System.Action<string> overrideHandler;   // a cutscene waiting for the operator's line
-
     // what is typed goes to the handler (not to Helena) until EndOverride
     public void BeginOverride(System.Action<string> handler) => overrideHandler = handler;
 
+    // The cutscene got its line: typed text goes to Helena again.
     public void EndOverride()
     {
         overrideHandler = null;
         if (open && (cameraSystem == null || cameraSystem.IsLocked)) SetOpen(false);
     }
 
+    // Enter: opens the line, or sends it (to the cutscene waiting for it, else to Helena).
     private void OnSubmit(InputAction.CallbackContext ctx)
     {
         if (!open)
@@ -118,11 +130,13 @@ public class CommandConsole : MonoBehaviour
         echoTimer = echoTime;
     }
 
+    // Esc: drops the line.
     private void OnCancel(InputAction.CallbackContext ctx)
     {
         if (open) SetOpen(false);
     }
 
+    // Backspace pressed: deletes one character and starts the repeat timer.
     private void OnBackspace(InputAction.CallbackContext ctx)
     {
         if (!open) return;
@@ -130,6 +144,7 @@ public class CommandConsole : MonoBehaviour
         backspaceTimer = backspaceRepeat.x;
     }
 
+    // Opens / closes the line (keyboard text input on/off, camera keys off while typing).
     private void SetOpen(bool value)
     {
         if (open == value) return;
@@ -150,6 +165,7 @@ public class CommandConsole : MonoBehaviour
         Refresh();
     }
 
+    // A typed character (accents included).
     private void OnTextInput(char c)
     {
         if (!open || char.IsControl(c) || text.Length >= maxLength) return;
@@ -157,6 +173,7 @@ public class CommandConsole : MonoBehaviour
         Refresh();
     }
 
+    // Deletes the last character.
     private void DeleteLast()
     {
         if (text.Length == 0) return;
@@ -164,6 +181,7 @@ public class CommandConsole : MonoBehaviour
         Refresh();
     }
 
+    // Closes the line if something covers it; backspace repeat; caret blink; echo fade.
     private void Update()
     {
         if (open)
@@ -186,6 +204,7 @@ public class CommandConsole : MonoBehaviour
         }
     }
 
+    // Draws the prompt and the typed text with a blinking caret.
     private void Refresh()
     {
         if (inputText == null) return;

@@ -7,8 +7,10 @@ using System.Text;
 // Only VoskWorker calls these, on its own thread.
 internal static class VoskNative
 {
+    // Native library name.
     private const string Lib = "libvosk";
 
+    // The libvosk C functions (names as in vosk_api.h).
     [DllImport(Lib)] public static extern void vosk_set_log_level(int level);
     [DllImport(Lib)] private static extern IntPtr vosk_model_new(byte[] modelPath);
     [DllImport(Lib)] public static extern void vosk_model_free(IntPtr model);
@@ -22,15 +24,18 @@ internal static class VoskNative
     [DllImport(Lib)] public static extern void vosk_recognizer_reset(IntPtr recognizer);
     [DllImport(Lib)] public static extern void vosk_recognizer_free(IntPtr recognizer);
 
+    // A string as a zero-terminated UTF-8 byte array.
     private static byte[] Utf8(string s) => Encoding.UTF8.GetBytes(s + "\0");
 
     // the library opens files with narrow (ANSI) paths on Windows: a folder with accents ("Área de Trabalho") is
     // passed by its short 8.3 name, which is plain ASCII
     public static IntPtr ModelNew(string path) => vosk_model_new(Utf8(AsciiPath(path)));
 
+    // Windows: the short (8.3) form of a path.
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern int GetShortPathNameW(string longPath, StringBuilder shortPath, int size);
 
+    // A path without non-ASCII characters (libvosk can't open those): the short form on Windows.
     private static string AsciiPath(string path)
     {
         bool ascii = true;
@@ -44,9 +49,12 @@ internal static class VoskNative
         }
         catch (Exception) { return path; }
     }
+    // Is the word in the model's vocabulary?
     public static bool HasWord(IntPtr model, string word) => vosk_model_find_word(model, Utf8(word)) >= 0;
+    // New recognizer, limited to a grammar (JSON list of phrases) when one is given.
     public static IntPtr RecognizerNew(IntPtr model, float rate, string grammarJson) =>
         string.IsNullOrEmpty(grammarJson) ? vosk_recognizer_new(model, rate) : vosk_recognizer_new_grm(model, rate, Utf8(grammarJson));
+    // Result JSON of the last utterance / the partial one / the final one.
     public static string Result(IntPtr r) => FromUtf8(vosk_recognizer_result(r));
     public static string PartialResult(IntPtr r) => FromUtf8(vosk_recognizer_partial_result(r));
     public static string FinalResult(IntPtr r) => FromUtf8(vosk_recognizer_final_result(r));

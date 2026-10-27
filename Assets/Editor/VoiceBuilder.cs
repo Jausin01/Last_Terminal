@@ -10,6 +10,7 @@ using UnityEngine.SceneManagement;
 // Vosk native libraries' import settings + a check that the language models are in StreamingAssets/Vosk.
 internal static class VoiceBuilder
 {
+    // The native libraries and the model folders expected.
     private const string PluginFolder = "Assets/Plugins/Vosk/x86_64";
     private static readonly string[] PluginFiles = { "libvosk.dll", "libgcc_s_seh-1.dll", "libstdc++-6.dll", "libwinpthread-1.dll" };
     private static readonly string[] Models = { "Vosk/en", "Vosk/pt" };
@@ -95,24 +96,24 @@ internal static class VoiceBuilder
                                             CameraSettings settings, CommandConsole console)
     {
         Vector2 bc = new Vector2(0.5f, 0f);
-        var go = HelenaSetupMenu.CreateUiObject(canvas, "Voice");
+        var go = EditorUi.CreateUiObject(canvas, "Voice");
         go.transform.SetSiblingIndex(2);
-        HelenaSetupMenu.Place((RectTransform)go.transform, bc, bc, bc, new Vector2(0f, 240f), new Vector2(900f, 34f));
+        EditorUi.Place((RectTransform)go.transform, bc, bc, bc, new Vector2(0f, 240f), new Vector2(900f, 34f));
         var group = go.AddComponent<CanvasGroup>();
         group.blocksRaycasts = false;
-        TMP_Text text = HelenaSetupMenu.CreateText(go.transform, "Text", 20, TextAlignmentOptions.Center, Color.white);
-        HelenaSetupMenu.Stretch(text.rectTransform);
+        TMP_Text text = EditorUi.CreateText(go.transform, "Text", 20, TextAlignmentOptions.Center, Color.white);
+        EditorUi.Stretch(text.rectTransform);
 
         var voice = go.AddComponent<VoiceCommandInput>();
-        HelenaSetupMenu.SetReference(voice, VoiceCommandInput.CommandsField, commands);
-        HelenaSetupMenu.SetReference(voice, VoiceCommandInput.CameraSystemField, cameraSystem);
-        HelenaSetupMenu.SetReference(voice, VoiceCommandInput.SaveScreenField, saveScreen);
-        HelenaSetupMenu.SetReference(voice, VoiceCommandInput.SettingsField, settings);
-        HelenaSetupMenu.SetReference(voice, VoiceCommandInput.EnglishField, CommandDataBuilder.EnsureLexicon(GameLanguage.English));
-        HelenaSetupMenu.SetReference(voice, VoiceCommandInput.PortugueseField, CommandDataBuilder.EnsureLexicon(GameLanguage.Portuguese));
-        HelenaSetupMenu.SetReference(voice, VoiceCommandInput.ConsoleField, console);
-        HelenaSetupMenu.SetReference(voice, VoiceCommandInput.GroupField, group);
-        HelenaSetupMenu.SetReference(voice, VoiceCommandInput.TextField, text);
+        EditorSerialized.SetReference(voice, VoiceCommandInput.CommandsField, commands);
+        EditorSerialized.SetReference(voice, VoiceCommandInput.CameraSystemField, cameraSystem);
+        EditorSerialized.SetReference(voice, VoiceCommandInput.SaveScreenField, saveScreen);
+        EditorSerialized.SetReference(voice, VoiceCommandInput.SettingsField, settings);
+        EditorSerialized.SetReference(voice, VoiceCommandInput.EnglishField, CommandDataBuilder.EnsureLexicon(GameLanguage.English));
+        EditorSerialized.SetReference(voice, VoiceCommandInput.PortugueseField, CommandDataBuilder.EnsureLexicon(GameLanguage.Portuguese));
+        EditorSerialized.SetReference(voice, VoiceCommandInput.ConsoleField, console);
+        EditorSerialized.SetReference(voice, VoiceCommandInput.GroupField, group);
+        EditorSerialized.SetReference(voice, VoiceCommandInput.TextField, text);
         return voice;
     }
 }

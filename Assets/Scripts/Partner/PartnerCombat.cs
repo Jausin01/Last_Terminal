@@ -8,12 +8,14 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class PartnerCombat : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string WeaponHolderField = nameof(weaponHolder);
     public const string InteractorField = nameof(interactor);
     public const string MeleeField = nameof(melee);
     public const string ShooterField = nameof(shooter);
 
+    // Her animator, the weapon holder, the interactor (pickups) and the melee / firearm handlers.
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private WeaponHolder weaponHolder;
     [SerializeField] private PartnerInteractor interactor;
@@ -28,6 +30,7 @@ public class PartnerCombat : MonoBehaviour
     [Tooltip("Fire with no target: point straight ahead at this distance / height (m).")]
     [SerializeField] private Vector2 defaultTarget = new Vector2(10f, 1.2f);
 
+    // Her agent, aim state and point, the auto-lower timer, and the facing point (no raised weapon).
     private NavMeshAgent agent;
     private bool aiming;
     private Vector3 aimPoint;
@@ -35,6 +38,7 @@ public class PartnerCombat : MonoBehaviour
     private bool facing;
     private Vector3 facePoint;
 
+    // Read-only state for commands, the HUD and the stance.
     public bool IsArmed => partnerAnimator.IsArmed;
     public bool IsAiming => aiming;
     public bool IsFacing => facing;
@@ -45,8 +49,10 @@ public class PartnerCombat : MonoBehaviour
     public bool SelectedIsRanged => HasComponent<RangedWeapon>(selectedWeapon);
     public bool SelectedIsMelee => HasComponent<MeleeWeapon>(selectedWeapon);
 
+    // She can act: not walking to a pickup, not turning in place, not scripted.
     private bool CanAct => !interactor.HasPickupTarget && !partnerAnimator.IsTurning && !partnerAnimator.IsScripted;
 
+    // Gets the agent; checks the references.
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -57,6 +63,7 @@ public class PartnerCombat : MonoBehaviour
         }
     }
 
+    // Listens to pickups (weapon hidden / aim dropped).
     private void OnEnable()
     {
         if (partnerAnimator == null || interactor == null) return;
@@ -65,6 +72,7 @@ public class PartnerCombat : MonoBehaviour
         interactor.PickupRequested += StopAiming;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (partnerAnimator == null || interactor == null) return;
@@ -73,6 +81,7 @@ public class PartnerCombat : MonoBehaviour
         interactor.PickupRequested -= StopAiming;
     }
 
+    // Takes the selected weapon out (or the first one she owns).
     public bool Draw()
     {
         if (partnerAnimator.IsArmed) return true;
@@ -101,6 +110,7 @@ public class PartnerCombat : MonoBehaviour
         return true;
     }
 
+    // Puts the weapon away (not mid-swing).
     public void Holster()
     {
         if (partnerAnimator.IsAttacking) return;
@@ -128,6 +138,7 @@ public class PartnerCombat : MonoBehaviour
         partnerAnimator.SetHoldFacing(true);
     }
 
+    // Stops facing the point; the agent turns her again.
     public void StopFacing()
     {
         if (!facing) return;
@@ -136,6 +147,7 @@ public class PartnerCombat : MonoBehaviour
         if (!aiming) agent.updateRotation = true;
     }
 
+    // Lowers the weapon and drops any pending shot.
     public void StopAiming()
     {
         shooter.CancelPending();
@@ -164,12 +176,14 @@ public class PartnerCombat : MonoBehaviour
         return shooter.RequestFire(target);
     }
 
+    // Reloads the firearm in hand.
     public bool Reload()
     {
         if (partnerAnimator.IsScripted || !partnerAnimator.IsArmed) return false;
         return shooter.Reload();
     }
 
+    // Raises the weapon toward a point (draws it first).
     private bool StartAiming(Vector3 point)
     {
         if (!CanAct || !Draw()) return false;
@@ -180,6 +194,7 @@ public class PartnerCombat : MonoBehaviour
         return true;
     }
 
+    // Each frame: aim pose vs reload, the auto-lower timer and turning toward the aim point.
     private void Update()
     {
         if (!aiming)
@@ -210,6 +225,7 @@ public class PartnerCombat : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(transform.rotation, want, aimTurnSpeed * Time.deltaTime);
     }
 
+    // Turns toward the facing point while armed (not during moves that turn her themselves).
     private void UpdateFacing()
     {
         if (!facing) return;
@@ -223,6 +239,7 @@ public class PartnerCombat : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), aimTurnSpeed * Time.deltaTime);
     }
 
+    // Fire with no target: a point straight ahead.
     private Vector3 DefaultTarget() =>
         transform.position + transform.forward * defaultTarget.x + Vector3.up * defaultTarget.y;
 
@@ -239,6 +256,7 @@ public class PartnerCombat : MonoBehaviour
         if (partnerAnimator.IsArmed) weaponHolder.SetVisible(false);
     }
 
+    // Weapon visible again after the pickup.
     private void OnPickupFinished()
     {
         if (partnerAnimator.IsArmed) weaponHolder.SetVisible(true);

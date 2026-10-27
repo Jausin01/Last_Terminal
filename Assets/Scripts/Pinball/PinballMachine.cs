@@ -9,6 +9,7 @@ using L = PinballLayout;
 // a MaterialPropertyBlock), the score display on the backbox, the sounds. High score kept on this computer.
 public class PinballMachine : OperatorInteractable
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string StationField = nameof(station);
     public const string StoryField = nameof(story);
     public const string ViewPointField = nameof(viewPoint);
@@ -32,20 +33,24 @@ public class PinballMachine : OperatorInteractable
     public const string AudioField = nameof(audioSource);
     public const string GlowField = nameof(glow);
 
+    // High score key (PlayerPrefs), and the story flag set when a game reaches the score below.
     public const string HighScoreKey = "ArcaneQuest.HighScore";
     public const string ScoreFlag = "pinball_100k";
     public const long ScoreFlagPoints = 100000;
 
+    // The operator station (leans over / leaves) and the story flags.
     [SerializeField] private OperatorStation station;
     [SerializeField] private StoryProgress story;
     [Tooltip("His eyes while playing.")]
     [SerializeField] private Transform viewPoint;
     [Tooltip("Table space origin: bottom left corner of the playfield, x right, z up the table, y off the surface.")]
     [SerializeField] private Transform playfield;
+    // Moving parts: ball, flippers, drop targets, plunger.
     [SerializeField] private Transform ball;
     [SerializeField] private Transform[] flippers = new Transform[2];
     [SerializeField] private Transform[] targets = new Transform[3];
     [SerializeField] private Transform plunger;
+    // Lit parts (inserts and caps), tinted per frame.
     [SerializeField] private Renderer[] bumperCaps = new Renderer[3];
     [SerializeField] private Renderer[] slingRubbers = new Renderer[2];
     [SerializeField] private Renderer[] laneLights = new Renderer[4];
@@ -58,17 +63,21 @@ public class PinballMachine : OperatorInteractable
     [SerializeField] private Renderer enchanted;
     [Tooltip("The backbox display.")]
     [SerializeField] private TMP_Text scoreText;
+    // Backbox message line and the sound source.
     [SerializeField] private TMP_Text infoText;
     [SerializeField] private AudioSource audioSource;
     [Tooltip("Optional: the glow over the playfield (purple; gold while enchanted).")]
     [SerializeField] private Light glow;
+    // High score shown before any game is played.
     [SerializeField] private long defaultHighScore = 150000;
 
+    // Flipper and plunger buttons.
     [Header("Input (bindings added when empty)")]
     [SerializeField] private InputAction leftFlipper = new InputAction("LeftFlipper", InputActionType.Button);
     [SerializeField] private InputAction rightFlipper = new InputAction("RightFlipper", InputActionType.Button);
     [SerializeField] private InputAction launch = new InputAction("Launch", InputActionType.Button);
 
+    // Shader ids and the insert colors.
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
     private static readonly Color Gold = new Color(1f, 0.78f, 0.25f);
@@ -79,6 +88,7 @@ public class PinballMachine : OperatorInteractable
     private static readonly Color Green = new Color(0.35f, 1f, 0.4f);
     private static readonly Color Pink = new Color(1f, 0.35f, 0.8f);
 
+    // The game, the property block for the lights, rest poses of targets / plunger / caps, playing, high score, message and its timer, glow level, and the ball's last world position.
     private readonly PinballTable table = new PinballTable();
     private MaterialPropertyBlock block;
     private Vector3[] targetRest;
@@ -91,17 +101,22 @@ public class PinballMachine : OperatorInteractable
     private float glowIntensity;
     private Vector3 lastBallWorld;
 
+    // His eyes while playing; a game in progress.
     public Transform ViewPoint => viewPoint;
     public bool IsPlaying => playing;
 
+    // No hand animation for this station.
     public override HandMotion Motion => HandMotion.None;
 
+    // Prompt text.
     public override string Label(GameLanguage language) => Pick(language, "Pinball - ARCANE QUEST", "Fliperama - ARCANE QUEST");
 
+    // Controls hint shown while playing.
     public string Hint(GameLanguage language) => Pick(language,
         "A / D, Shift or mouse buttons: flippers   ·   SPACE: plunger (hold, release)   ·   ESC: leave",
         "A / D, Shift ou botões do mouse: palhetas   ·   ESPAÇO: lançador (segure, solte)   ·   ESC: sair");
 
+    // Builds the table, binds input, reads the high score, hooks the game events.
     private void Awake()
     {
         if (leftFlipper.bindings.Count == 0)
@@ -139,6 +154,7 @@ public class PinballMachine : OperatorInteractable
         lastBallWorld = BallWorld();
     }
 
+    // Unhooks the game events and frees the input.
     private void OnDestroy()
     {
         table.Played -= OnSound;
@@ -146,6 +162,7 @@ public class PinballMachine : OperatorInteractable
         table.GameEnded -= OnGameEnded;
     }
 
+    // Leans over the machine and starts / resumes the game.
     public override void Interact(FirstPersonPlayer player)
     {
         if (station != null) station.PlayPinball();
@@ -169,11 +186,13 @@ public class PinballMachine : OperatorInteractable
         }
     }
 
+    // Disables the input when the machine is disabled.
     private void OnDisable()
     {
         leftFlipper.Disable(); rightFlipper.Disable(); launch.Disable();
     }
 
+    // Each frame while playing: input to the table, Esc leaves, the simulation steps.
     private void Update()
     {
         if (playing)
@@ -187,6 +206,7 @@ public class PinballMachine : OperatorInteractable
         if (messageTimer > 0f) messageTimer -= Time.deltaTime;
     }
 
+    // After the simulation: moves the parts, lights, score display and glow.
     private void LateUpdate()
     {
         // ball (rolls), flippers, drop targets, plunger
@@ -209,6 +229,7 @@ public class PinballMachine : OperatorInteractable
         Display();
     }
 
+    // The ball position in world space.
     private Vector3 BallWorld() => playfield.TransformPoint(new Vector3(table.BallPos.x, L.BallRadius, table.BallPos.y));
 
     // ------------------------------------------------------------------ lights
@@ -260,6 +281,7 @@ public class PinballMachine : OperatorInteractable
         }
     }
 
+    // Tints a light on / off through the property block.
     private void SetLight(Renderer r, Color c, bool on, float boost = 1f)
     {
         if (r == null) return;
@@ -288,12 +310,14 @@ public class PinballMachine : OperatorInteractable
         else infoText.text = $"BALL {table.BallNumber}   MANA {table.Mana}%   {table.Multiplier}X";
     }
 
+    // Shows a backbox message for a while.
     private void OnMessage(string text, float seconds)
     {
         message = text;
         messageTimer = seconds;
     }
 
+    // Game over: high score saved, story flag set at 100k.
     private void OnGameEnded(long score)
     {
         if (score <= highScore) return;
@@ -304,6 +328,7 @@ public class PinballMachine : OperatorInteractable
         OperatorSounds.Play(audioSource, OperatorSounds.Kind.ExtraBall);
     }
 
+    // Plays the sound of a table event.
     private void OnSound(PinballTable.Sound sound)
     {
         OperatorSounds.Kind kind;

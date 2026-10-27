@@ -8,6 +8,7 @@ using UnityEngine;
 // (total, bet, result) and what can be said now. Rebuilt when the game changes.
 public class BlackjackHud : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string GamesField = nameof(games);
     public const string SettingsField = nameof(settings);
     public const string GroupField = nameof(group);
@@ -15,15 +16,18 @@ public class BlackjackHud : MonoBehaviour
     public const string BodyField = nameof(body);
     public const string PromptField = nameof(prompt);
 
+    // The blackjack tables, the settings (language), the panel and its texts.
     [SerializeField] private BlackjackGame[] games = new BlackjackGame[0];
     [SerializeField] private CameraSettings settings;
     [SerializeField] private CanvasGroup group;
     [SerializeField] private TMP_Text header;
     [SerializeField] private TMP_Text body;
     [SerializeField] private TMP_Text prompt;
+    // Highlight color of the hand in play, and the fade time (s).
     [SerializeField] private Color active = new Color(1f, 0.85f, 0.3f);
     [SerializeField] private float fadeTime = 0.25f;
 
+    // Card buffers, the text builder, the game shown and a rebuild pending.
     private readonly List<Card> cards = new List<Card>();
     private readonly List<Card> visible = new List<Card>();
     private readonly List<bool> faceUp = new List<bool>();
@@ -31,26 +35,31 @@ public class BlackjackHud : MonoBehaviour
     private BlackjackGame shown;
     private bool dirty;
 
+    // Checks references; hidden at start.
     private void Awake()
     {
         if (group == null || header == null || body == null || prompt == null) { enabled = false; return; }
         group.alpha = 0f;
     }
 
+    // Listens to every table's changes.
     private void OnEnable()
     {
         foreach (BlackjackGame g in games) if (g != null) g.Changed += MarkDirty;
         if (settings != null) settings.Changed += MarkDirty;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         foreach (BlackjackGame g in games) if (g != null) g.Changed -= MarkDirty;
         if (settings != null) settings.Changed -= MarkDirty;
     }
 
+    // Something changed: rebuild on the next LateUpdate.
     private void MarkDirty() => dirty = true;
 
+    // Fades in while a game is on; rebuilds when dirty.
     private void LateUpdate()
     {
         BlackjackGame game = null;
@@ -64,8 +73,10 @@ public class BlackjackHud : MonoBehaviour
         Rebuild(game);
     }
 
+    // Portuguese texts?
     private bool Pt => settings != null && settings.Language == GameLanguage.Portuguese;
 
+    // Writes chips, bet, dealer total, the hands and the prompt.
     private void Rebuild(BlackjackGame game)
     {
         BlackjackEngine e = game.Engine;
@@ -99,6 +110,7 @@ public class BlackjackHud : MonoBehaviour
         prompt.text = Prompt(game, pt);
     }
 
+    // Total of a hand ("soft" shown).
     private static string Total(List<Card> c)
     {
         int t = BlackjackHand.Value(c, out bool soft);
@@ -106,6 +118,7 @@ public class BlackjackHud : MonoBehaviour
         return soft && t < 21 ? $"{t - 10}/{t}" : t.ToString();
     }
 
+    // A hand's result word.
     private static string Result(HandOutcome o, bool pt)
     {
         switch (o)
@@ -120,6 +133,7 @@ public class BlackjackHud : MonoBehaviour
         }
     }
 
+    // What can be said now.
     private string Prompt(BlackjackGame game, bool pt)
     {
         BlackjackEngine e = game.Engine;
@@ -145,6 +159,7 @@ public class BlackjackHud : MonoBehaviour
         }
     }
 
+    // Adds a word to the prompt when allowed.
     private void Add(bool can, string word)
     {
         if (!can) return;

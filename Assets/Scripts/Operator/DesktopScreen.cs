@@ -10,8 +10,10 @@ public abstract class DesktopScreen : MonoBehaviour
     public event Action StandRequested;
     public event Action ShutdownRequested;
 
+    // The desktop is showing.
     public abstract bool IsOpen { get; }
 
+    // Shows / hides the desktop.
     public abstract void SetOpen(bool value);
 
     // Esc: closes the top window; false = nothing to close (the station gets him up)
@@ -23,6 +25,7 @@ public abstract class DesktopScreen : MonoBehaviour
     // whether the camera program can open here (a location linked to the room)
     public virtual void SetProgramAvailable(bool available) { }
 
+    // Raise the requests for subclasses (events can only be invoked by their own class).
     protected void RaiseProgram() => ProgramRequested?.Invoke();
     protected void RaiseStand() => StandRequested?.Invoke();
     protected void RaiseShutdown() => ShutdownRequested?.Invoke();

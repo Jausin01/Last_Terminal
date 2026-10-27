@@ -7,11 +7,13 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class PartnerExaminer : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string InteractorField = nameof(interactor);
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string VoiceField = nameof(voice);
     public const string StoryField = nameof(story);
 
+    // Her interactor (walks), animator and voice.
     [SerializeField] private PartnerInteractor interactor;
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private PartnerVoice voice;
@@ -19,19 +21,24 @@ public class PartnerExaminer : MonoBehaviour
     [SerializeField] private StoryProgress story;
     [Tooltip("Already this close: she only turns to it (m).")]
     [SerializeField] private float closeEnough = 1.6f;
+    // Facing speed (deg/s) and when she gives up getting there (s).
     [SerializeField] private float faceSpeed = 300f;
     [SerializeField] private float giveUpAfter = 15f;
 
+    // Not examining / walking to it / turning to it.
     private enum State { None, Walking, Facing }
 
+    // Her agent, the state, the thing and the time spent.
     private NavMeshAgent agent;
     private State state;
     private Examinable current;
     private float timer;
 
+    // Busy examining; raised when she has commented on something.
     public bool IsBusy => state != State.None;
     public event Action<Examinable> Examined;
 
+    // Checks the references.
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -59,6 +66,7 @@ public class PartnerExaminer : MonoBehaviour
         return true;
     }
 
+    // Stops (any other command calls this).
     public void Stop()
     {
         if (state == State.Facing) agent.updateRotation = true;
@@ -66,6 +74,7 @@ public class PartnerExaminer : MonoBehaviour
         current = null;
     }
 
+    // Where she stands to look at it (its marked spot, else in front of it on the NavMesh).
     private bool TryStand(Examinable target, out Vector3 stand)
     {
         if (target.StandPoint != null)
@@ -86,6 +95,7 @@ public class PartnerExaminer : MonoBehaviour
         return false;
     }
 
+    // Walk, then turn, then comment (gives up if she is taken or it takes too long).
     private void Update()
     {
         if (state == State.None) return;
@@ -109,6 +119,7 @@ public class PartnerExaminer : MonoBehaviour
         Comment();
     }
 
+    // Stops the agent and turns her by hand.
     private void StartFacing()
     {
         agent.ResetPath();
@@ -117,6 +128,7 @@ public class PartnerExaminer : MonoBehaviour
         state = State.Facing;
     }
 
+    // Says the thing's next line and sets its seen flag.
     private void Comment()
     {
         Examinable x = current;
@@ -127,5 +139,6 @@ public class PartnerExaminer : MonoBehaviour
         Examined?.Invoke(x);
     }
 
+    // A vector flattened onto the floor.
     private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 }

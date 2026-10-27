@@ -7,6 +7,7 @@ using UnityEngine;
 // This transform: on the floor at the doorway, forward = out of the car (into the room).
 public class Elevator : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string HereField = nameof(here);
     public const string DestinationField = nameof(destination);
     public const string NumberField = nameof(number);
@@ -20,34 +21,42 @@ public class Elevator : MonoBehaviour
     public const string WatchCameraField = nameof(watchCamera);
     public const string DoorTravelField = nameof(doorTravel);
 
+    // Where it is and where it goes.
     [SerializeField] private ElevatorStop here;
     [SerializeField] private ElevatorStop destination;
     [Tooltip("\"Elevator 2\" (on its sign too).")]
     [SerializeField, Min(1)] private int number = 1;
+    // The two sliding doors.
     [SerializeField] private Transform leftDoor;
     [SerializeField] private Transform rightDoor;
     [Tooltip("Where she stands in the car (facing out).")]
     [SerializeField] private Transform inside;
     [Tooltip("Where she waits in front of it.")]
     [SerializeField] private Transform outside;
+    // Call lamp, sign and sound source.
     [SerializeField] private Renderer lamp;
     [SerializeField] private ElevatorSign sign;
     [SerializeField] private AudioSource audioSource;
     [Tooltip("The CCTV camera that sees it: the view goes there when she arrives in it.")]
     [SerializeField] private SecurityCamera watchCamera;
+    // Door travel (m) and time (s).
     [SerializeField] private float doorTravel = 0.5f;
     [SerializeField] private float doorTime = 1.1f;
 
+    // Shader ids; closed door positions.
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private Vector3 leftClosed, rightClosed;
     private float amount;            // 0 closed .. 1 open
+    // Wanted state, lamp property block, the generated ding.
     private bool wantOpen;
     private MaterialPropertyBlock block;
     private AudioClip ding;
 
+    // Raised when the doors start opening / closing.
     public event Action<Elevator> DoorsChanged;
 
+    // Read-only data for her elevator user, travel and the map.
     public ElevatorStop Here => here;
     public ElevatorStop Destination => destination;
     public int Number => number;
@@ -58,6 +67,7 @@ public class Elevator : MonoBehaviour
     public bool IsClosed => amount <= 0.001f;
     public ElevatorKey RequiredKey => destination != null ? destination.RequiredKey : null;
 
+    // Stores closed positions; makes the ding; closed lamp.
     private void Awake()
     {
         block = new MaterialPropertyBlock();
@@ -68,6 +78,7 @@ public class Elevator : MonoBehaviour
         SetLamp(false);
     }
 
+    // Opens the doors (ding).
     public void Open()
     {
         if (wantOpen) return;
@@ -77,6 +88,7 @@ public class Elevator : MonoBehaviour
         DoorsChanged?.Invoke(this);
     }
 
+    // Closes the doors.
     public void Close()
     {
         if (!wantOpen) return;
@@ -94,6 +106,7 @@ public class Elevator : MonoBehaviour
         SetLamp(false);
     }
 
+    // Moves the doors toward the wanted state.
     private void Update()
     {
         float target = wantOpen ? 1f : 0f;
@@ -102,6 +115,7 @@ public class Elevator : MonoBehaviour
         Apply();
     }
 
+    // Places the doors.
     private void Apply()
     {
         float s = Mathf.SmoothStep(0f, 1f, amount) * doorTravel;
@@ -109,6 +123,7 @@ public class Elevator : MonoBehaviour
         if (rightDoor != null) rightDoor.localPosition = rightClosed + Vector3.right * s;
     }
 
+    // Lamp on / off.
     private void SetLamp(bool on)
     {
         if (lamp == null) return;
@@ -118,8 +133,10 @@ public class Elevator : MonoBehaviour
         lamp.SetPropertyBlock(block);
     }
 
+    // Generated "ding" clip.
     private static AudioClip Ding()
     {
+        // Sample rate of the generated clip.
         const int rate = 22050;
         int n = (int)(rate * 0.9f);
         var data = new float[n];

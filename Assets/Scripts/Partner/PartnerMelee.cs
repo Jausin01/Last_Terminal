@@ -14,6 +14,7 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class PartnerMelee : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string WeaponHolderField = nameof(weaponHolder);
 
@@ -22,18 +23,22 @@ public class PartnerMelee : MonoBehaviour
     public const int KnifeStab2 = 1;
     public const int BluntStrike = 2;
 
+    // Phase boundaries of one attack clip (normalized time).
     [Serializable]
     private struct AttackTiming
     {
+        // End of the wind-up, end of the strike, and the window where hits count.
         [Range(0f, 1f)] public float windupEnd;
         [Range(0f, 1f)] public float strikeEnd;
         [Range(0f, 1f)] public float hitStart;
         [Range(0f, 1f)] public float hitEnd;
     }
 
+    // Her animator (attack clips and speed) and the weapon holder.
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private WeaponHolder weaponHolder;
 
+    // Phases per clip (index = AttackId).
     [Header("Phases of each clip (index = AttackId)")]
     [SerializeField] private AttackTiming[] timings =
     {
@@ -42,6 +47,7 @@ public class PartnerMelee : MonoBehaviour
         new AttackTiming { windupEnd = 0.50f, strikeEnd = 0.80f, hitStart = 0.58f, hitEnd = 0.80f },   // BluntStrike
     };
 
+    // What the swing can hit.
     [Header("Targets")]
     [SerializeField] private LayerMask hitMask = ~0;
     [Tooltip("How fast she turns to the target during the wind-up (deg/s).")]
@@ -49,28 +55,36 @@ public class PartnerMelee : MonoBehaviour
     [Tooltip("Without a new press within this time after a swing, the blade combo starts over (s).")]
     [SerializeField] private float comboResetTime = 0.8f;
 
+    // Hit test buffers and the targets already hit in this swing.
     private readonly Collider[] overlap = new Collider[16];
     private readonly Health[] hitThisSwing = new Health[16];
     private int hitCount;
 
+    // Her agent and her own health (never hit herself), the weapon swinging.
     private NavMeshAgent agent;
     private Health self;
     private MeleeWeapon weapon;
+    // The clip playing (-1 = none), the next blade stab and the combo window.
     private int attackId = -1;
     private int nextBladeAttack = KnifeStab1;
     private float comboTimer;
+    // A press during the swing (played after it), and the point to turn to.
     private bool queued;
     private bool hasFacePoint;
     private Vector3 facePoint;
+    // Hit-stop time left, and the weapon tip's last position (swept hits).
     private float hitStopTimer;
     private bool hasLastTip;
     private Vector3 lastTip;
 
     public event Action<Health, int> Hit;   // target, damage
+    // Raised when a swing starts.
     public event Action AttackStarted;
 
+    // A swing is playing.
     public bool IsAttacking => partnerAnimator.IsAttacking;
 
+    // Gets the agent and health; checks the references.
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -82,11 +96,13 @@ public class PartnerMelee : MonoBehaviour
         }
     }
 
+    // Listens for the end of the swing.
     private void OnEnable()
     {
         if (partnerAnimator != null) partnerAnimator.AttackFinished += OnAttackFinished;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (partnerAnimator != null) partnerAnimator.AttackFinished -= OnAttackFinished;
@@ -111,6 +127,7 @@ public class PartnerMelee : MonoBehaviour
         return true;
     }
 
+    // Picks the clip (blade stabs alternate, blunt swings), stops her walk and plays it.
     private void StartAttack()
     {
         weapon = weaponHolder.Current.GetComponent<MeleeWeapon>();
@@ -137,6 +154,7 @@ public class PartnerMelee : MonoBehaviour
         AttackStarted?.Invoke();
     }
 
+    // Combo timer; the next blade stab right after the strike; turning during the wind-up; phase speeds.
     private void Update()
     {
         if (comboTimer > 0f) comboTimer -= Time.deltaTime;
@@ -177,6 +195,7 @@ public class PartnerMelee : MonoBehaviour
         hasLastTip = true;
     }
 
+    // Clip speed for the current phase (0 during hit-stop).
     private void UpdateSpeed(float t, AttackTiming timing)
     {
         if (hitStopTimer > 0f)
@@ -191,6 +210,7 @@ public class PartnerMelee : MonoBehaviour
         partnerAnimator.SetAttackSpeed(speed);
     }
 
+    // Damages every new target the capsule touches (once per swing), starting the hit-stop.
     private void CheckHits(Vector3 a, Vector3 b)
     {
         int count = Physics.OverlapCapsuleNonAlloc(a, b, weapon.HitRadius, overlap, hitMask, QueryTriggerInteraction.Ignore);
@@ -210,6 +230,7 @@ public class PartnerMelee : MonoBehaviour
         }
     }
 
+    // Was this target already hit this swing?
     private bool AlreadyHit(Health target)
     {
         for (int i = 0; i < hitCount; i++)
@@ -217,6 +238,7 @@ public class PartnerMelee : MonoBehaviour
         return false;
     }
 
+    // Turns toward the attack point during the wind-up.
     private void FaceTarget()
     {
         if (!hasFacePoint) return;
@@ -226,6 +248,7 @@ public class PartnerMelee : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to), faceSpeed * Time.deltaTime);
     }
 
+    // Swing over: she can walk again; a queued press swings again.
     private void OnAttackFinished()
     {
         agent.nextPosition = transform.position;

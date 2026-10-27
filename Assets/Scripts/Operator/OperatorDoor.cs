@@ -4,10 +4,12 @@ using UnityEngine;
 // rattles the handle.
 public class OperatorDoor : OperatorInteractable
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string LeafField = nameof(leaf);
 
     [Tooltip("The door leaf (shaken a little).")]
     [SerializeField] private Transform leaf;
+    // What he says at each try, per language (the last one repeats).
     [SerializeField] private string[] linesEn =
     {
         "Locked. From the outside.",
@@ -15,6 +17,7 @@ public class OperatorDoor : OperatorInteractable
         "The handle doesn't even move.",
         "...I'm not getting out through here.",
     };
+    // His thoughts in Portuguese.
     [SerializeField] private string[] linesPt =
     {
         "Trancada. Por fora.",
@@ -23,17 +26,21 @@ public class OperatorDoor : OperatorInteractable
         "...Por aqui eu não saio.",
     };
 
+    // Tries so far, shake time left, the leaf's rest position.
     private int tries;
     private float shake;
     private Vector3 rest;
 
+    // He grabs the handle.
     public override HandMotion Motion => HandMotion.Grab;
 
+    // Remembers the leaf's rest position.
     private void Awake()
     {
         if (leaf != null) rest = leaf.localPosition;
     }
 
+    // Says the next line, rattles the handle.
     public override void Interact(FirstPersonPlayer player)
     {
         bool pt = player.Language == GameLanguage.Portuguese;
@@ -44,6 +51,7 @@ public class OperatorDoor : OperatorInteractable
         OperatorSounds.Play(player.Audio, OperatorSounds.Kind.Rattle);
     }
 
+    // Shakes the leaf while the shake lasts.
     private void Update()
     {
         if (leaf == null || shake <= 0f) return;

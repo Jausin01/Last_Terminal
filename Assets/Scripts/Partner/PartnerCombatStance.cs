@@ -13,6 +13,7 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class PartnerCombatStance : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string CombatField = nameof(combat);
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string InteractorField = nameof(interactor);
@@ -20,6 +21,7 @@ public class PartnerCombatStance : MonoBehaviour
     public const string EncounterField = nameof(encounter);
     public const string HealthField = nameof(health);
 
+    // Her combat, animator, interactor (moves), evasion, the fight and her health.
     [SerializeField] private PartnerCombat combat;
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private PartnerInteractor interactor;
@@ -43,11 +45,13 @@ public class PartnerCombatStance : MonoBehaviour
     [Tooltip("After a swing she steps back to this distance from the target (m).")]
     [SerializeField] private float guardDistance = 1.9f;
 
+    // Her agent, a reusable path, the stance on or off.
     private NavMeshAgent agent;
     private NavMeshPath path;
     private bool active;
     private bool raisedGun;          // the aim is the stance's (lowered when there is no threat / it ends)
     private bool ownMove;            // the current destination is hers (the stance's), not an order
+    // Where her own move goes, the decision timer, cornered said once, and the directions tried when backing off.
     private Vector3 ownDestination;
     private float thinkTimer;
     private bool saidCornered;
@@ -55,8 +59,10 @@ public class PartnerCombatStance : MonoBehaviour
 
     public event Action Cornered;    // first time she can't back off any farther (PartnerCommands answers)
 
+    // The stance is on.
     public bool IsActive => active;
 
+    // Checks the references.
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -68,11 +74,13 @@ public class PartnerCombatStance : MonoBehaviour
         }
     }
 
+    // Listens for the end of her swings (melee: step back).
     private void OnEnable()
     {
         if (partnerAnimator != null) partnerAnimator.AttackFinished += OnAttackFinished;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (partnerAnimator != null) partnerAnimator.AttackFinished -= OnAttackFinished;
@@ -88,6 +96,7 @@ public class PartnerCombatStance : MonoBehaviour
         return true;
     }
 
+    // "Relax": lowers the gun, stops facing, cancels her own move (not an order).
     public void End()
     {
         if (!active) return;
@@ -99,6 +108,7 @@ public class PartnerCombatStance : MonoBehaviour
         ownMove = false;
     }
 
+    // Each frame: weapon on the threat; every think interval, keeps her distance with a gun.
     private void Update()
     {
         if (!active) return;
@@ -143,9 +153,11 @@ public class PartnerCombatStance : MonoBehaviour
     // walking somewhere the operator sent her (not the stance's own move)
     private bool OrderGoing() => agent.hasPath && !ownMove && agent.remainingDistance > agent.stoppingDistance + 0.1f;
 
+    // Is her own back-off move still going?
     private bool OwnMoveGoing() =>
         agent.hasPath && (agent.destination - ownDestination).sqrMagnitude < 0.04f && agent.remainingDistance > agent.stoppingDistance + 0.1f;
 
+    // Backs off to a spot of her room farther from every threat (cornered: says so once).
     private void KeepDistance()
     {
         Vector3 me = transform.position;
@@ -219,9 +231,11 @@ public class PartnerCombatStance : MonoBehaviour
         return encounter.Nearest(transform.position);
     }
 
+    // Can she walk there?
     private bool PathExists(Vector3 destination) =>
         agent.isOnNavMesh && NavMesh.CalculatePath(transform.position, destination, NavMesh.AllAreas, path) &&
         path.status == NavMeshPathStatus.PathComplete;
 
+    // A vector flattened onto the floor.
     private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 }

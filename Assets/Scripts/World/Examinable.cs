@@ -6,15 +6,18 @@ using UnityEngine;
 // Optional: where she stands (Stand Point; empty = in front of it, on her side) and a story flag set the first time.
 public class Examinable : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string KeyField = nameof(key);
     public const string StandPointField = nameof(standPoint);
 
     [Tooltip("Lexicon key (e.g. x_bed, x_body): the words that name it are in the lexicons.")]
     [SerializeField] private string key = "";
+    // Her lines per language (said in order, the last one repeats).
     [SerializeField, TextArea(1, 3)] private string[] linesEn = new string[0];
     [SerializeField, TextArea(1, 3)] private string[] linesPt = new string[0];
     [Tooltip("Optional recordings, same order as the lines.")]
     [SerializeField] private AudioClip[] clipsEn = new AudioClip[0];
+    // Recorded takes in Portuguese.
     [SerializeField] private AudioClip[] clipsPt = new AudioClip[0];
     [Tooltip("Optional: where she stands to look at it (empty = in front of it, on her side).")]
     [SerializeField] private Transform standPoint;
@@ -23,8 +26,10 @@ public class Examinable : MonoBehaviour
     [Tooltip("Optional StoryProgress flag set the first time she looks at it.")]
     [SerializeField] private string seenFlag = "";
 
+    // Next line to say.
     private int next;
 
+    // Read-only data for her examiner.
     public string Key => key;
     public Transform StandPoint => standPoint;
     public float StandDistance => standDistance;
@@ -49,6 +54,7 @@ public class Examinable : MonoBehaviour
     }
 
 #if UNITY_EDITOR
+    // Filled by the scene menus.
     public void EditorSet(string lexiconKey, string[] en, string[] pt, string flag = "")
     {
         key = lexiconKey; linesEn = en; linesPt = pt; seenFlag = flag;
@@ -56,6 +62,7 @@ public class Examinable : MonoBehaviour
     }
 #endif
 
+    // Gizmo where she stands.
     private void OnDrawGizmos()
     {
         Gizmos.color = new Color(0.4f, 0.8f, 1f, 0.8f);

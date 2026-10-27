@@ -6,7 +6,9 @@ using UnityEditor;
 // rides on the right hand).
 public class FirstPersonImport : AssetPostprocessor
 {
+    // Folder watched.
     public const string Folder = "Assets/Art/FirstPerson/";
+    // Clips that loop.
     static readonly string[] LoopClips = { "relax", "rest", "guard_idle", "knife_idle", "finger_gun_idle", "finger_gun_broken" };
 
     void OnPreprocessModel()

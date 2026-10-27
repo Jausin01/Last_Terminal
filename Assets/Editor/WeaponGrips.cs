@@ -10,8 +10,10 @@ using UnityEngine;
 // out of the palm) like the holds; left = (fingers, across, palm) like TryGetLeftHandBasis (two-handed weapons).
 internal static class WeaponGrips
 {
+    // Weapon prefabs folder.
     private const string PrefabFolder = "Assets/Prefabs/Weapons";
 
+    // Per weapon: grip point and finger directions (right / left hand), computed in Blender.
     private static readonly (string name, Vector3 grip, Vector3[] right, Vector3[] left)[] Grips =
     {
         // Pistol1911

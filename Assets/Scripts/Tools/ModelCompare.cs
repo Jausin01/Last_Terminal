@@ -11,6 +11,7 @@ using UnityEngine.Playables;
 // changed after the clips (only the weapon placed), so what you see is what the clips do.
 public class ModelCompare : MonoBehaviour
 {
+    // Models side by side, their labels, the clips to play and the camera.
     [SerializeField] private Animator[] animators;
     [SerializeField] private string[] labels;
     [SerializeField] private AnimationClip[] clips;
@@ -18,6 +19,7 @@ public class ModelCompare : MonoBehaviour
     [SerializeField] private float minHold = 2.5f;     // a short clip still shows this long (it loops / holds its end)
     [SerializeField] private float turnSpeed = 120f;   // degrees per second (Q / E)
     [Header("Weapons (display copies, model k uses weapons[k * weaponCount + w])")]
+    // Display weapons (model k uses weapons[k * weaponCount + w]) and how many per model.
     [SerializeField] private Weapon[] weapons = new Weapon[0];
     [SerializeField] private int weaponCount;
     [SerializeField] private int[] clipWeapon = new int[0];    // per clip: weapon index, -1 = none
@@ -25,6 +27,7 @@ public class ModelCompare : MonoBehaviour
     [SerializeField] private AnimationClip[] lastModelClips = new AnimationClip[0];   // per clip: what the last model plays instead (empty = the same)
     [SerializeField] private bool closeFingers = true;         // fingers closed on the weapon after the clip (the game's WeaponHolder)
 
+    // One PlayableGraph per model, its clip player, starting yaw, the clip index, time, speed, auto advance, finger bones, and a report asked for.
     private PlayableGraph[] graphs;
     private AnimationClipPlayable[] players;
     private float[] startYaw;
@@ -36,6 +39,7 @@ public class ModelCompare : MonoBehaviour
     private Transform[][] fingerEnds;
     private bool reportPending;
 
+    // Builds a graph per model, the finger lists, the weapons; plays the first clip.
     private void Start()
     {
         if (animators == null || animators.Length == 0 || clips == null || clips.Length == 0) { enabled = false; return; }
@@ -87,12 +91,14 @@ public class ModelCompare : MonoBehaviour
         Debug.Log("[Compare] Report: " + PoseReport.Write(report));
     }
 
+    // The display weapon of a model for a weapon index.
     private Weapon Slot(int model, int weapon)
     {
         int i = model * weaponCount + weapon;
         return i >= 0 && i < weapons.Length ? weapons[i] : null;
     }
 
+    // Destroys the graphs.
     private void OnDestroy()
     {
         if (graphs == null) return;
@@ -100,6 +106,7 @@ public class ModelCompare : MonoBehaviour
             if (g.IsValid()) g.Destroy();
     }
 
+    // Keys, time advance, finger / weapon placement, report.
     private void Update()
     {
         if (clips == null || clips.Length == 0) return;
@@ -132,6 +139,7 @@ public class ModelCompare : MonoBehaviour
         if (auto && time >= hold) Play(index + 1);
     }
 
+    // Plays clip i on every model.
     private void Play(int i)
     {
         index = (i % clips.Length + clips.Length) % clips.Length;
@@ -145,12 +153,14 @@ public class ModelCompare : MonoBehaviour
         }
     }
 
+    // What a model plays for the current clip.
     private AnimationClip ClipOf(int model)
     {
         bool last = model == animators.Length - 1 && index < lastModelClips.Length && lastModelClips[index] != null;
         return last ? lastModelClips[index] : clips[index];
     }
 
+    // On-screen label with the clip and controls.
     private void OnGUI()
     {
         if (clips == null || clips.Length == 0) return;
@@ -175,6 +185,7 @@ public class ModelCompare : MonoBehaviour
     }
 
 #if UNITY_EDITOR
+    // Filled by the editor menu that builds the test scene.
     public void EditorSet(Animator[] models, string[] names, AnimationClip[] list, Camera cam,
                           Weapon[] displayWeapons, int perModel, int[] weaponOfClip, bool[] aimOfClip,
                           AnimationClip[] lastClips = null, bool fingers = true)

@@ -11,6 +11,7 @@ using UnityEngine.UI;
 // doors, car, sign, call lamp) and the ride's dark screen. Used by the scene menus (4 facility, 8 casino).
 internal static class ElevatorBuilder
 {
+    // Asset folders and paths: key model and items, stops, elevator materials, pickup prefabs, the GameSession.
     private const string KeyArtFolder = "Assets/Art/Props/Keys";
     private const string KeyModelPath = KeyArtFolder + "/SM_ElevatorKey.fbx";
     private const string KeyDataFolder = "Assets/Data/Items/Keys";
@@ -38,6 +39,7 @@ internal static class ElevatorBuilder
     private const float CarHeight = 2.4f;
     private const float LeafWidth = 0.57f;
 
+    // URP Lit property ids.
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
     private static readonly int MetallicId = Shader.PropertyToID("_Metallic");
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
@@ -55,16 +57,18 @@ internal static class ElevatorBuilder
         ("purple", "roxa",     new Color(0.52f, 0.18f, 0.75f)),
     };
 
+    // First letter in upper case.
     private static string Title(string s) => char.ToUpperInvariant(s[0]) + s.Substring(1);
+    // Pickup prefab name of a key color.
     internal static string KeyPickupName(string color) => "Key_" + Title(color);
 
     // ------------------------------------------------------------------ data
     // one key item per color (never overwritten: tune them in the inspector)
     internal static Dictionary<string, ElevatorKey> EnsureKeys()
     {
-        HelenaSetupMenu.EnsureFolder("Assets", "Data");
-        HelenaSetupMenu.EnsureFolder("Assets/Data", "Items");
-        HelenaSetupMenu.EnsureFolder("Assets/Data/Items", "Keys");
+        EditorAssets.EnsureFolder("Assets", "Data");
+        EditorAssets.EnsureFolder("Assets/Data", "Items");
+        EditorAssets.EnsureFolder("Assets/Data/Items", "Keys");
         var keys = new Dictionary<string, ElevatorKey>();
         foreach (var c in KeyColors)
         {
@@ -94,7 +98,7 @@ internal static class ElevatorBuilder
     internal static Dictionary<string, ElevatorStop> EnsureStops()
     {
         Dictionary<string, ElevatorKey> keys = EnsureKeys();
-        HelenaSetupMenu.EnsureFolder("Assets/Data", "Elevators");
+        EditorAssets.EnsureFolder("Assets/Data", "Elevators");
         var stops = new Dictionary<string, ElevatorStop>();
         void Stop(string id, string en, string pt, string scene, ElevatorKey key, string floor)
         {
@@ -124,9 +128,10 @@ internal static class ElevatorBuilder
         return stops;
     }
 
+    // The GameSession asset (made once).
     internal static GameSession EnsureSession()
     {
-        HelenaSetupMenu.EnsureFolder("Assets", "Data");
+        EditorAssets.EnsureFolder("Assets", "Data");
         var session = AssetDatabase.LoadAssetAtPath<GameSession>(SessionPath);
         if (session != null) return session;
         session = ScriptableObject.CreateInstance<GameSession>();
@@ -141,16 +146,16 @@ internal static class ElevatorBuilder
     {
         if (!(AssetImporter.GetAtPath(KeyModelPath) is ModelImporter mi)) { Debug.LogWarning("[Keys] Model not found: " + KeyModelPath); return; }
         Dictionary<string, ElevatorKey> keys = EnsureKeys();
-        HelenaSetupMenu.EnsureFolder(KeyArtFolder, "Materials");
+        EditorAssets.EnsureFolder(KeyArtFolder, "Materials");
         var coverTex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{KeyArtFolder}/T_KeyCover.png");
-        Material metal = HelenaSetupMenu.MakeMaterial($"{KeyArtFolder}/Materials/M_KeyMetal.mat", null, 0.75f, false, lit);
+        Material metal = EditorAssets.MakeMaterial($"{KeyArtFolder}/Materials/M_KeyMetal.mat", null, 0.75f, false, lit);
         metal.SetColor(BaseColorId, new Color(0.72f, 0.72f, 0.75f));
         metal.SetFloat(MetallicId, 0.9f);
         EditorUtility.SetDirty(metal);
         var covers = new Dictionary<string, Material>();
         foreach (var c in KeyColors)
         {
-            Material m = HelenaSetupMenu.MakeMaterial($"{KeyArtFolder}/Materials/M_KeyCover_{Title(c.name)}.mat", coverTex, 0.35f, false, lit);
+            Material m = EditorAssets.MakeMaterial($"{KeyArtFolder}/Materials/M_KeyCover_{Title(c.name)}.mat", coverTex, 0.35f, false, lit);
             m.SetColor(BaseColorId, keys[c.name].Color);
             EditorUtility.SetDirty(m);
             covers[c.name] = m;
@@ -160,8 +165,8 @@ internal static class ElevatorBuilder
         mi.SaveAndReimport();
 
         var model = AssetDatabase.LoadAssetAtPath<GameObject>(KeyModelPath);
-        HelenaSetupMenu.EnsureFolder("Assets", "Prefabs");
-        HelenaSetupMenu.EnsureFolder("Assets/Prefabs", "Pickups");
+        EditorAssets.EnsureFolder("Assets", "Prefabs");
+        EditorAssets.EnsureFolder("Assets/Prefabs", "Pickups");
         foreach (var c in KeyColors)
         {
             string path = $"{PickupPrefabFolder}/Pickup_{KeyPickupName(c.name)}.prefab";
@@ -172,7 +177,7 @@ internal static class ElevatorBuilder
             visual.name = "Model";
             visual.transform.SetParent(root.transform, false);
             visual.transform.localScale = Vector3.one * KeyModelScale;
-            Transform cover = HelenaSetupMenu.FindDeep(visual.transform, "Cover");
+            Transform cover = EditorScene.FindDeep(visual.transform, "Cover");
             if (cover != null) cover.GetComponent<Renderer>().sharedMaterial = covers[c.name];
 
             var col = root.AddComponent<BoxCollider>();   // easy to click / target
@@ -183,10 +188,10 @@ internal static class ElevatorBuilder
             grab.localPosition = new Vector3(0f, 0.012f * KeyModelScale, 0f);
 
             var pickup = root.AddComponent<Pickup>();
-            HelenaSetupMenu.SetReference(pickup, Pickup.ItemField, keys[c.name]);
-            HelenaSetupMenu.SetInt(pickup, Pickup.AmountField, 1);
-            HelenaSetupMenu.SetReference(pickup, Pickup.VisualField, visual.transform);
-            HelenaSetupMenu.SetReference(pickup, Pickup.GrabPointField, grab);
+            EditorSerialized.SetReference(pickup, Pickup.ItemField, keys[c.name]);
+            EditorSerialized.SetInt(pickup, Pickup.AmountField, 1);
+            EditorSerialized.SetReference(pickup, Pickup.VisualField, visual.transform);
+            EditorSerialized.SetReference(pickup, Pickup.GrabPointField, grab);
             PrefabUtility.SaveAsPrefabAsset(root, path);
             Object.DestroyImmediate(root);
             Debug.Log("[Keys] Prefab built: " + path);
@@ -197,7 +202,7 @@ internal static class ElevatorBuilder
     internal static Pickup PlaceKey(Transform parent, ElevatorKey key, Vector3 position, float yaw)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PickupPrefabFolder}/Pickup_{KeyPickupName(key.ColorName)}.prefab");
-        if (prefab == null) return HelenaSetupMenu.CreateCubePickup(parent, key, 1, position + Vector3.up * 0.15f, key.Color);
+        if (prefab == null) return ItemBuilder.CreateCubePickup(parent, key, 1, position + Vector3.up * 0.15f, key.Color);
         var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
         go.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
         return go.GetComponent<Pickup>();
@@ -206,13 +211,14 @@ internal static class ElevatorBuilder
     // ------------------------------------------------------------------ elevator units
     private struct UnitMaterials { public Material Frame, Door, Car, Sign, Glow; }
 
+    // The elevator unit materials (made once).
     private static UnitMaterials EnsureMaterials(Shader lit)
     {
-        HelenaSetupMenu.EnsureFolder("Assets/Art", "Props");
-        HelenaSetupMenu.EnsureFolder("Assets/Art/Props", "Elevator");
+        EditorAssets.EnsureFolder("Assets/Art", "Props");
+        EditorAssets.EnsureFolder("Assets/Art/Props", "Elevator");
         Material Make(string name, Color color, float smooth, float metallic, bool glow)
         {
-            Material m = HelenaSetupMenu.MakeMaterial($"{ElevatorMatFolder}/{name}.mat", null, smooth, false, lit);
+            Material m = EditorAssets.MakeMaterial($"{ElevatorMatFolder}/{name}.mat", null, smooth, false, lit);
             m.SetColor(BaseColorId, color);
             m.SetFloat(MetallicId, metallic);
             if (glow)
@@ -325,28 +331,29 @@ internal static class ElevatorBuilder
         obstacle.carveOnlyStationary = true;
 
         var elevator = root.AddComponent<Elevator>();
-        HelenaSetupMenu.SetReference(elevator, Elevator.HereField, stops.TryGetValue(hereId, out ElevatorStop here) ? here : null);
-        HelenaSetupMenu.SetReference(elevator, Elevator.DestinationField, stops.TryGetValue(destinationId, out ElevatorStop to) ? to : null);
-        HelenaSetupMenu.SetInt(elevator, Elevator.NumberField, number);
-        HelenaSetupMenu.SetReference(elevator, Elevator.LeftDoorField, leftDoor);
-        HelenaSetupMenu.SetReference(elevator, Elevator.RightDoorField, rightDoor);
-        HelenaSetupMenu.SetReference(elevator, Elevator.InsideField, inside);
-        HelenaSetupMenu.SetReference(elevator, Elevator.OutsideField, outside);
-        HelenaSetupMenu.SetReference(elevator, Elevator.LampField, lamp);
-        HelenaSetupMenu.SetReference(elevator, Elevator.AudioSourceField, audio);
-        HelenaSetupMenu.SetReference(elevator, Elevator.WatchCameraField, watch);
+        EditorSerialized.SetReference(elevator, Elevator.HereField, stops.TryGetValue(hereId, out ElevatorStop here) ? here : null);
+        EditorSerialized.SetReference(elevator, Elevator.DestinationField, stops.TryGetValue(destinationId, out ElevatorStop to) ? to : null);
+        EditorSerialized.SetInt(elevator, Elevator.NumberField, number);
+        EditorSerialized.SetReference(elevator, Elevator.LeftDoorField, leftDoor);
+        EditorSerialized.SetReference(elevator, Elevator.RightDoorField, rightDoor);
+        EditorSerialized.SetReference(elevator, Elevator.InsideField, inside);
+        EditorSerialized.SetReference(elevator, Elevator.OutsideField, outside);
+        EditorSerialized.SetReference(elevator, Elevator.LampField, lamp);
+        EditorSerialized.SetReference(elevator, Elevator.AudioSourceField, audio);
+        EditorSerialized.SetReference(elevator, Elevator.WatchCameraField, watch);
         var so = new SerializedObject(elevator);
         so.FindProperty(Elevator.DoorTravelField).floatValue = LeafWidth - 0.02f;
         so.ApplyModifiedPropertiesWithoutUndo();
 
         var sign = textGo.AddComponent<ElevatorSign>();
-        HelenaSetupMenu.SetReference(sign, ElevatorSign.ElevatorField, elevator);
-        HelenaSetupMenu.SetReference(sign, ElevatorSign.TextField, text);
-        HelenaSetupMenu.SetReference(sign, ElevatorSign.StripeField, stripe);
-        HelenaSetupMenu.SetReference(elevator, Elevator.SignField, sign);
+        EditorSerialized.SetReference(sign, ElevatorSign.ElevatorField, elevator);
+        EditorSerialized.SetReference(sign, ElevatorSign.TextField, text);
+        EditorSerialized.SetReference(sign, ElevatorSign.StripeField, stripe);
+        EditorSerialized.SetReference(elevator, Elevator.SignField, sign);
         return elevator;
     }
 
+    // A box primitive with a material.
     private static GameObject Box(Transform parent, string objectName, Vector3 localCenter, Vector3 size, Material m)
     {
         var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -364,8 +371,8 @@ internal static class ElevatorBuilder
                                     PartnerElevatorUser user, List<Elevator> elevators, CameraSettings settings,
                                     SecurityCameraSystem cameraSystem)
     {
-        GameObject fadeGo = HelenaSetupMenu.CreateUiObject(canvas, "ElevatorFader");
-        HelenaSetupMenu.Stretch((RectTransform)fadeGo.transform);
+        GameObject fadeGo = EditorUi.CreateUiObject(canvas, "ElevatorFader");
+        EditorUi.Stretch((RectTransform)fadeGo.transform);
         var black = fadeGo.AddComponent<Image>();
         black.color = Color.black;
         black.raycastTarget = false;
@@ -373,23 +380,23 @@ internal static class ElevatorBuilder
         group.alpha = 0f;
         group.blocksRaycasts = false;
         group.interactable = false;
-        TMP_Text label = HelenaSetupMenu.CreateText(fadeGo.transform, "Floor", 54, TextAlignmentOptions.Center, new Color(1f, 0.82f, 0.45f));
+        TMP_Text label = EditorUi.CreateText(fadeGo.transform, "Floor", 54, TextAlignmentOptions.Center, new Color(1f, 0.82f, 0.45f));
         Vector2 mid = new Vector2(0.5f, 0.5f);
-        HelenaSetupMenu.Place(label.rectTransform, mid, mid, mid, Vector2.zero, new Vector2(1000f, 200f));
+        EditorUi.Place(label.rectTransform, mid, mid, mid, Vector2.zero, new Vector2(1000f, 200f));
 
-        HelenaSetupMenu.SetReference(travel, ElevatorTravel.SaveSystemField, saveSystem);
-        HelenaSetupMenu.SetReference(travel, ElevatorTravel.SessionField, session);
-        HelenaSetupMenu.SetReference(travel, ElevatorTravel.UserField, user);
-        HelenaSetupMenu.SetReferenceArray(travel, ElevatorTravel.ElevatorsField, elevators);
-        HelenaSetupMenu.SetReference(travel, ElevatorTravel.FaderField, group);
-        HelenaSetupMenu.SetReference(travel, ElevatorTravel.LabelField, label);
-        HelenaSetupMenu.SetReference(travel, ElevatorTravel.SettingsField, settings);
-        HelenaSetupMenu.SetReference(travel, ElevatorTravel.CameraSystemField, cameraSystem);
+        EditorSerialized.SetReference(travel, ElevatorTravel.SaveSystemField, saveSystem);
+        EditorSerialized.SetReference(travel, ElevatorTravel.SessionField, session);
+        EditorSerialized.SetReference(travel, ElevatorTravel.UserField, user);
+        EditorSerialized.SetReferenceArray(travel, ElevatorTravel.ElevatorsField, elevators);
+        EditorSerialized.SetReference(travel, ElevatorTravel.FaderField, group);
+        EditorSerialized.SetReference(travel, ElevatorTravel.LabelField, label);
+        EditorSerialized.SetReference(travel, ElevatorTravel.SettingsField, settings);
+        EditorSerialized.SetReference(travel, ElevatorTravel.CameraSystemField, cameraSystem);
         foreach (Elevator e in elevators)
         {
             var so = new SerializedObject(e);
             Object sign = so.FindProperty(Elevator.SignField).objectReferenceValue;
-            if (sign != null) HelenaSetupMenu.SetReference(sign, ElevatorSign.SettingsField, settings);
+            if (sign != null) EditorSerialized.SetReference(sign, ElevatorSign.SettingsField, settings);
         }
     }
 

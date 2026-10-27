@@ -11,6 +11,7 @@ using UnityEngine.UI;
 // the table logic (BlackjackTable + BlackjackGame), the low-poly table, her chair, three stools and a deck.
 internal static class BlackjackBuilder
 {
+    // Asset folders and paths of the blackjack art and prefabs, and her chair model.
     private const string ArtFolder = "Assets/Art/Props/Blackjack";
     private const string PrefabFolder = "Assets/Prefabs/Blackjack";
     private const string CardPrefabPath = PrefabFolder + "/Card.prefab";
@@ -21,6 +22,7 @@ internal static class BlackjackBuilder
     // the player's eyes on the middle stool (framing checked with a render: her, the shoe, both hands of cards, the bet)
     private static readonly Vector3 TableCamPosition = new Vector3(0f, 1.40f, 1.62f);
 
+    // Table models: file, material, texture and smoothness.
     private static readonly (string model, string mat, string tex, float smooth)[] Models =
     {
         ("SM_Card", "M_Cards", "T_Cards", 0.35f),
@@ -37,21 +39,21 @@ internal static class BlackjackBuilder
             Debug.LogWarning($"[Blackjack] Models not found in {ArtFolder}: copy the Blackjack art first.");
             return;
         }
-        HelenaSetupMenu.EnsureFolder(ArtFolder, "Materials");
-        HelenaSetupMenu.EnsureFolder("Assets", "Prefabs");
-        HelenaSetupMenu.EnsureFolder("Assets/Prefabs", "Blackjack");
+        EditorAssets.EnsureFolder(ArtFolder, "Materials");
+        EditorAssets.EnsureFolder("Assets", "Prefabs");
+        EditorAssets.EnsureFolder("Assets/Prefabs", "Blackjack");
 
         foreach (var m in Models)
         {
             var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/{m.tex}.png");
-            Material mat = HelenaSetupMenu.MakeMaterial($"{ArtFolder}/Materials/{m.mat}.mat", tex, m.smooth, false, lit);
+            Material mat = EditorAssets.MakeMaterial($"{ArtFolder}/Materials/{m.mat}.mat", tex, m.smooth, false, lit);
             if (AssetImporter.GetAtPath($"{ArtFolder}/{m.model}.fbx") is ModelImporter mi)
             {
                 mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), m.mat), mat);
                 mi.SaveAndReimport();
             }
         }
-        Material deckEdge = HelenaSetupMenu.MakeMaterial($"{ArtFolder}/Materials/M_DeckEdge.mat", null, 0.2f, false, lit);
+        Material deckEdge = EditorAssets.MakeMaterial($"{ArtFolder}/Materials/M_DeckEdge.mat", null, 0.2f, false, lit);
         deckEdge.SetColor("_BaseColor", new Color(0.92f, 0.9f, 0.84f));
         EditorUtility.SetDirty(deckEdge);
 
@@ -61,6 +63,7 @@ internal static class BlackjackBuilder
         BuildTable(preview, card, chip, deckEdge);
     }
 
+    // A prefab from a model (with its material).
     private static GameObject ModelPrefab(Scene preview, string model, string path, string objectName)
     {
         var existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -76,6 +79,7 @@ internal static class BlackjackBuilder
         return prefab;
     }
 
+    // Builds the table prefab: seat, logic, model, chairs, deck, card / chip prefabs.
     private static void BuildTable(Scene preview, GameObject cardPrefab, GameObject chipPrefab, Material deckEdge)
     {
         if (AssetDatabase.LoadAssetAtPath<GameObject>(TablePrefabPath) != null) { Debug.Log("[Blackjack] Prefab already exists, kept: " + TablePrefabPath); return; }
@@ -116,7 +120,7 @@ internal static class BlackjackBuilder
         Transform camT = Child(root.transform, "TableCam", TableCamPosition);
         camT.localRotation = Quaternion.Euler(0f, 180f, 0f);
         var tableCam = camT.gameObject.AddComponent<SecurityCamera>();
-        HelenaSetupMenu.SetString(tableCam, SecurityCamera.LabelField, "TABLE");
+        EditorSerialized.SetString(tableCam, SecurityCamera.LabelField, "TABLE");
         var camSo = new SerializedObject(tableCam);
         camSo.FindProperty(SecurityCamera.PitchField).floatValue = 27f;
         camSo.FindProperty(SecurityCamera.YawRangeField).floatValue = 15f;
@@ -127,29 +131,30 @@ internal static class BlackjackBuilder
         Transform stand = Child(root.transform, "StandPoint", Vector3.zero);
         Transform right = Child(root.transform, "WalkInRight", Vector3.zero);
         Transform left = Child(root.transform, "WalkInLeft", Vector3.zero);
-        HelenaSetupMenu.SetReference(seat, SaveStation.ChairField, chair);
-        HelenaSetupMenu.SetReference(seat, SaveStation.StandPointField, stand);
-        HelenaSetupMenu.SetReference(seat, SaveStation.WalkInRightField, right);
-        HelenaSetupMenu.SetReference(seat, SaveStation.WalkInLeftField, left);
-        HelenaSetupMenu.SetString(seat, SaveStation.LocationNameField, "Blackjack");
+        EditorSerialized.SetReference(seat, SaveStation.ChairField, chair);
+        EditorSerialized.SetReference(seat, SaveStation.StandPointField, stand);
+        EditorSerialized.SetReference(seat, SaveStation.WalkInRightField, right);
+        EditorSerialized.SetReference(seat, SaveStation.WalkInLeftField, left);
+        EditorSerialized.SetString(seat, SaveStation.LocationNameField, "Blackjack");
         var so = new SerializedObject(seat);
         so.FindProperty(SaveStation.ChairPullDistanceField).floatValue = ChairPull;
         so.ApplyModifiedPropertiesWithoutUndo();
         seat.FitToModels();
 
-        HelenaSetupMenu.SetReference(table, BlackjackTable.SeatField, seat);
-        HelenaSetupMenu.SetReference(table, BlackjackTable.CardPrefabField, cardPrefab);
-        HelenaSetupMenu.SetReference(table, BlackjackTable.ChipPrefabField, chipPrefab);
-        HelenaSetupMenu.SetReference(table, BlackjackTable.DeckField, deck);
-        HelenaSetupMenu.SetReference(table, BlackjackTable.CardAtlasField, AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/T_Cards.png"));
-        HelenaSetupMenu.SetReference(table, BlackjackTable.TableCameraField, tableCam);
-        HelenaSetupMenu.SetReference(game, BlackjackGame.TableField, table);
+        EditorSerialized.SetReference(table, BlackjackTable.SeatField, seat);
+        EditorSerialized.SetReference(table, BlackjackTable.CardPrefabField, cardPrefab);
+        EditorSerialized.SetReference(table, BlackjackTable.ChipPrefabField, chipPrefab);
+        EditorSerialized.SetReference(table, BlackjackTable.DeckField, deck);
+        EditorSerialized.SetReference(table, BlackjackTable.CardAtlasField, AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/T_Cards.png"));
+        EditorSerialized.SetReference(table, BlackjackTable.TableCameraField, tableCam);
+        EditorSerialized.SetReference(game, BlackjackGame.TableField, table);
 
         PrefabUtility.SaveAsPrefabAsset(root, TablePrefabPath);
         Object.DestroyImmediate(root);
         Debug.Log("[Blackjack] Prefab built: " + TablePrefabPath);
     }
 
+    // A prefab instance under a parent at a pose.
     private static Transform Instance(Transform parent, string path, string objectName, Vector3 localPosition, float yaw)
     {
         var model = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -162,6 +167,7 @@ internal static class BlackjackBuilder
         return go.transform;
     }
 
+    // An empty child at a local position.
     private static Transform Child(Transform parent, string objectName, Vector3 localPosition)
     {
         var t = new GameObject(objectName).transform;
@@ -183,23 +189,25 @@ internal static class BlackjackBuilder
     // the table camera is one of the facility cameras (in the table's room), only usable during a game
     internal static void AddTableCamera(BlackjackGame game, Room room, List<SecurityCamera> cameras) => AddTableCamera(game.Table, room, cameras);
 
+    // Adds the table's overhead CCTV camera (only active during a game).
     internal static void AddTableCamera(BlackjackTable table, Room room, List<SecurityCamera> cameras)
     {
         SecurityCamera cam = table.TableCamera;
         if (cam == null) { Debug.LogWarning("[Blackjack] The table prefab has no TableCam: delete it and run menu 3 again."); return; }
-        if (room != null) HelenaSetupMenu.SetReference(cam, SecurityCamera.RoomField, room);
+        if (room != null) EditorSerialized.SetReference(cam, SecurityCamera.RoomField, room);
         cameras.Add(cam);
     }
 
+    // Wires a blackjack game to the bank, her seat user, dealer, cameras and HUD.
     internal static void WireGame(BlackjackGame game, ChipBank bank, PartnerSaveUser seatUser, PartnerBlackjackDealer dealer,
                                   PartnerVoice voice, CombatEncounter encounter, SecurityCameraSystem cameraSystem)
     {
-        HelenaSetupMenu.SetReference(game, BlackjackGame.CameraSystemField, cameraSystem);
-        HelenaSetupMenu.SetReference(game, BlackjackGame.BankField, bank);
-        HelenaSetupMenu.SetReference(game, BlackjackGame.SeatUserField, seatUser);
-        HelenaSetupMenu.SetReference(game, BlackjackGame.DealerField, dealer);
-        HelenaSetupMenu.SetReference(game, BlackjackGame.VoiceField, voice);
-        if (encounter != null) HelenaSetupMenu.SetReference(game, BlackjackGame.EncounterField, encounter);
+        EditorSerialized.SetReference(game, BlackjackGame.CameraSystemField, cameraSystem);
+        EditorSerialized.SetReference(game, BlackjackGame.BankField, bank);
+        EditorSerialized.SetReference(game, BlackjackGame.SeatUserField, seatUser);
+        EditorSerialized.SetReference(game, BlackjackGame.DealerField, dealer);
+        EditorSerialized.SetReference(game, BlackjackGame.VoiceField, voice);
+        if (encounter != null) EditorSerialized.SetReference(game, BlackjackGame.EncounterField, encounter);
     }
 
     // ------------------------------------------------------------------ casino tables (menu 8)
@@ -225,8 +233,8 @@ internal static class BlackjackBuilder
             var bj = go.GetComponent<BlackjackGame>();
             if (bj != null) Object.DestroyImmediate(bj);
             var game = go.AddComponent<HoldemGame>();
-            HelenaSetupMenu.SetReference(game, HoldemGame.TableField, table);
-            HelenaSetupMenu.SetString(go.GetComponent<SaveStation>(), SaveStation.LocationNameField, "Hold'em");
+            EditorSerialized.SetReference(game, HoldemGame.TableField, table);
+            EditorSerialized.SetString(go.GetComponent<SaveStation>(), SaveStation.LocationNameField, "Hold'em");
         }
         // no shoe / chip tray on the casino's felt: they lie on it
         var so = new SerializedObject(table);
@@ -237,15 +245,16 @@ internal static class BlackjackBuilder
         return table;
     }
 
+    // Wires a hold'em game the same way.
     internal static void WireHoldem(HoldemGame game, ChipBank bank, PartnerSaveUser seatUser, PartnerBlackjackDealer dealer,
                                     PartnerVoice voice, CombatEncounter encounter, SecurityCameraSystem cameraSystem)
     {
-        HelenaSetupMenu.SetReference(game, HoldemGame.CameraSystemField, cameraSystem);
-        HelenaSetupMenu.SetReference(game, HoldemGame.BankField, bank);
-        HelenaSetupMenu.SetReference(game, HoldemGame.SeatUserField, seatUser);
-        HelenaSetupMenu.SetReference(game, HoldemGame.DealerField, dealer);
-        HelenaSetupMenu.SetReference(game, HoldemGame.VoiceField, voice);
-        if (encounter != null) HelenaSetupMenu.SetReference(game, HoldemGame.EncounterField, encounter);
+        EditorSerialized.SetReference(game, HoldemGame.CameraSystemField, cameraSystem);
+        EditorSerialized.SetReference(game, HoldemGame.BankField, bank);
+        EditorSerialized.SetReference(game, HoldemGame.SeatUserField, seatUser);
+        EditorSerialized.SetReference(game, HoldemGame.DealerField, dealer);
+        EditorSerialized.SetReference(game, HoldemGame.VoiceField, voice);
+        if (encounter != null) EditorSerialized.SetReference(game, HoldemGame.EncounterField, encounter);
     }
 
     // small text panel on the right (the table camera shows the cards): header, dealer + hand lines, prompt
@@ -253,15 +262,15 @@ internal static class BlackjackBuilder
     {
         Color felt = new Color(0.02f, 0.16f, 0.08f, 0.72f);
         Color gold = new Color(0.9f, 0.76f, 0.36f);
-        var root = HelenaSetupMenu.CreateUiObject(canvas, "BlackjackHud");
+        var root = EditorUi.CreateUiObject(canvas, "BlackjackHud");
         root.transform.SetSiblingIndex(1);
         Vector2 rc = new Vector2(1f, 0.5f);
-        HelenaSetupMenu.Place((RectTransform)root.transform, rc, rc, rc, new Vector2(-24f, 0f), new Vector2(290f, 170f));
+        EditorUi.Place((RectTransform)root.transform, rc, rc, rc, new Vector2(-24f, 0f), new Vector2(290f, 170f));
         var group = root.AddComponent<CanvasGroup>();
         group.blocksRaycasts = false;
         group.interactable = false;
-        Image back = HelenaSetupMenu.CreateUiObject(root.transform, "Back").AddComponent<Image>();
-        HelenaSetupMenu.Stretch(back.rectTransform);
+        Image back = EditorUi.CreateUiObject(root.transform, "Back").AddComponent<Image>();
+        EditorUi.Stretch(back.rectTransform);
         back.color = felt;
         back.raycastTarget = false;
         var outline = back.gameObject.AddComponent<Outline>();
@@ -269,20 +278,20 @@ internal static class BlackjackBuilder
         outline.effectDistance = new Vector2(1f, -1f);
 
         Vector2 tl = new Vector2(0f, 1f);
-        TMP_Text header = HelenaSetupMenu.CreateText(root.transform, "Header", 18, TextAlignmentOptions.Left, gold);
-        HelenaSetupMenu.Place(header.rectTransform, tl, tl, tl, new Vector2(12f, -8f), new Vector2(266f, 24f));
-        TMP_Text body = HelenaSetupMenu.CreateText(root.transform, "Body", 16, TextAlignmentOptions.TopLeft, Color.white);
-        HelenaSetupMenu.Place(body.rectTransform, tl, tl, tl, new Vector2(12f, -36f), new Vector2(266f, 92f));
+        TMP_Text header = EditorUi.CreateText(root.transform, "Header", 18, TextAlignmentOptions.Left, gold);
+        EditorUi.Place(header.rectTransform, tl, tl, tl, new Vector2(12f, -8f), new Vector2(266f, 24f));
+        TMP_Text body = EditorUi.CreateText(root.transform, "Body", 16, TextAlignmentOptions.TopLeft, Color.white);
+        EditorUi.Place(body.rectTransform, tl, tl, tl, new Vector2(12f, -36f), new Vector2(266f, 92f));
         Vector2 bl = Vector2.zero;
-        TMP_Text prompt = HelenaSetupMenu.CreateText(root.transform, "Prompt", 13, TextAlignmentOptions.BottomLeft, gold);
-        HelenaSetupMenu.Place(prompt.rectTransform, bl, bl, bl, new Vector2(12f, 8f), new Vector2(266f, 34f));
+        TMP_Text prompt = EditorUi.CreateText(root.transform, "Prompt", 13, TextAlignmentOptions.BottomLeft, gold);
+        EditorUi.Place(prompt.rectTransform, bl, bl, bl, new Vector2(12f, 8f), new Vector2(266f, 34f));
 
         var hud = root.AddComponent<BlackjackHud>();
-        HelenaSetupMenu.SetReferenceArray(hud, BlackjackHud.GamesField, games);
-        HelenaSetupMenu.SetReference(hud, BlackjackHud.SettingsField, settings);
-        HelenaSetupMenu.SetReference(hud, BlackjackHud.GroupField, group);
-        HelenaSetupMenu.SetReference(hud, BlackjackHud.HeaderField, header);
-        HelenaSetupMenu.SetReference(hud, BlackjackHud.BodyField, body);
-        HelenaSetupMenu.SetReference(hud, BlackjackHud.PromptField, prompt);
+        EditorSerialized.SetReferenceArray(hud, BlackjackHud.GamesField, games);
+        EditorSerialized.SetReference(hud, BlackjackHud.SettingsField, settings);
+        EditorSerialized.SetReference(hud, BlackjackHud.GroupField, group);
+        EditorSerialized.SetReference(hud, BlackjackHud.HeaderField, header);
+        EditorSerialized.SetReference(hud, BlackjackHud.BodyField, body);
+        EditorSerialized.SetReference(hud, BlackjackHud.PromptField, prompt);
     }
 }

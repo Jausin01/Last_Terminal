@@ -23,6 +23,7 @@ using UnityEngine.SceneManagement;
 //   ARMORY | GUARD POST x [19, 26] z [-28, -23] -> SERVICE CORRIDOR x [26, 48] -> STAIRWELL x [48, 52]
 internal static class AsylumBuilder
 {
+    // Scene, NavMesh and art paths; the cast clips and Helena's idle model.
     private const string ScenePath = "Assets/Scenes/Asylum_IsolationWing.unity";
     private const string NavMeshPath = "Assets/Scenes/Asylum_IsolationWing_NavMesh.asset";
     private const string ArtFolder = "Assets/Art/Props/Asylum";
@@ -34,13 +35,17 @@ internal static class AsylumBuilder
     private static readonly Vector3 Start = new Vector3(7.0f, 0f, -9.62f);
     private const float BedDepth = 0.85f;
 
+    // CCTV camera height (short name: it is in every camera position below).
     private const float H = FacilityBuilder.CameraHeight;
 
+    // One room of the wing.
     private struct RoomDef
     {
+        // Names per language and the floor area.
         public string En, Pt;
         public Rect Area;
         public string Floor;      // PaddedFloor (a cell: padded walls too), Lino, Tiles, Concrete
+        // Lamp color and intensity; padded cell?
         public Color Light;
         public float Intensity;
         public bool Padded => Floor == PaddedFloor;
@@ -50,14 +55,17 @@ internal static class AsylumBuilder
         }
     }
 
+    // Lamp colors.
     private static readonly Color Cold = new Color(0.78f, 0.88f, 1f);
     private static readonly Color Sick = new Color(0.85f, 1f, 0.8f);
     private static readonly Color Warm = new Color(1f, 0.85f, 0.65f);
     private static readonly Color Red = new Color(1f, 0.45f, 0.4f);
 
     private const float C1 = 4.67f, C2 = 9.33f;   // the walls between the cells
+    // Floor textures.
     private const string PaddedFloor = "T_AsyPaddedFloor", Lino = "T_AsyFloor", Tiles = "T_AsyTiles", Concrete = "T_AsyConcrete";
 
+    // Every room of the wing.
     private static readonly RoomDef[] Rooms =
     {
         new RoomDef("Cell 1", "Cela 1", 0f, -4f, C1, 0f, PaddedFloor, Cold, 0.8f),
@@ -79,9 +87,11 @@ internal static class AsylumBuilder
         new RoomDef("Stairwell", "Escada", 48f, -28f, 52f, -23f, Concrete, Sick, 1.2f),
     };
 
+    // One door of the wing.
     private struct DoorDef
     {
         public string Name;          // the lexicon key it answers to (the room it leads to)
+        // Position (yaw below), and its kind / state.
         public Vector3 Position;
         public float Yaw;            // 0: in a wall along x, 90: in a wall along z
         public bool Security, Open, Locked, Remote;
@@ -93,6 +103,7 @@ internal static class AsylumBuilder
 
     private const float D1 = C1 / 2f, D2 = (C1 + C2) / 2f, D3 = (C2 + 14f) / 2f;   // cell door centers
 
+    // Every door of the wing.
     private static readonly DoorDef[] Doors =
     {
         new DoorDef("Cell 1", D1, -4f, 0f, true, locked: true),
@@ -117,7 +128,7 @@ internal static class AsylumBuilder
     [MenuItem("Last Terminal/17 - Build Asylum: Isolation Wing")]
     public static void BuildScene()
     {
-        Shader lit = HelenaSetupMenu.DefaultLitShader();
+        Shader lit = EditorAssets.DefaultLitShader();
         if (lit == null) return;
         if (!AssetDatabase.IsValidFolder(ArtFolder))
         {
@@ -126,7 +137,7 @@ internal static class AsylumBuilder
         }
         OperatorRoomBuilder.RemapFolder(ArtFolder, lit);
         EnsureCastAvatar();
-        HelenaSetupMenu.BuildLocation(ScenePath, NavMeshPath, BuildContent);
+        LocationRigBuilder.BuildLocation(ScenePath, NavMeshPath, BuildContent);
     }
 
     // the bed clips are made on her skeleton: Humanoid with her avatar (new files get their own one otherwise)
@@ -144,6 +155,7 @@ internal static class AsylumBuilder
         }
     }
 
+    // A cast clip by name.
     private static AnimationClip CastClip(string name)
     {
         AnimationClip c = AssetDatabase.LoadAllAssetsAtPath($"{CastAnimFolder}/{name}.fbx").OfType<AnimationClip>()
@@ -154,11 +166,12 @@ internal static class AsylumBuilder
 
     // a surface material of the asylum (its texture in Art/Props/Asylum)
     private static Material Env(string texture, float smooth) =>
-        FacilityBuilder.MaterialFor($"{ArtFolder}/Materials/M_{texture.Substring(2)}.mat", $"{ArtFolder}/{texture}.png", smooth, HelenaSetupMenu.DefaultLitShader(), ArtFolder);
+        FacilityBuilder.MaterialFor($"{ArtFolder}/Materials/M_{texture.Substring(2)}.mat", $"{ArtFolder}/{texture}.png", smooth, EditorAssets.DefaultLitShader(), ArtFolder);
 
     // what the cutscenes need from the content (filled while building it)
     private class Refs
     {
+        // Rooms, doors, cameras and language variants by name, the marks root and the start / writing marks.
         public readonly Dictionary<string, Room> Rooms = new Dictionary<string, Room>();
         public readonly Dictionary<string, Door> Doors = new Dictionary<string, Door>();
         public readonly Dictionary<string, SecurityCamera> Cameras = new Dictionary<string, SecurityCamera>();
@@ -168,9 +181,9 @@ internal static class AsylumBuilder
     }
 
     // ================================================================== content
-    private static HelenaSetupMenu.LocationContent BuildContent(Scene scene, Shader lit)
+    private static LocationRigBuilder.LocationContent BuildContent(Scene scene, Shader lit)
     {
-        var content = new HelenaSetupMenu.LocationContent
+        var content = new LocationRigBuilder.LocationContent
         {
             TestEnemies = false, EmbedOperatorRoom = false, BareStart = true, StartOutfit = OutfitBuilder.PatientOutfitKey,
             PlaceName = "ASYLUM - ISOLATION WING", PlaceNamePt = "HOSPÍCIO - ALA DE ISOLAMENTO",
@@ -229,7 +242,7 @@ internal static class AsylumBuilder
             Plates = FacilityBuilder.MaterialFor($"{FacilityBuilder.DoorsFolder}/Materials/M_DoorPlates.mat", $"{FacilityBuilder.DoorsFolder}/T_DoorPlates.png",
                                                  0.35f, lit, FacilityBuilder.DoorsFolder),
         };
-        Dictionary<string, ItemDefinition> items = HelenaSetupMenu.TestItems();
+        Dictionary<string, ItemDefinition> items = ItemBuilder.TestItems();
         for (int i = 0; i < Doors.Length; i++)
         {
             DoorDef d = Doors[i];
@@ -272,7 +285,7 @@ internal static class AsylumBuilder
         BuildCorridor(props, looks, lit, content);
 
         // the first enemy: feeding on a body at the end of the service corridor, its back to her
-        content.Enemies.Add(new HelenaSetupMenu.EnemySpec
+        content.Enemies.Add(new LocationRigBuilder.EnemySpec
         {
             Prefab = "Enemy_Zombie", Position = new Vector3(45.4f, 0f, -25.5f), Yaw = 90f, Mode = EnemyStartMode.Feeding, SaveId = "asy_corridor_feeder",
         });
@@ -324,6 +337,7 @@ internal static class AsylumBuilder
         }
     }
 
+    // Adds a wall edge span to the outline lines.
     private static void AddEdge(Dictionary<(bool, int), (float, List<Vector2>)> lines, bool alongX, float coord, float from, float to)
     {
         var key = (alongX, Mathf.RoundToInt(coord * 100f));
@@ -335,6 +349,7 @@ internal static class AsylumBuilder
         line.spans.Add(new Vector2(from, to));
     }
 
+    // Merges overlapping spans.
     private static List<Vector2> Merge(List<Vector2> spans)
     {
         var sorted = spans.OrderBy(s => s.x).ToList();
@@ -437,6 +452,7 @@ internal static class AsylumBuilder
         return go;
     }
 
+    // Cuts a NavMesh hole around a prop (obstacle carve).
     private static void Carve(GameObject go, Vector3 center, Vector3 size)
     {
         var obstacle = go.AddComponent<NavMeshObstacle>();
@@ -453,8 +469,8 @@ internal static class AsylumBuilder
     {
         var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/{texture}.png");
         if (tex == null) { Debug.LogWarning($"[Asylum] {ArtFolder}/{texture}.png missing."); return null; }
-        HelenaSetupMenu.EnsureFolder(ArtFolder, "Materials");
-        Material m = HelenaSetupMenu.MakeMaterial($"{ArtFolder}/Materials/M_{texture.Substring(2)}.mat", tex, 0.3f, clip, lit);
+        EditorAssets.EnsureFolder(ArtFolder, "Materials");
+        Material m = EditorAssets.MakeMaterial($"{ArtFolder}/Materials/M_{texture.Substring(2)}.mat", tex, 0.3f, clip, lit);
         GameObject go = GameObject.CreatePrimitive(PrimitiveType.Quad);
         Object.DestroyImmediate(go.GetComponent<Collider>());
         go.name = name;
@@ -486,6 +502,7 @@ internal static class AsylumBuilder
         return Decal(parent, "Decal_" + texture.Replace("T_Asy_", ""), texture, pos, facing, size, true, lit);
     }
 
+    // A floor decal (blood, stains).
     private static GameObject FloorDecal(Transform parent, string texture, float x, float z, float size, Shader lit, float spin = 0f) =>
         Decal(parent, "Floor_" + texture.Replace("T_Asy_", ""), texture, new Vector3(x, 0.011f + 0.0006f * (decalCount++ % 8), z), Vector3.up,
               new Vector2(size, size), true, lit, spin);
@@ -521,6 +538,7 @@ internal static class AsylumBuilder
         }
     }
 
+    // Is this point of a wall near a door?
     private static bool NearDoor(Rect a, char side, float along)
     {
         float line = side == 'N' ? a.yMax : side == 'S' ? a.yMin : side == 'E' ? a.xMax : a.xMin;
@@ -537,7 +555,7 @@ internal static class AsylumBuilder
     }
 
     // something she can look at (with its sparkle); stand = where she stands for it (null: in front of it, on her side)
-    private static Examinable Look(Transform parent, HelenaSetupMenu.LocationContent content, string key, Vector3 pos, Vector3? stand,
+    private static Examinable Look(Transform parent, LocationRigBuilder.LocationContent content, string key, Vector3 pos, Vector3? stand,
                                    string[] en, string[] pt, string flag = "")
     {
         var go = new GameObject("Look_" + key);
@@ -550,14 +568,15 @@ internal static class AsylumBuilder
             var s = new GameObject("Stand").transform;
             s.SetParent(go.transform, false);
             s.position = stand.Value;
-            HelenaSetupMenu.SetReference(x, Examinable.StandPointField, s);
+            EditorSerialized.SetReference(x, Examinable.StandPointField, s);
         }
         content.Examinables.Add(x);
         Sparkle(go.transform, Vector3.up * 0.12f, x);
         return x;
     }
 
-    private static Pickup Take(HelenaSetupMenu.LocationContent content, Pickup p)
+    // Registers a pickup in the location content.
+    private static Pickup Take(LocationRigBuilder.LocationContent content, Pickup p)
     {
         if (p == null) return null;
         content.Pickups.Add(p);
@@ -570,6 +589,7 @@ internal static class AsylumBuilder
     private static Material sparkleMaterial;
     private static readonly List<InteractSparkle> sparkles = new List<InteractSparkle>();
 
+    // The sparkle material / mesh (made once).
     private static void EnsureSparkleAssets()
     {
         string path = $"{ArtFolder}/T_Asy_Sparkle.png";
@@ -587,7 +607,7 @@ internal static class AsylumBuilder
         if (sparkleSprite == null) Debug.LogWarning($"[Asylum] {path} missing: no sparkles.");
         Shader sprites = Shader.Find("Sprites/Default");   // editor time: saved in the material asset
         if (sprites == null) return;
-        HelenaSetupMenu.EnsureFolder(ArtFolder, "Materials");
+        EditorAssets.EnsureFolder(ArtFolder, "Materials");
         string matPath = $"{ArtFolder}/Materials/M_Asy_Sparkle.mat";
         sparkleMaterial = AssetDatabase.LoadAssetAtPath<Material>(matPath);
         if (sparkleMaterial == null)
@@ -600,6 +620,7 @@ internal static class AsylumBuilder
         EditorUtility.SetDirty(sparkleMaterial);
     }
 
+    // Adds a sparkle over something to examine.
     private static void Sparkle(Transform parent, Vector3 offset, Examinable examinable)
     {
         if (sparkleSprite == null) return;
@@ -620,11 +641,12 @@ internal static class AsylumBuilder
             stars.Add(star);
         }
         var sparkle = root.AddComponent<InteractSparkle>();
-        HelenaSetupMenu.SetReferenceArray(sparkle, InteractSparkle.StarsField, stars);
-        if (examinable != null) HelenaSetupMenu.SetReference(sparkle, InteractSparkle.ExaminableField, examinable);
+        EditorSerialized.SetReferenceArray(sparkle, InteractSparkle.StarsField, stars);
+        if (examinable != null) EditorSerialized.SetReference(sparkle, InteractSparkle.ExaminableField, examinable);
         sparkles.Add(sparkle);
     }
 
+    // A named mark (position + facing) for the cutscenes.
     private static Transform Mark(Refs refs, string name, Vector3 pos, float yaw)
     {
         var t = new GameObject(name).transform;
@@ -633,6 +655,7 @@ internal static class AsylumBuilder
         return t;
     }
 
+    // A group object under the props root.
     private static Transform Group(Transform props, string name)
     {
         var t = new GameObject(name).transform;
@@ -643,7 +666,8 @@ internal static class AsylumBuilder
     // ------------------------------------------------------------------ the cells
     private const float BedTop = 0.5f, DeskTop = 0.8f, TableTop = 0.8f, GurneyTop = 0.85f, CartTop = 0.935f;
 
-    private static void BuildCells(Transform props, Transform looks, Shader lit, HelenaSetupMenu.LocationContent content, Refs refs)
+    // The cells: beds, props, examinables, her start.
+    private static void BuildCells(Transform props, Transform looks, Shader lit, LocationRigBuilder.LocationContent content, Refs refs)
     {
         // every cell: a bed against the far wall, a steel toilet in the corner, stains
         (string room, float cx, bool south)[] cells =
@@ -678,8 +702,8 @@ internal static class AsylumBuilder
         if (enW != null && ptW != null)
         {
             var variant = writing.AddComponent<LanguageVariant>();
-            HelenaSetupMenu.SetReference(variant, LanguageVariant.EnglishField, enW);
-            HelenaSetupMenu.SetReference(variant, LanguageVariant.PortugueseField, ptW);
+            EditorSerialized.SetReference(variant, LanguageVariant.EnglishField, enW);
+            EditorSerialized.SetReference(variant, LanguageVariant.PortugueseField, ptW);
             refs.Variants.Add(variant);
         }
         refs.StartMark = Mark(refs, "Start_Bed", Start, 0f);
@@ -769,7 +793,7 @@ internal static class AsylumBuilder
     }
 
     // ------------------------------------------------------------------ the nurses station
-    private static void BuildNurses(Transform props, Transform looks, Transform pickups, Shader lit, HelenaSetupMenu.LocationContent content)
+    private static void BuildNurses(Transform props, Transform looks, Transform pickups, Shader lit, LocationRigBuilder.LocationContent content)
     {
         Transform room = Group(props, "NursesStation");
         // the counter (its high front toward the room), the nurse's chair behind it, files, the medicine cabinet, the cart
@@ -794,8 +818,8 @@ internal static class AsylumBuilder
         FloorDecal(room, "T_Asy_StainBlood", 23.6f, -7.8f, 1.0f, lit, 120f);
 
         // the knife on the gurney (her first weapon), a medkit on the cart
-        Take(content, HelenaSetupMenu.PlaceWeaponPickup(pickups, "KitchenKnife", new Vector3(24.6f, GurneyTop, -7.3f), 110f));
-        Take(content, HelenaSetupMenu.PlaceItemPickup(pickups, "Medkit", 1, new Vector3(25.35f, CartTop, -6.2f), 0f, new Color(0.2f, 0.75f, 0.3f)));
+        Take(content, ItemBuilder.PlaceWeaponPickup(pickups, "KitchenKnife", new Vector3(24.6f, GurneyTop, -7.3f), 110f));
+        Take(content, ItemBuilder.PlaceItemPickup(pickups, "Medkit", 1, new Vector3(25.35f, CartTop, -6.2f), 0f, new Color(0.2f, 0.75f, 0.3f)));
 
         Look(looks, content, "x_desk", new Vector3(21.2f, DeskTop, -3.25f), null,
             new[] { "Patient files... mine's here. \"Patient 2716. Persecutory delusions.\" At least the cover held.",
@@ -819,7 +843,7 @@ internal static class AsylumBuilder
     }
 
     // ------------------------------------------------------------------ service hall, linen, bathroom, therapy
-    private static void BuildServiceRooms(Transform props, Transform looks, Transform pickups, Shader lit, HelenaSetupMenu.LocationContent content)
+    private static void BuildServiceRooms(Transform props, Transform looks, Transform pickups, Shader lit, LocationRigBuilder.LocationContent content)
     {
         Transform hall = Group(props, "ServiceHall");
         Prop(hall, "SM_Asy_Gurney", new Vector3(24.55f, 0f, -17.2f), 90f);
@@ -876,7 +900,7 @@ internal static class AsylumBuilder
         Vector3 guard = new Vector3(26.6f, 0f, -15.6f);
         EnemyBuilder.PlaceCorpse(therapy, "Body_Guard", guard, 60f, true);
         FloorDecal(therapy, "T_Asy_StainBlood", guard.x + 0.2f, guard.z + 0.2f, 1.8f, lit, 30f);
-        Take(content, HelenaSetupMenu.PlaceItemPickup(pickups, "Keycard", 1, new Vector3(27.5f, 0f, -15.0f), 35f, new Color(0.25f, 0.45f, 0.9f)));
+        Take(content, ItemBuilder.PlaceItemPickup(pickups, "Keycard", 1, new Vector3(27.5f, 0f, -15.0f), 35f, new Color(0.25f, 0.45f, 0.9f)));
         Look(looks, content, "x_body", guard + Vector3.up * 0.3f, null,
             new[] { "A guard. He put up a fight... someone did this with their bare hands.",
                     "His keycard fell out of his belt. I'll need it for the armory." },
@@ -893,7 +917,7 @@ internal static class AsylumBuilder
     }
 
     // ------------------------------------------------------------------ guard post, armory
-    private static void BuildGuardPost(Transform props, Transform looks, Transform pickups, Shader lit, HelenaSetupMenu.LocationContent content)
+    private static void BuildGuardPost(Transform props, Transform looks, Transform pickups, Shader lit, LocationRigBuilder.LocationContent content)
     {
         Transform post = Group(props, "GuardPost");
         Prop(post, "SM_Asy_Table", new Vector3(21.0f, 0f, -23.45f), 180f);
@@ -905,7 +929,7 @@ internal static class AsylumBuilder
         Prop(post, "SM_Asy_Clock", new Vector3(19.9f, 2.3f, -23.13f), 180f, false);
         WallDecal(post, "Guard Post", 'W', -24.8f, 1.9f, new Vector2(0.9f, 0.23f), "T_Asy_SignArmory", lit);
         Weather(post, "Guard Post", 23, lit, 3, 2);
-        SaveStation save = HelenaSetupMenu.PlaceSavePoint(post, "SavePoint_Terminal", new Vector3(23.6f, 0f, -26.6f), 0f);
+        SaveStation save = SavePointBuilder.PlaceSavePoint(post, "SavePoint_Terminal", new Vector3(23.6f, 0f, -26.6f), 0f);
         if (save != null) content.Stations.Add(save);
         Look(looks, content, "x_monitors", new Vector3(21.0f, TableTop + 0.3f, -23.35f), null,
             new[] { "The guard monitors. Static on every one... you're the only camera that works in here, huh." },
@@ -923,15 +947,15 @@ internal static class AsylumBuilder
         Prop(armory, "SM_Asy_Locker", new Vector3(17.9f, 0f, -27.65f), 0f);
         Prop(armory, "SM_Asy_Table", new Vector3(17.2f, 0f, -24.45f), 180f);
         Weather(armory, "Armory", 29, lit, 2, 1);
-        Take(content, HelenaSetupMenu.PlaceWeaponPickup(pickups, "Pistol1911", new Vector3(16.9f, TableTop, -24.4f), 80f));
-        Take(content, HelenaSetupMenu.PlaceItemPickup(pickups, "HandgunAmmo", 14, new Vector3(17.6f, TableTop, -24.45f), 10f, new Color(0.85f, 0.7f, 0.2f)));
+        Take(content, ItemBuilder.PlaceWeaponPickup(pickups, "Pistol1911", new Vector3(16.9f, TableTop, -24.4f), 80f));
+        Take(content, ItemBuilder.PlaceItemPickup(pickups, "HandgunAmmo", 14, new Vector3(17.6f, TableTop, -24.45f), 10f, new Color(0.85f, 0.7f, 0.2f)));
         Look(looks, content, "x_shelf", new Vector3(16.35f, 1.0f, -27.1f), null,
             new[] { "Empty racks. Somebody got here first and took almost everything." },
             new[] { "Prateleiras vazias. Alguém chegou antes e levou quase tudo." });
     }
 
     // ------------------------------------------------------------------ service corridor, stairwell
-    private static void BuildCorridor(Transform props, Transform looks, Shader lit, HelenaSetupMenu.LocationContent content)
+    private static void BuildCorridor(Transform props, Transform looks, Shader lit, LocationRigBuilder.LocationContent content)
     {
         Transform corridor = Group(props, "ServiceCorridor");
         // the body the first enemy is feeding on, the blood around it
@@ -960,12 +984,12 @@ internal static class AsylumBuilder
     }
 
     // ================================================================== cutscenes (once the rig exists)
-    private static void Finish(HelenaSetupMenu.LocationRig rig, Refs refs)
+    private static void Finish(LocationRigBuilder.LocationRig rig, Refs refs)
     {
-        foreach (LanguageVariant v in refs.Variants) HelenaSetupMenu.SetReference(v, LanguageVariant.SettingsField, rig.Settings);
+        foreach (LanguageVariant v in refs.Variants) EditorSerialized.SetReference(v, LanguageVariant.SettingsField, rig.Settings);
         // the sparkles face the operator's view
         if (rig.ViewCamera != null)
-            foreach (InteractSparkle s in sparkles) if (s != null) HelenaSetupMenu.SetReference(s, InteractSparkle.ViewCameraField, rig.ViewCamera.transform);
+            foreach (InteractSparkle s in sparkles) if (s != null) EditorSerialized.SetReference(s, InteractSparkle.ViewCameraField, rig.ViewCamera.transform);
         CutsceneDirector d = rig.Director;
         if (d == null) { Debug.LogWarning("[Asylum] No cutscene director: no cutscenes."); return; }
         CutsceneActor h = d.Helena;
@@ -1145,6 +1169,7 @@ internal static class AsylumBuilder
     // a cutscene + its trigger; returns its steps list (Commit applies it)
     private static readonly Dictionary<Cutscene, SerializedObject> Pending = new Dictionary<Cutscene, SerializedObject>();
 
+    // Creates a cutscene with its trigger.
     private static SerializedProperty New(Transform root, CutsceneDirector d, string name, string id, CutsceneTrigger.When when, Room room,
                                           string flag, float delay, out Cutscene cutscene, string blocking = "", bool letterbox = true)
     {
@@ -1152,10 +1177,10 @@ internal static class AsylumBuilder
         go.transform.SetParent(root, false);
         if (room != null) go.transform.position = room.transform.position;
         cutscene = go.AddComponent<Cutscene>();
-        HelenaSetupMenu.SetReference(cutscene, Cutscene.DirectorField, d);
-        HelenaSetupMenu.SetString(cutscene, Cutscene.IdField, id);
+        EditorSerialized.SetReference(cutscene, Cutscene.DirectorField, d);
+        EditorSerialized.SetString(cutscene, Cutscene.IdField, id);
         var trigger = go.AddComponent<CutsceneTrigger>();
-        HelenaSetupMenu.SetReference(trigger, CutsceneTrigger.CutsceneField, cutscene);
+        EditorSerialized.SetReference(trigger, CutsceneTrigger.CutsceneField, cutscene);
         var tso = new SerializedObject(trigger);
         tso.FindProperty(CutsceneTrigger.WhenField).enumValueIndex = (int)when;
         tso.FindProperty(CutsceneTrigger.RoomField).objectReferenceValue = room;
@@ -1169,6 +1194,7 @@ internal static class AsylumBuilder
         return so.FindProperty(Cutscene.StepsField);
     }
 
+    // Applies the pending steps of a cutscene.
     private static void Commit(Cutscene c)
     {
         if (!Pending.TryGetValue(c, out SerializedObject so)) return;
@@ -1176,12 +1202,14 @@ internal static class AsylumBuilder
         Pending.Remove(c);
     }
 
+    // Adds a step.
     private static void Add(SerializedProperty list, CutsceneStep step)
     {
         list.arraySize++;
         list.GetArrayElementAtIndex(list.arraySize - 1).managedReferenceValue = step;
     }
 
+    // A line of a cast member.
     private static SayStep Line(CutsceneActor who, string pt, string en) => new SayStep { actor = who, textPt = pt, textEn = en, pauseAfter = 0.35f };
 
     // ================================================================== lexicon (CommandDataBuilder)

@@ -8,29 +8,15 @@ using UnityEngine;
 //   -> hit / stand / double / split / surrender -> her hand -> chips paid / taken -> "another round?"
 //   between rounds: "yes" / a new bet = next round, "no" / "that's enough" = she puts the deck back and gets up.
 // The rules live in BlackjackEngine; this plays its events one by one with the animations, cards and chips.
-public class BlackjackGame : MonoBehaviour, ISeatActivity
+// The seat / camera / deck routine, the animation steps and dealing are shared with Hold'em (CardTableGame).
+public class BlackjackGame : CardTableGame
 {
-    public const string TableField = nameof(table);
-    public const string BankField = nameof(bank);
-    public const string SeatUserField = nameof(seatUser);
-    public const string DealerField = nameof(dealer);
-    public const string VoiceField = nameof(voice);
-    public const string EncounterField = nameof(encounter);
-    public const string CameraSystemField = nameof(cameraSystem);
-
+    // The game's own flow (on top of the engine's round phases): seating, opening, betting, dealing, deciding, ending, leaving.
     public enum State { Off, Joining, Opening, Betting, Playing, Insurance, Deciding, RoundEnd, AskAgain, Leaving }
+    // The player's choices on a hand (spoken commands).
     public enum Decision { Hit, Stand, Double, Split, Surrender }
 
-    [SerializeField] private BlackjackTable table;
-    [SerializeField] private ChipBank bank;
-    [SerializeField] private PartnerSaveUser seatUser;
-    [SerializeField] private PartnerBlackjackDealer dealer;
-    [SerializeField] private PartnerVoice voice;
-    [Tooltip("Optional: the game stops when a fight starts.")]
-    [SerializeField] private CombatEncounter encounter;
-    [Tooltip("Optional: the operator's view jumps to the table camera while the game is on.")]
-    [SerializeField] private SecurityCameraSystem cameraSystem;
-
+    // House rules handed to the engine (see BlackjackRules).
     [Header("Rules")]
     [SerializeField, Range(1, 8)] private int decks = 6;
     [SerializeField] private bool dealerHitsSoft17;
@@ -39,56 +25,40 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
     [SerializeField] private bool lateSurrender = true;
     [SerializeField, Range(2, 4)] private int maxHands = 4;
 
-    [Header("Pacing")]
-    [SerializeField] private float cardSlideTime = 0.35f;
-    [SerializeField] private float chipTime = 0.4f;
+    // Pause before the next round, and the bet used by "deal" when no bet was ever placed.
+    [Header("Round")]
     [SerializeField] private float pauseAfterRound = 1.4f;
-    [Tooltip("She says something if the operator takes this long to decide (s).")]
-    [SerializeField] private float idleNag = 25f;
     [SerializeField] private int defaultBet = 10;
-    [Tooltip("Chips she gives when the operator is broke.")]
-    [SerializeField] private int pityChips = 100;
 
+    // The rules engine (made on the first Join) and where this game is.
     private BlackjackEngine engine;
     private State state;
-    private bool stepBusy;
-    private int stepParts;
-    private float waitTimer;
-    private float idleTimer;
-    private bool nagged;
+    // Round bookkeeping: first decision of the round (she says "your turn"), first shuffle (no line), wins in a row, chips won/lost this round.
     private bool firstDecision;
     private bool shuffledOnce;
     private int winStreak;
     private int roundNet;
+    // A decision said while cards were still being dealt: done as soon as the player's turn starts.
     private Decision? pending;
 
+    // What is on the table: card objects per player hand, dealer cards, chip piles (bets, insurance, winnings to hand back).
     private readonly List<List<BlackjackTable.CardVisual>> handCards = new List<List<BlackjackTable.CardVisual>>();
     private readonly List<BlackjackTable.CardVisual> dealerCards = new List<BlackjackTable.CardVisual>();
     private readonly List<List<GameObject>> betChips = new List<List<GameObject>>();
     private readonly List<GameObject> insuranceChips = new List<GameObject>();
     private readonly List<GameObject> returnChips = new List<GameObject>();
-    private BlackjackTable.CardVisual cardInHand;
-    private bool deckInHand;
-    private SecurityCamera cameraBefore;
-    private Vector3 deckHomeLocal;
-    private Quaternion deckHomeRot;
 
-    public event Action Changed;
-
-    public bool IsActive => state != State.Off;
-    public bool IsBetweenRounds => state == State.Betting || state == State.AskAgain || state == State.Opening || state == State.Joining;
+    // State read by the HUD, the commands and her animations.
     public State CurrentState => state;
     public BlackjackEngine Engine => engine;
-    public BlackjackTable Table => table;
-    public int Chips => bank.Chips;
-    public int MinBet => minBet;
-    public int MaxBet => maxBet;
-    public PartnerAnimator.SeatAnimation SeatAnimation => PartnerAnimator.SeatAnimation.Dealer;
+    public override int MinBet => minBet;
+    public override int MaxBet => maxBet;
 
     // what is on the table now (the HUD shows the cards once they are dealt, not before)
     public int ShownHandCount => handCards.Count;
     public int ActiveHandIndex => state == State.Deciding && engine != null ? engine.Active : -1;
 
+    // The dealer's cards on the table now (not the one still in her hand), with face up / down.
     public void GetShownDealer(List<Card> cards, List<bool> faceUp)
     {
         cards.Clear(); faceUp.Clear();
@@ -99,6 +69,7 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
         }
     }
 
+    // One player hand's cards on the table now.
     public void GetShownHand(int hand, List<Card> cards)
     {
         cards.Clear();
@@ -107,119 +78,85 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
             if (c != cardInHand) cards.Add(c.Card);
     }
 
-    private void Awake()
+    // ------------------------------------------------------------------ CardTableGame hooks
+    // The shared stage of the current State (every state of a round = InRound).
+    protected override TableStage Stage
     {
-        if (table == null || bank == null || seatUser == null || dealer == null || voice == null)
+        get
         {
-            Debug.LogError($"{name}: BlackjackGame needs the table, ChipBank, PartnerSaveUser, PartnerBlackjackDealer and PartnerVoice.", this);
-            enabled = false;
-            return;
+            switch (state)
+            {
+                case State.Off: return TableStage.Off;
+                case State.Joining: return TableStage.Joining;
+                case State.Opening: return TableStage.Opening;
+                case State.Betting: return TableStage.Betting;
+                case State.AskAgain: return TableStage.AskAgain;
+                case State.Leaving: return TableStage.Leaving;
+                default: return TableStage.InRound;
+            }
         }
-        if (table.Deck != null) { deckHomeLocal = table.Deck.localPosition; deckHomeRot = table.Deck.localRotation; }
     }
 
-    private void OnEnable() { if (encounter != null) encounter.CombatStarted += OnCombatStarted; }
-    private void OnDisable() { if (encounter != null) encounter.CombatStarted -= OnCombatStarted; }
-
-    private void OnCombatStarted() { if (IsActive) ForceLeave(); }
-
-    // ------------------------------------------------------------------ joining / leaving
-    public bool Join()
+    // The State for a shared stage the base routine moves to.
+    protected override void EnterStage(TableStage stage)
     {
-        if (!enabled) return false;
-        if (IsActive) return true;
+        switch (stage)
+        {
+            case TableStage.Off: SetState(State.Off); break;
+            case TableStage.Joining: SetState(State.Joining); break;
+            case TableStage.Opening: SetState(State.Opening); break;
+            case TableStage.Betting: SetState(State.Betting); break;
+            case TableStage.AskAgain: SetState(State.AskAgain); break;
+            case TableStage.Leaving: SetState(State.Leaving); break;
+            default: throw new ArgumentOutOfRangeException(nameof(stage));
+        }
+    }
+
+    // She nags while the operator has to bet, decide, answer insurance or say "another round".
+    protected override bool WaitingForPlayer =>
+        state == State.Betting || state == State.Deciding || state == State.Insurance || state == State.AskAgain;
+
+    // Broke = less than the minimum bet.
+    protected override int BettingFloor => minBet;
+
+    // Dealt cards land a little crooked (up to 6 degrees).
+    protected override float CardTilt => 6f;
+
+    // The engine with this table's house rules.
+    protected override void EnsureEngine()
+    {
         if (engine == null)
             engine = new BlackjackEngine(new BlackjackRules
             {
                 Decks = decks, DealerHitsSoft17 = dealerHitsSoft17, MinBet = minBet, MaxBet = maxBet,
                 LateSurrender = lateSurrender, MaxHands = maxHands,
             }, bank.Chips, Environment.TickCount);
-        if (!seatUser.UseSeat(table.Seat, this)) return false;
-        SetState(State.Joining);
-        return true;
     }
 
-    // seated, chair pushed in
-    public void OnSeated()
+    // Bets go back; the bank takes the engine's chip count.
+    protected override void CancelRound()
     {
-        TableCameraOn();
-        dealer.PlantFeet(table.transform);
-        SetState(State.Opening);
-        stepBusy = true;
-        dealer.PickUpDeck(() => deckInHand = true, () =>
-        {
-            stepBusy = false;
-            dealer.Hold();
-            EnterBetting(true);
-        });
-    }
-
-    // she walked away from the table (or never got there)
-    public void OnSeatLeft()
-    {
-        if (engine != null) engine.CancelRound();
-        if (engine != null) bank.Set(engine.Chips);
-        dealer.Stop();
-        dealer.ReleaseFeet();
-        ClearTable();
-        ReturnDeck();
-        TableCameraOff();
-        SetState(State.Off);
-    }
-
-    // the game "knows": a camera at the player's seat, facing her, appears and the view cuts to it
-    private void TableCameraOn()
-    {
-        SecurityCamera cam = table.TableCamera;
-        if (cam == null || cameraSystem == null) return;
-        cameraBefore = cameraSystem.Active;
-        cam.gameObject.SetActive(true);
-        cameraSystem.Switch(cam);
-    }
-
-    private void TableCameraOff()
-    {
-        SecurityCamera cam = table.TableCamera;
-        if (cam == null || cameraSystem == null || !cam.gameObject.activeSelf) return;
-        if (cameraSystem.Active == cam)
-        {
-            if (cameraBefore != null && cameraBefore != cam) cameraSystem.Switch(cameraBefore);
-            else cameraSystem.Switch(0);
-        }
-        cam.gameObject.SetActive(false);
-    }
-
-    // "that's enough": only between rounds
-    public bool Quit()
-    {
-        if (!IsActive) return false;
-        if (state == State.Joining) { seatUser.Abort(); return true; }
-        if (!IsBetweenRounds) { voice.Say(PartnerLine.BjFinishHand); return false; }
-        Leave(true);
-        return true;
-    }
-
-    // a fight, a load...: the round is called off (bets back) and she gets up at once
-    public void ForceLeave()
-    {
-        if (!IsActive) return;
-        if (state == State.Joining || state == State.Leaving) { if (state == State.Joining) seatUser.Abort(); return; }
+        if (engine == null) return;
         engine.CancelRound();
         bank.Set(engine.Chips);
-        ClearTable();
-        Leave(false);
     }
 
-    private void Leave(bool sayGoodbye)
+    // The engine starts from the bank's chips.
+    protected override void SyncEngineChips() => engine.SetChips(bank.Chips);
+
+    // Forgets every card and chip list of the round.
+    protected override void ClearRoundObjects()
     {
-        SetState(State.Leaving);
-        if (sayGoodbye) voice.Say(PartnerLine.BjGameOver);
-        stepBusy = true;
-        dealer.PutBackDeck(ReturnDeck, () => { stepBusy = false; dealer.Idle(); dealer.ReleaseFeet(); seatUser.LeaveSeat(); });
+        dealerCards.Clear();
+        handCards.Clear();
+        betChips.Clear();
+        insuranceChips.Clear();
+        returnChips.Clear();
     }
 
     // ------------------------------------------------------------------ operator commands
-    public void Bet(int amount)
+    // A bet between rounds: checked by the engine (limits, chips), then the round starts.
+    public override void Bet(int amount)
     {
         if (!CanStartRound()) return;
         engine.SetChips(bank.Chips);
@@ -233,7 +170,7 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
     }
 
     // "yes" / "deal" / "one more" between rounds: same bet as last time
-    public void Continue()
+    public override void Continue()
     {
         if (state == State.Insurance) { Insurance(true); return; }
         if (state == State.Deciding || state == State.Playing) { Decide(Decision.Hit); return; }
@@ -244,13 +181,14 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
     }
 
     // "no" between rounds = leave; to insurance = decline
-    public void Decline()
+    public override void Decline()
     {
         if (state == State.Insurance) { Insurance(false); return; }
         if (IsBetweenRounds) { Quit(); return; }
         voice.Say(PartnerLine.BjFinishHand);
     }
 
+    // "Insurance" / "no insurance": answers the engine's question.
     public void Insurance(bool take)
     {
         if (state != State.Insurance) { if (take) voice.Say(PartnerLine.DontHaveThat); return; }
@@ -259,6 +197,7 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
         SetState(State.Playing);
     }
 
+    // Hit / stand / double / split / surrender: passed to the engine (or queued while dealing); she says why when it isn't allowed.
     public void Decide(Decision d)
     {
         if (state == State.Playing && engine.Phase == RoundPhase.PlayerTurn) { pending = d; return; }   // still dealing: do it after
@@ -283,14 +222,7 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
     }
 
     // ------------------------------------------------------------------ round flow
-    private bool CanStartRound()
-    {
-        if (state == State.Betting || state == State.AskAgain) return true;
-        if (state == State.Opening || state == State.Joining) voice.Say(PartnerLine.Busy);
-        else if (state != State.Off && state != State.Leaving) voice.Say(PartnerLine.BjFinishHand);
-        return false;
-    }
-
+    // A new round with this bet (the engine deals; StepRound plays the events).
     private void StartRound(int bet)
     {
         ClearTable();
@@ -302,32 +234,9 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
         SetState(State.Playing);
     }
 
-    private void EnterBetting(bool sayIt)
+    // One engine event at a time (each one waits for its animation), then the round end.
+    protected override void StepRound()
     {
-        if (bank.Chips < minBet)
-        {
-            // broke: she spots the operator some chips
-            bank.Add(pityChips);
-            voice.Say(PartnerLine.BjBroke);
-        }
-        else if (sayIt) voice.Say(PartnerLine.BjPlaceBet);
-        engine.SetChips(bank.Chips);
-        SetState(State.Betting);
-    }
-
-    private void Update()
-    {
-        if (state == State.Off || state == State.Joining || state == State.Leaving) return;
-
-        if (state == State.Betting || state == State.Deciding || state == State.Insurance || state == State.AskAgain)
-        {
-            idleTimer += Time.deltaTime;
-            if (!nagged && idleTimer > idleNag) { nagged = true; voice.Say(PartnerLine.BjIdle); }
-        }
-
-        if (stepBusy) return;
-        if (waitTimer > 0f) { waitTimer -= Time.deltaTime; return; }
-
         if (state == State.Playing)
         {
             if (engine.Events.Count > 0) { Play(engine.Events.Dequeue()); return; }
@@ -363,15 +272,17 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
         }
     }
 
+    // After the round: "another round?" (or betting again when the chips are too low).
     private void AskAgain()
     {
         bank.Set(engine.Chips);
-        if (bank.Chips < minBet) { EnterBetting(false); return; }
+        if (bank.Chips < BettingFloor) { EnterBetting(false); return; }
         SetState(State.AskAgain);
         voice.Say(PartnerLine.BjAnotherRound);
     }
 
     // ------------------------------------------------------------------ events -> table
+    // Plays one engine event on the table (cards, chips, her peek...), then tells the HUD.
     private void Play(TableEvent e)
     {
         switch (e.Type)
@@ -453,22 +364,10 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
                 break;
         }
         bank.Set(engine.Chips);
-        Changed?.Invoke();
+        RaiseChanged();
     }
 
-    // one card: out of the shoe into her hand, dealt with the clip, slid to its place at the release point
-    private void Deal(Card card, Vector3 place, bool faceUp, List<BlackjackTable.CardVisual> into)
-    {
-        // her hole card has no face until it is revealed (it can't flash its value while in her hand)
-        BlackjackTable.CardVisual v = table.SpawnCard(card, table.ShoePosition, table.CardRotation(false), false, !faceUp);
-        into.Add(v);
-        cardInHand = v;
-        Begin(2);
-        dealer.DealCard(place,
-            () => { cardInHand = null; table.MoveCard(v, place, faceUp, cardSlideTime, 0.04f, Part, UnityEngine.Random.Range(-6f, 6f)); },
-            () => { dealer.Hold(); Part(); });
-    }
-
+    // A split: the second card moves to the new hand, the new bet appears, everything slides to the new layout.
     private void SplitVisuals(int source, int index, int bet)
     {
         handCards.Insert(index, new List<BlackjackTable.CardVisual>());
@@ -493,6 +392,7 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
         Part();
     }
 
+    // Pays / takes the chips of one hand (winnings come from the tray).
     private void Settle(int hand, HandOutcome outcome, int paidBack)
     {
         BlackjackHand h = engine.Hands[hand];
@@ -527,6 +427,7 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
         }
     }
 
+    // What she says at the end of a round (blackjack, bust, a winning streak...).
     private void RoundOverLine()
     {
         bool dealerBj = engine.Dealer.Count == 2 && engine.DealerTotal == 21;
@@ -548,19 +449,11 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
     // hands on the table now (the engine may already be further: it runs ahead of the animations)
     private int VisualHands => Mathf.Max(1, handCards.Count);
 
+    // Makes room for a hand index in the visual lists.
     private void EnsureHand(int hand)
     {
         while (handCards.Count <= hand) handCards.Add(new List<BlackjackTable.CardVisual>());
         while (betChips.Count <= hand) betChips.Add(new List<GameObject>());
-    }
-
-    // chips dropped onto a spot (from a little above it)
-    private List<GameObject> Drop(int amount, Vector3 at)
-    {
-        List<GameObject> pile = table.SpawnChips(amount, at + Vector3.up * 0.25f);
-        Begin(1);
-        table.MoveChips(pile, at, chipTime, false, Part);
-        return pile;
     }
 
     // every card to the discard holder
@@ -570,60 +463,13 @@ public class BlackjackGame : MonoBehaviour, ISeatActivity
         foreach (List<BlackjackTable.CardVisual> h in handCards) all.AddRange(h);
         dealerCards.Clear();
         handCards.Clear();
-        if (all.Count == 0) { done(); return; }
-        int left = all.Count;
-        foreach (BlackjackTable.CardVisual c in all)
-        {
-            BlackjackTable.CardVisual card = c;
-            table.MoveCard(card, table.DiscardPosition, false, 0.45f, 0.08f, () =>
-            {
-                table.HideCard(card);
-                if (--left == 0) done();
-            });
-        }
+        SweepCards(all, done);
     }
 
-    private void ClearTable()
-    {
-        table.ClearAll();
-        dealerCards.Clear();
-        handCards.Clear();
-        betChips.Clear();
-        insuranceChips.Clear();
-        returnChips.Clear();
-        cardInHand = null;
-        stepBusy = false;
-        stepParts = 0;
-        waitTimer = 0f;
-    }
-
-    private void ReturnDeck()
-    {
-        deckInHand = false;
-        if (table.Deck == null) return;
-        table.Deck.SetParent(table.transform, false);
-        table.Deck.localPosition = deckHomeLocal;
-        table.Deck.localRotation = deckHomeRot;
-    }
-
-    // a step made of several parts (clip + card slide...): the next event waits for all of them
-    private void Begin(int parts) { stepBusy = true; stepParts += parts; }
-    private void Part() { if (--stepParts <= 0) { stepParts = 0; stepBusy = false; } Changed?.Invoke(); }
-
+    // Changes state; resets the idle nag; tells the HUD.
     private void SetState(State s)
     {
         state = s;
-        idleTimer = 0f;
-        nagged = false;
-        Changed?.Invoke();
-    }
-
-    // after the Animator: the card and the deck follow her hands
-    private void LateUpdate()
-    {
-        if (cardInHand != null && dealer.TryGetCardInHand(out Vector3 p, out Quaternion r))
-            cardInHand.Transform.SetPositionAndRotation(p, r);
-        if (deckInHand && table.Deck != null && dealer.TryGetDeckInHand(out Vector3 dp, out Quaternion dr))
-            table.Deck.SetPositionAndRotation(dp, dr);
+        OnStateChanged();
     }
 }

@@ -11,14 +11,18 @@ using UnityEngine.Rendering.Universal;
 // (grain, scanlines...) stays on top of it. Used by the facility (Last Terminal/4) and the asylum (Last Terminal/17).
 internal static class AtmosphereBuilder
 {
+    // Where the grade profile is saved.
     private const string DataFolder = "Assets/Data/Atmosphere";
     private const string ProfilePath = DataFolder + "/Atmosphere_Indoor2.asset";   // (v1 was too dark: ACES)
+    // Where the lamp fixture materials are saved.
     private const string MaterialFolder = "Assets/Art/Environment/Materials";
     private const float LampSpacing = 6f;      // a long room gets a lamp every 6 m
     private const float LampHeight = 2.88f;    // just under the ceiling (the CCTV cameras hang at 2.75)
 
+    // One scene's look: fog color / density, ambient light and the grade values.
     internal struct Look
     {
+        // Fog color and density, ambient color.
         public Color Fog;
         public float FogDensity;
         public Color Ambient;
@@ -27,6 +31,7 @@ internal static class AtmosphereBuilder
         public string CeilingTexture;        // empty = the facility wall texture, tinted
     }
 
+    // The asylum look.
     internal static readonly Look Asylum = new Look
     {
         Fog = new Color(0.07f, 0.075f, 0.07f), FogDensity = 0.045f, Ambient = new Color(0.1f, 0.105f, 0.11f), LampScale = 6f,
@@ -34,6 +39,7 @@ internal static class AtmosphereBuilder
         CeilingTexture = "Assets/Art/Props/Asylum/T_AsyCeiling.png",
     };
 
+    // The facility look.
     internal static readonly Look Facility = new Look
     {
         Fog = new Color(0.08f, 0.08f, 0.085f), FogDensity = 0.03f, Ambient = new Color(0.12f, 0.125f, 0.13f), LampScale = 5f,
@@ -44,7 +50,7 @@ internal static class AtmosphereBuilder
     internal static void Apply(Transform root, IEnumerable<Room> rooms, Shader lit, Look look)
     {
         EnsurePipeline();
-        HelenaSetupMenu.EnsureFolder("Assets/Art/Environment", "Materials");
+        EditorAssets.EnsureFolder("Assets/Art/Environment", "Materials");
         string env = FacilityBuilder.EnvFolder;
         bool own = !string.IsNullOrEmpty(look.CeilingTexture);
         Material ceiling = FacilityBuilder.MaterialFor(own ? $"{MaterialFolder}/M_CeilingTiles.mat" : $"{MaterialFolder}/M_Ceiling.mat",
@@ -140,16 +146,17 @@ internal static class AtmosphereBuilder
             if (failing && i == 0)
             {
                 var f = go.AddComponent<LightFlicker>();
-                HelenaSetupMenu.SetReference(f, LightFlicker.LampField, lamp);
-                HelenaSetupMenu.SetReference(f, LightFlicker.FixtureField, renderer);
+                EditorSerialized.SetReference(f, LightFlicker.LampField, lamp);
+                EditorSerialized.SetReference(f, LightFlicker.FixtureField, renderer);
             }
         }
     }
 
+    // Glowing lamp fixture material (made once).
     private static Material FixtureMaterial(Shader lit, Color color)
     {
         string path = $"{MaterialFolder}/M_LampFixture_{ColorUtility.ToHtmlStringRGB(color)}.mat";
-        Material m = HelenaSetupMenu.MakeMaterial(path, null, 0.3f, false, lit);
+        Material m = EditorAssets.MakeMaterial(path, null, 0.3f, false, lit);
         m.SetColor("_BaseColor", Color.Lerp(color, Color.white, 0.5f));
         OperatorRoomBuilder.Glow(m, null, color * 1.6f);
         return m;
@@ -160,8 +167,8 @@ internal static class AtmosphereBuilder
     {
         var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(ProfilePath);
         if (profile != null) return profile;
-        HelenaSetupMenu.EnsureFolder("Assets", "Data");
-        HelenaSetupMenu.EnsureFolder("Assets/Data", "Atmosphere");
+        EditorAssets.EnsureFolder("Assets", "Data");
+        EditorAssets.EnsureFolder("Assets/Data", "Atmosphere");
         profile = ScriptableObject.CreateInstance<VolumeProfile>();
         AssetDatabase.CreateAsset(profile, ProfilePath);
 
@@ -210,12 +217,14 @@ internal static class AtmosphereBuilder
         if (so.ApplyModifiedPropertiesWithoutUndo()) Debug.Log($"[Atmosphere] {urp.name}: lamp shadows / soft shadows / HDR turned on.");
     }
 
+    // Sets an int / bool on a serialized object by name.
     private static void SetInt(SerializedObject so, string name, int value)
     {
         SerializedProperty p = so.FindProperty(name);
         if (p != null && p.intValue < value) p.intValue = value;
     }
 
+    // Sets a bool on a serialized object by name.
     private static void SetBool(SerializedObject so, string name, bool value)
     {
         SerializedProperty p = so.FindProperty(name);

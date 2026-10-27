@@ -16,6 +16,7 @@ using UnityEngine;
 // her body hidden. Without that file the painted texture is used.
 public static class OutfitBuilder
 {
+    // Asset folders: recolored textures, materials, the original materials, accessories, outfit assets, meshes and Helena 2.
     private const string TextureFolder = HelenaImport.Folder + "Textures/Outfits";
     private const string MaterialFolder = HelenaImport.Folder + "Materials/Outfits";
     private const string OriginalMaterialFolder = HelenaImport.Folder + "Materials";
@@ -23,12 +24,15 @@ public static class OutfitBuilder
     private const string DataFolder = "Assets/Data/Outfits";
     private const string MeshFolder = HelenaImport.Folder + "Meshes";
     private const string Helena2Folder = HelenaImport.Folder + "Model2";
+    // Name of Helena 2's body part; arm bones smoothed on outfit bodies; normal map id.
     private const string Helena2BodyPart = "Helena2_Body";
     private static readonly string[] ArmBones = { "LeftShoulder", "LeftArm", "LeftForeArm", "RightShoulder", "RightArm", "RightForeArm" };
     private static readonly int BumpMapId = Shader.PropertyToID("_BumpMap");
 
+    // One outfit's recipe.
     private struct Outfit
     {
+        // Key, asset name, names per language, prize price and the line she says about it.
         public string key, asset, en, pt;
         public int price;
         public PartnerLine line;
@@ -38,6 +42,7 @@ public static class OutfitBuilder
         public (string name, HumanBodyBones bone)[] accessories;
         public string[] smoothArms;                                       // parts reshaped: cloth folds of the arms smoothed
         public string helena2Texture;                                     // Helena 2: her body texture for this outfit
+        // Helena 2: body texture smoothness, and the outfit body file (empty = texture only).
         public float helena2Smooth;
         public string helena2Body;
         public PartnerLine? tagLine;                                      // what her tag says (none: NoTag)                                        // Helena 2: a body of its own (model in Model2, texture in Outfits)
@@ -50,6 +55,7 @@ public static class OutfitBuilder
     private const string StartOutfitKey = "outfit_prison";
     internal const string PatientOutfitKey = "outfit_patient";
 
+    // Every outfit.
     private static readonly Outfit[] Outfits =
     {
         new Outfit
@@ -123,17 +129,19 @@ public static class OutfitBuilder
         },
     };
 
+    // An array with one more element.
     private static string[] With(string[] list, string extra)
     {
         var l = new List<string>(list) { extra };
         return l.ToArray();
     }
 
+    // Creates / updates the outfit materials and assets; returns them.
     internal static List<OutfitDefinition> EnsureOutfits(Shader lit, GameObject helena)
     {
         var result = new List<OutfitDefinition>();
-        HelenaSetupMenu.EnsureFolder(HelenaImport.Folder + "Materials", "Outfits");
-        HelenaSetupMenu.EnsureFolder("Assets/Data", "Outfits");
+        EditorAssets.EnsureFolder(HelenaImport.Folder + "Materials", "Outfits");
+        EditorAssets.EnsureFolder("Assets/Data", "Outfits");
         bool helena2 = IsHelena2(helena);
         foreach (Outfit o in Outfits)
         {
@@ -149,7 +157,7 @@ public static class OutfitBuilder
                     ok = false;
                     continue;
                 }
-                Material m = HelenaSetupMenu.MakeMaterial($"{MaterialFolder}/M_{s.texture.Substring(2)}.mat", texture, s.smooth, false, lit);
+                Material m = EditorAssets.MakeMaterial($"{MaterialFolder}/M_{s.texture.Substring(2)}.mat", texture, s.smooth, false, lit);
                 swaps.Add((original, m));
             }
             if (!ok) swaps.Clear();   // the old model's set is all or nothing
@@ -216,7 +224,7 @@ public static class OutfitBuilder
         var original = AssetDatabase.LoadAssetAtPath<Material>(HelenaCompareBuilder.BodyMaterialPath);
         var texture = AssetDatabase.LoadAssetAtPath<Texture2D>($"{TextureFolder}/{o.helena2Texture}.png");
         if (original == null || texture == null) return null;
-        Material m = HelenaSetupMenu.MakeMaterial($"{MaterialFolder}/M_{o.helena2Texture.Substring(2)}.mat", texture, o.helena2Smooth, false, lit);
+        Material m = EditorAssets.MakeMaterial($"{MaterialFolder}/M_{o.helena2Texture.Substring(2)}.mat", texture, o.helena2Smooth, false, lit);
         var normal = AssetDatabase.LoadAssetAtPath<Texture2D>(HelenaCompareBuilder.NormalPath);
         if (normal != null)
         {
@@ -242,7 +250,7 @@ public static class OutfitBuilder
         foreach (SkinnedMeshRenderer r in helena.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             if (r.gameObject.name == part) { source = r; break; }
         if (source == null || source.sharedMesh == null) { Debug.LogWarning($"[Outfits] {outfitAsset}: part '{part}' not found on her model."); return null; }
-        HelenaSetupMenu.EnsureFolder(HelenaImport.Folder.TrimEnd('/'), "Meshes");
+        EditorAssets.EnsureFolder(HelenaImport.Folder.TrimEnd('/'), "Meshes");
         string path = $"{MeshFolder}/Mesh_{outfitAsset}_{part.Replace(".", "_")}.asset";
         AssetDatabase.DeleteAsset(path);
         Mesh mesh = MeshSmoother.SmoothByBones(source, ArmBones, 12);
@@ -250,6 +258,7 @@ public static class OutfitBuilder
         return mesh;
     }
 
+    // Fills a string array property.
     private static void SetStrings(SerializedProperty prop, string[] values)
     {
         prop.arraySize = values.Length;
@@ -274,12 +283,12 @@ public static class OutfitBuilder
         foreach (Renderer r in helena.GetComponentsInChildren<Renderer>(true)) r.receiveShadows = false;
 
         var outfit = helena.AddComponent<PartnerOutfit>();
-        HelenaSetupMenu.SetReferenceArray(outfit, PartnerOutfit.PartsField, parts);
-        HelenaSetupMenu.SetReferenceArray(outfit, PartnerOutfit.OutfitsField, outfits);
-        HelenaSetupMenu.SetReferenceArray(outfit, PartnerOutfit.ExtrasField, extras);
+        EditorSerialized.SetReferenceArray(outfit, PartnerOutfit.PartsField, parts);
+        EditorSerialized.SetReferenceArray(outfit, PartnerOutfit.OutfitsField, outfits);
+        EditorSerialized.SetReferenceArray(outfit, PartnerOutfit.ExtrasField, extras);
         string startKey = string.IsNullOrEmpty(startOutfit) ? StartOutfitKey : startOutfit;
         OutfitDefinition start = outfits.Find(x => x.Key == startKey);
-        if (start != null) HelenaSetupMenu.SetReference(outfit, PartnerOutfit.StartOutfitField, start);
+        if (start != null) EditorSerialized.SetReference(outfit, PartnerOutfit.StartOutfitField, start);
         return outfit;
     }
 
@@ -298,7 +307,7 @@ public static class OutfitBuilder
             Debug.LogWarning($"[Outfits] {o.asset}: accessories missing ({AccessoryFolder}/{o.accessoryModel}.fbx / {o.accessoryTexture}.png).");
             return;
         }
-        Material mat = HelenaSetupMenu.MakeMaterial($"{MaterialFolder}/M_{o.accessoryTexture.Substring(2)}.mat", texture, 0.4f, false, lit);
+        Material mat = EditorAssets.MakeMaterial($"{MaterialFolder}/M_{o.accessoryTexture.Substring(2)}.mat", texture, 0.4f, false, lit);
         SkinnedMeshRenderer[] skinned = helena.GetComponentsInChildren<SkinnedMeshRenderer>(true);
         var temp = (GameObject)Object.Instantiate(model, helena, false);
         foreach (var a in o.accessories)
@@ -366,7 +375,7 @@ public static class OutfitBuilder
                 return;
             }
         }
-        Material outfitMat = HelenaSetupMenu.MakeMaterial($"{MaterialFolder}/M_{BodyPartName(o)}.mat", texture, o.helena2Smooth, false, lit);
+        Material outfitMat = EditorAssets.MakeMaterial($"{MaterialFolder}/M_{BodyPartName(o)}.mat", texture, o.helena2Smooth, false, lit);
         var mats = new Material[source.sharedMaterials.Length];
         for (int i = 0; i < mats.Length; i++)
             mats[i] = source.sharedMaterials[i] != null && source.sharedMaterials[i].name.StartsWith(Helena2BodyPart) ? herBody : outfitMat;

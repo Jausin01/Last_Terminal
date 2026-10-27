@@ -6,26 +6,34 @@ using UnityEngine;
 public static class PinballLayout
 {
     public const float Width = 0.52f;          // inside the cabinet
+    // Playfield length (m).
     public const float Length = 1.07f;
     public const float LaneWall = 0.475f;      // the shooter lane is right of this
     public const float BallRadius = 0.0135f;   // a 27 mm ball
+    // Playfield slope (deg).
     public const float TiltDegrees = 6.5f;
     public const float Gravity = 1.8f;         // along the table (a bit more than the real slope: snappier)
     public const float ArcCenterY = 0.81f;     // the top of the table is a half circle
+    // Middle of the playfield (left of the shooter lane).
     public const float CenterX = LaneWall * 0.5f;
 
+    // What a wall segment is (bounce and sound differ).
     public enum WallKind { Wall, Rail, Rubber, Sling, Gate }
 
+    // A wall: a capsule from A to B with a radius.
     public struct Segment
     {
+        // Ends, thickness and kind.
         public readonly Vector2 A, B;
         public readonly float Radius;
         public readonly WallKind Kind;
         public Segment(Vector2 a, Vector2 b, float radius, WallKind kind) { A = a; B = b; Radius = radius; Kind = kind; }
     }
 
+    // A round post or bumper.
     public struct Circle
     {
+        // Center and radius.
         public readonly Vector2 C;
         public readonly float R;
         public Circle(float x, float y, float r) { C = new Vector2(x, y); R = r; }
@@ -34,6 +42,7 @@ public static class PinballLayout
     // angles in degrees, counterclockwise from +x
     public struct FlipperDef
     {
+        // Pivot, length, base / tip radius, rest and raised angles, left or right flipper.
         public readonly Vector2 Pivot;
         public readonly float Length, BaseRadius, TipRadius, RestAngle, UpAngle;
         public readonly bool Left;
@@ -41,6 +50,7 @@ public static class PinballLayout
         { Pivot = pivot; Length = length; BaseRadius = baseRadius; TipRadius = tipRadius; RestAngle = rest; UpAngle = up; Left = left; }
     }
 
+    // The table geometry: walls, posts, the three pop bumpers and the two flippers.
     public static readonly Segment[] Walls;
     public static readonly Circle[] Posts;
     public static readonly Circle[] Bumpers = { new Circle(0.15f, 0.70f, 0.026f), new Circle(0.30f, 0.70f, 0.026f), new Circle(0.225f, 0.60f, 0.026f) };
@@ -91,6 +101,7 @@ public static class PinballLayout
         var posts = new System.Collections.Generic.List<Circle>();
         // outer walls + the top arc
         walls.Add(new Segment(new Vector2(0f, -0.05f), new Vector2(0f, ArcCenterY), 0f, WallKind.Wall));
+        // Segments of the top half circle.
         const int arcSteps = 28;
         float r = Width * 0.5f;
         Vector2 prev = new Vector2(0f, ArcCenterY);
@@ -135,10 +146,13 @@ public static class PinballLayout
         };
     }
 
+    // A point on the left side, or its mirror on the right.
     private static Vector2 Side(bool left, float x, float y) => left ? new Vector2(x, y) : Mirror(new Vector2(x, y));
 
+    // Mirrors a point across the middle of the playfield.
     public static Vector2 Mirror(Vector2 p) => new Vector2(LaneWall - p.x, p.y);
 
+    // Points along an arc (deg, counterclockwise from +x).
     private static Vector2[] BuildArc(Vector2 center, float radius, float fromDeg, float toDeg, int count)
     {
         var pts = new Vector2[count];

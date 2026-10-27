@@ -5,20 +5,26 @@ using UnityEngine;
 // (HandleBack first: true = it handled Esc itself, e.g. zooming back out of a photo).
 public abstract class FocusInteractable : OperatorInteractable
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string StationField = nameof(station);
     public const string ViewPointField = nameof(viewPoint);
 
+    // His station (it runs the close-up view).
     [SerializeField] private OperatorStation station;
     [Tooltip("Where his eyes go (its blue arrow looks at the thing). Move it to frame it better.")]
     [SerializeField] private Transform viewPoint;
+    // Time for the view to glide there (s).
     [SerializeField] private float blendTime = 0.55f;
 
+    // Read by the station.
     public Transform ViewPoint => viewPoint;
     public float BlendTime => blendTime;
     protected OperatorStation Station => station;
 
+    // No arm animation: the view moves instead.
     public override HandMotion Motion => HandMotion.None;
 
+    // Starts the close-up view.
     public override void Interact(FirstPersonPlayer player)
     {
         if (station != null && viewPoint != null) station.Focus(this);
@@ -27,6 +33,7 @@ public abstract class FocusInteractable : OperatorInteractable
     // the view arrived: from here on UpdateFocus runs every frame
     public virtual void BeginFocus(FirstPersonPlayer player) { }
 
+    // Every frame while focused.
     public virtual void UpdateFocus(FirstPersonPlayer player) { }
 
     // Esc while focused: true = handled here (stay), false = the station takes him back

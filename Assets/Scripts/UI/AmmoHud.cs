@@ -5,17 +5,21 @@ using UnityEngine;
 // Rebuilds the text only when a value changes (no per-frame string allocations).
 public class AmmoHud : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string ShooterField = nameof(shooter);
     public const string TextField = nameof(text);
 
+    // The shooter (rounds / reserve) and the text.
     [SerializeField] private PartnerShooter shooter;
     [SerializeField] private TMP_Text text;
 
+    // Last values shown (rebuild only on change).
     private RangedWeapon shownWeapon;
     private int shownRounds = -1;
     private int shownReserve = -1;
     private bool shownReloading;
 
+    // Checks references; hidden at start.
     private void Awake()
     {
         if (shooter == null || text == null)
@@ -27,6 +31,7 @@ public class AmmoHud : MonoBehaviour
         text.text = "";
     }
 
+    // After everything updated: shows / hides and rebuilds when a value changed.
     private void LateUpdate()
     {
         if (!shooter.enabled) return;

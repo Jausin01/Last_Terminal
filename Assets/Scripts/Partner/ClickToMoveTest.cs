@@ -9,12 +9,14 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(Camera))]
 public class ClickToMoveTest : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerField = nameof(partner);
     public const string SaveUserField = nameof(saveUser);
     public const string DoorUserField = nameof(doorUser);
     public const string CommandsField = nameof(commands);
     public const string CameraSystemField = nameof(cameraSystem);
 
+    // Her interactor (move / pick up), seat and door users.
     [SerializeField] private PartnerInteractor partner;
     [SerializeField] private PartnerSaveUser saveUser;
     [SerializeField] private PartnerDoorUser doorUser;
@@ -22,18 +24,22 @@ public class ClickToMoveTest : MonoBehaviour
     [SerializeField] private PartnerCommands commands;
     [Tooltip("Optional: clicks are ignored while the camera map / settings are open.")]
     [SerializeField] private SecurityCameraSystem cameraSystem;
+    // How far the click ray goes, the click / pointer inputs and Shift (doors: open / close only).
     [SerializeField] private float maxRayDistance = 200f;
     [SerializeField] private InputAction click = new InputAction("Click", InputActionType.Button, "<Pointer>/press");
     [SerializeField] private InputAction point = new InputAction("Point", InputActionType.Value, "<Pointer>/position", expectedControlType: "Vector2");
     [SerializeField] private InputAction doorOnly = new InputAction("DoorOnly", InputActionType.Button, "<Keyboard>/shift");
 
+    // The camera clicks are cast from.
     private Camera cam;
 
+    // Gets the camera.
     private void Awake()
     {
         cam = GetComponent<Camera>();
     }
 
+    // Enables the inputs and the door log.
     private void OnEnable()
     {
         point.Enable();
@@ -43,6 +49,7 @@ public class ClickToMoveTest : MonoBehaviour
         if (doorUser != null) doorUser.Finished += LogDoor;
     }
 
+    // Disables them.
     private void OnDisable()
     {
         click.performed -= OnClick;
@@ -52,6 +59,7 @@ public class ClickToMoveTest : MonoBehaviour
         if (doorUser != null) doorUser.Finished -= LogDoor;
     }
 
+    // A click: the thing under the cursor decides (table, computer, door, pickup, floor).
     private void OnClick(InputAction.CallbackContext ctx)
     {
         if (partner == null) return;
@@ -91,6 +99,7 @@ public class ClickToMoveTest : MonoBehaviour
             partner.MoveTo(navHit.position);
     }
 
+    // Logs what happened at a door.
     private void LogDoor(Door door, DoorAction action, DoorResult result)
     {
         string name = door != null ? door.DisplayName : "door";

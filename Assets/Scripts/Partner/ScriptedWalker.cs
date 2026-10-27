@@ -10,6 +10,7 @@ public class ScriptedWalker
 {
     [Tooltip("Max speed (her walk clip is 1.8 m/s).")]
     [SerializeField] private float walkSpeed = 1.3f;
+    // Acceleration / braking (m/s²).
     [SerializeField] private float acceleration = 3f;
     [SerializeField] private float deceleration = 3.5f;
     [Tooltip("How fast she steers while walking (deg/s).")]
@@ -18,16 +19,20 @@ public class ScriptedWalker
     [SerializeField] private float clipTurnAngle = 50f;
     [Tooltip("TurnTo: above this angle the turn clip is used (once), the rest is a smooth turn (deg).")]
     [SerializeField] private float faceClipTurnAngle = 30f;
+    // Smooth turn speed (deg/s) and how close counts as arrived (m).
     [SerializeField] private float faceTurnSpeed = 180f;
     [SerializeField] private float arriveTolerance = 0.02f;
 
+    // The transform it moves, her animator, the current speed, and whether the turn clip was used.
     private Transform body;
     private PartnerAnimator partnerAnimator;
     private float speed;
     private bool clipTurned;
 
+    // Current scripted speed.
     public float Speed => speed;
 
+    // Sets what it moves and the animator it feeds.
     public void Bind(Transform movedBody, PartnerAnimator animator)
     {
         body = movedBody;
@@ -42,8 +47,10 @@ public class ScriptedWalker
         partnerAnimator.SetScriptedSpeed(speed);
     }
 
+    // Allows the turn clip again (a new TurnTo).
     public void ResetTurn() => clipTurned = false;
 
+    // Stops at once.
     public void Stop()
     {
         speed = 0f;
@@ -102,5 +109,6 @@ public class ScriptedWalker
         return Quaternion.Angle(body.rotation, want) < 1f;
     }
 
+    // A vector flattened onto the floor.
     private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 }

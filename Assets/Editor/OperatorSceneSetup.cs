@@ -25,8 +25,9 @@ using UnityEngine.UI;
 // locations are built, so the two scenes never overlap.
 internal static class OperatorSceneSetup
 {
+    // Art, audio and controller paths; the roots made by this menu and the "[Gen]" prefix of generated children.
     private const string PropFolder = "Assets/Art/Props/OperatorRoom";
-    private const string OpArt = "Assets/Art/Props/Operator";
+    private const string OperatorArtFolder = "Assets/Art/Props/Operator";
     private const string AudioFolder = "Assets/Audio/OperatorRoom";
     private const string ArmsControllerPath = OperatorRoomContent.DataFolder + "/RoomArms.controller";
     private const string SystemsRoot = "RoomSystems";
@@ -38,8 +39,10 @@ internal static class OperatorSceneSetup
     internal const string FirstLocationScene = "Asylum_IsolationWing";
     private static readonly Vector3 RoomOrigin = new Vector3(400f, 0f, 400f);
 
+    // Base color property id.
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
+    // Build state of this run: scene, shader, missing objects, room center, station, story, settings, evidence panel and highlight material.
     private static Scene scene;
     private static Shader lit;
     private static readonly List<string> missing = new List<string>();
@@ -50,11 +53,12 @@ internal static class OperatorSceneSetup
     private static EvidencePanel panel;
     private static Material highlightMat;
 
+    // Menu 16: sets up the open room scene.
     [MenuItem("Last Terminal/16 - Operator Room: Set Up Open Scene")]
     public static void SetUp()
     {
         scene = SceneManager.GetActiveScene();
-        lit = HelenaSetupMenu.DefaultLitShader();
+        lit = EditorAssets.DefaultLitShader();
         if (lit == null) return;
         missing.Clear();
         GameObject floor = Find("Floor1");
@@ -106,7 +110,7 @@ internal static class OperatorSceneSetup
         settingsWindow.transform.SetAsLastSibling();   // over the desktop
         OperatorRoomBuilder.DialogRefs dialog = OperatorRoomBuilder.BuildDialog(canvas);   // Esc in the camera program
         ThoughtView thoughts = ThoughtViewBuilder.Build(canvas, settings);
-        HelenaSetupMenu.SetReference(hud, OperatorRoomHud.ThoughtsField, thoughts);
+        EditorSerialized.SetReference(hud, OperatorRoomHud.ThoughtsField, thoughts);
         EnsureEventSystem(sys);
         Wire(player, FirstPersonPlayer.HudField, hud);
 
@@ -160,7 +164,7 @@ internal static class OperatorSceneSetup
         AssetDatabase.SaveAssets();
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
-        HelenaSetupMenu.AddToBuild(scene.path);   // cutscene 01 ends by loading it
+        EditorAssets.AddToBuild(scene.path);   // cutscene 01 ends by loading it
         Selection.activeGameObject = station.gameObject;
         string miss = missing.Count > 0 ? "\nNot found (skipped): " + string.Join(", ", missing) : "";
         Debug.Log($"[Operator] Room set up in {scene.name}: press Play. The PC starts OFF (button on the case). Login password: in OperatorOS (RoomSystems/RoomUI). Keypad code: RoomKeypad on Keypad.{miss}");
@@ -191,7 +195,7 @@ internal static class OperatorSceneSetup
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
             if (System.IO.Path.GetFileNameWithoutExtension(path) != FirstLocationScene) continue;
-            HelenaSetupMenu.AddToBuild(path);
+            EditorAssets.AddToBuild(path);
             return FirstLocationScene;
         }
         Debug.LogWarning($"[Operator] {FirstLocationScene}.unity not found (Last Terminal/17 builds it): CCTV.EXE has no signal until then. Run this menu again after.");
@@ -204,12 +208,13 @@ internal static class OperatorSceneSetup
         foreach (GameObject root in scene.GetRootGameObjects())
         {
             if (root.name == SystemsRoot) continue;
-            Transform t = HelenaSetupMenu.FindDeep(root.transform, name);
+            Transform t = EditorScene.FindDeep(root.transform, name);
             if (t != null) return t.gameObject;
         }
         return null;
     }
 
+    // An object of his by name (logged as missing when absent).
     private static GameObject Need(string name)
     {
         GameObject go = Find(name);
@@ -217,6 +222,7 @@ internal static class OperatorSceneSetup
         return go;
     }
 
+    // Every object whose name starts with a prefix.
     private static List<GameObject> FindAllStarting(string prefix)
     {
         var list = new List<GameObject>();
@@ -236,6 +242,7 @@ internal static class OperatorSceneSetup
         return null;
     }
 
+    // A child by name (made when missing).
     private static Transform Child(Transform parent, string name)
     {
         var t = new GameObject(name).transform;
@@ -259,14 +266,17 @@ internal static class OperatorSceneSetup
         return added ? go.AddComponent<T>() : c;
     }
 
-    private static void Wire(Object target, string field, Object value) => HelenaSetupMenu.SetReference(target, field, value);
+    // Sets a serialized reference by field name.
+    private static void Wire(Object target, string field, Object value) => EditorSerialized.SetReference(target, field, value);
 
+    // Sets the EN / PT labels of an interactable.
     private static void Labels(OperatorInteractable i, string en, string pt)
     {
-        HelenaSetupMenu.SetString(i, OperatorInteractable.LabelEnField, en);
-        HelenaSetupMenu.SetString(i, OperatorInteractable.LabelPtField, pt);
+        EditorSerialized.SetString(i, OperatorInteractable.LabelEnField, en);
+        EditorSerialized.SetString(i, OperatorInteractable.LabelPtField, pt);
     }
 
+    // World bounds of an object's renderers.
     private static Bounds WorldBounds(GameObject go)
     {
         Renderer[] rs = go.GetComponentsInChildren<Renderer>();
@@ -290,6 +300,7 @@ internal static class OperatorSceneSetup
         return new Vector3(0f, 0f, Mathf.Sign(toCenter.z));
     }
 
+    // A view point looking in a direction.
     private static Transform ViewPoint(Transform parent, string name, Vector3 position, Vector3 lookDirection)
     {
         Transform t = GenChild(parent, name, out bool made);
@@ -298,6 +309,7 @@ internal static class OperatorSceneSetup
         return t;
     }
 
+    // An audio source (2D / 3D mix, volume, range).
     private static AudioSource Source(Transform parent, string name, float spatial, float volume, float maxDistance = 8f)
     {
         Transform t = GenChild(parent, name, out _);
@@ -313,8 +325,10 @@ internal static class OperatorSceneSetup
         return a;
     }
 
+    // An audio clip of the room by name.
     private static AudioClip Clip(string name) => AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioFolder}/{name}.wav");
 
+    // A point light.
     private static Light PointLight(Transform parent, string name, Vector3 worldPos, Color color, float intensity, float range, LightShadows shadows = LightShadows.None)
     {
         var l = new GameObject(name).AddComponent<Light>();
@@ -361,6 +375,7 @@ internal static class OperatorSceneSetup
         return ctrl;
     }
 
+    // The highlight material (made once).
     private static Material HighlightMaterial()
     {
         string path = $"{PropFolder}/Materials/M_OpRoom_Highlight.mat";
@@ -376,10 +391,11 @@ internal static class OperatorSceneSetup
         return m;
     }
 
+    // A room material (made once, updated in place).
     private static Material Mat(string name, string texture, float smooth, Color? glow = null)
     {
         Texture2D tex = texture != null ? AssetDatabase.LoadAssetAtPath<Texture2D>($"{PropFolder}/{texture}.png") : null;
-        Material m = HelenaSetupMenu.MakeMaterial($"{PropFolder}/Materials/{name}.mat", tex, smooth, false, lit);
+        Material m = EditorAssets.MakeMaterial($"{PropFolder}/Materials/{name}.mat", tex, smooth, false, lit);
         if (glow.HasValue) OperatorRoomBuilder.Glow(m, tex, glow.Value);
         return m;
     }
@@ -389,6 +405,7 @@ internal static class OperatorSceneSetup
     private static void BuildWalls(Transform sys, Bounds floor, float ceiling)
     {
         Transform root = Child(sys, "Walls");
+        // Wall inset and thickness of the invisible walls (m).
         const float inset = 0.18f, thick = 0.4f;
         float x0 = floor.min.x + inset, x1 = floor.max.x - inset, z0 = floor.min.z + inset, z1 = floor.max.z - inset;
         float h = ceiling;
@@ -407,6 +424,7 @@ internal static class OperatorSceneSetup
         foreach (GameObject plant in FindAllStarting("SM_OpPlant")) EnsureCollider(plant);
     }
 
+    // An invisible wall box.
     private static void Box(Transform parent, string name, Vector3 pos, Vector3 size)
     {
         Transform t = Child(parent, name);
@@ -477,6 +495,7 @@ internal static class OperatorSceneSetup
         return player;
     }
 
+    // His screen canvas.
     private static Transform BuildCanvas(Transform sys)
     {
         var go = new GameObject("RoomUI", typeof(RectTransform));
@@ -493,6 +512,7 @@ internal static class OperatorSceneSetup
         return go.transform;
     }
 
+    // The UI event system (made when missing).
     private static void EnsureEventSystem(Transform sys)
     {
         if (FirstInScene<EventSystem>() != null) return;
@@ -617,9 +637,10 @@ internal static class OperatorSceneSetup
         Wire(keypad, RoomKeypad.DisplayField, display);
         Wire(keypad, RoomKeypad.ClearButtonField, clear);
         Wire(keypad, RoomKeypad.EnterButtonField, enter);
-        HelenaSetupMenu.SetReferenceArray(keypad, RoomKeypad.DigitButtonsField, digits.ToList());
+        EditorSerialized.SetReferenceArray(keypad, RoomKeypad.DigitButtonsField, digits.ToList());
     }
 
+    // The locked door: interactable, keypad, thoughts.
     private static void SetUpDoor()
     {
         GameObject door = Need("Door_Metal");
@@ -681,6 +702,7 @@ internal static class OperatorSceneSetup
         return bounds;
     }
 
+    // The water cooler.
     private static void SetUpCooler()
     {
         GameObject cooler = Need("SM_OpWaterCooler");
@@ -693,6 +715,7 @@ internal static class OperatorSceneSetup
     // ================================================================== evidence boards
     private enum BoardKind { Main, Old, Generic, Desk }
 
+    // The evidence boards.
     private static void SetUpBoards()
     {
         Board("SM_OpCorkBoardA", BoardKind.Main, "Evidence board", "Quadro de evidências");
@@ -701,6 +724,7 @@ internal static class OperatorSceneSetup
         Board("SM_Ini_CorkBoard", BoardKind.Desk, "Notes", "Anotações");
     }
 
+    // One board: interactable and its items.
     private static void Board(string name, BoardKind kind, string labelEn, string labelPt)
     {
         GameObject go = Need(name);
@@ -729,7 +753,7 @@ internal static class OperatorSceneSetup
         Wire(board, FocusInteractable.StationField, station);
         Wire(board, FocusInteractable.ViewPointField, view);
         Wire(board, EvidenceBoard.PanelField, panel);
-        HelenaSetupMenu.SetReferenceArray(board, EvidenceBoard.ItemsField, go.GetComponentsInChildren<EvidenceItem>(true).ToList());
+        EditorSerialized.SetReferenceArray(board, EvidenceBoard.ItemsField, go.GetComponentsInChildren<EvidenceItem>(true).ToList());
     }
 
     // the cork boards of the package (SM_OpCorkBoardA/B): the cork face is x 0.437..-0.437 (u 0..1), y 0.015..0.524 (v 0..1), z -0.011
@@ -752,9 +776,10 @@ internal static class OperatorSceneSetup
             LocalItem(board, it, new Vector3(it.rect.center.x, it.rect.center.y, z), it.rect.size);
     }
 
+    // An item at a local position on a board.
     private static void LocalItem(Transform board, OperatorRoomContent.Item it, Vector3 localCenter, Vector2 localSize)
     {
-        var t = Child(board, Gen + "Item " + it.tEn);
+        var t = Child(board, Gen + "Item " + it.titleEn);
         t.localPosition = localCenter;
         t.localRotation = Quaternion.Euler(0f, 180f, 0f);   // its forward looks into the board (the board's front is +Z)
         MakeItem(t, it, new Vector3(localSize.x, localSize.y, 0.01f));
@@ -767,19 +792,20 @@ internal static class OperatorSceneSetup
         foreach (OperatorRoomContent.Item it in items)
         {
             Vector3 pos = face + n * 0.012f + right * ((it.rect.center.x - 0.5f) * w) + Vector3.up * ((0.5f - it.rect.center.y) * h);
-            var t = Child(board, Gen + "Item " + it.tEn);
+            var t = Child(board, Gen + "Item " + it.titleEn);
             t.SetPositionAndRotation(pos, Quaternion.LookRotation(-n, Vector3.up));
             float s = Mathf.Max(0.0001f, t.lossyScale.x);
             MakeItem(t, it, new Vector3(it.rect.width * w / s, it.rect.height * h / s, 0.02f / s));
         }
     }
 
+    // Makes an evidence item object.
     private static void MakeItem(Transform t, OperatorRoomContent.Item it, Vector3 size)
     {
         var box = t.gameObject.AddComponent<BoxCollider>();
         box.size = size;
         var item = t.gameObject.AddComponent<EvidenceItem>();
-        item.EditorSet(it.tEn, it.tPt, it.en, it.pt, it.thEn, it.thPt, "", "evidence_" + it.tEn.ToLowerInvariant().Replace(' ', '_'));
+        item.EditorSet(it.titleEn, it.titlePt, it.textEn, it.textPt, it.thoughtEn, it.thoughtPt, "", "evidence_" + it.titleEn.ToLowerInvariant().Replace(' ', '_'));
         Vector3 world = Vector3.Scale(size, t.lossyScale);
         float zoom = Mathf.Clamp(Mathf.Max(world.y * 0.5f / Tan33, world.x * 0.5f / (Tan33 * 1.5f)) * 1.35f, 0.3f, 2.2f);
         var so = new SerializedObject(item);
@@ -799,7 +825,7 @@ internal static class OperatorSceneSetup
         line.shadowCastingMode = ShadowCastingMode.Off;
         line.receiveShadows = false;
         line.enabled = false;
-        HelenaSetupMenu.SetReference(item, EvidenceItem.HighlightField, line);
+        EditorSerialized.SetReference(item, EvidenceItem.HighlightField, line);
     }
 
     // ================================================================== things that only have something to say
@@ -856,8 +882,8 @@ internal static class OperatorSceneSetup
                 if (i == 5)   // the one that stutters (and buzzes)
                 {
                     var flicker = lamp.gameObject.AddComponent<OperatorLightFlicker>();
-                    HelenaSetupMenu.SetReference(flicker, OperatorLightFlicker.LampField, l);
-                    HelenaSetupMenu.SetReference(flicker, OperatorLightFlicker.TubeField, lamp.GetComponentInChildren<Renderer>());
+                    EditorSerialized.SetReference(flicker, OperatorLightFlicker.LampField, l);
+                    EditorSerialized.SetReference(flicker, OperatorLightFlicker.TubeField, lamp.GetComponentInChildren<Renderer>());
                     var buzz = lamp.gameObject.AddComponent<AudioSource>();
                     buzz.clip = Clip("Lamp_Buzz");
                     buzz.loop = true;
@@ -931,6 +957,7 @@ internal static class OperatorSceneSetup
     // a floor point, from the middle of the room
     private static Vector3 At(float x, float z) => new Vector3(roomCenter.x + x, 0f, roomCenter.z + z);
 
+    // A prop instance (optional collider).
     private static GameObject Prop(Transform parent, string model, Vector3 pos, float yaw, bool collider = false)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PropFolder}/{model}.fbx");
@@ -959,6 +986,7 @@ internal static class OperatorSceneSetup
         Wire(wc, WallClock.AudioField, Source(clock.transform, "Tick", 1f, 0.6f, 5f));
     }
 
+    // One hand of the wall clock.
     private static Transform Hand(Transform clock, string name, float length, float width, float offset, Material m)
     {
         var pivot = Child(clock, name);
@@ -983,7 +1011,7 @@ internal static class OperatorSceneSetup
         coffee.transform.position = pos;
         coffee.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
         OperatorRoomBuilder.FitCollider(coffee);
-        Material dark = HelenaSetupMenu.MakeMaterial($"{OpArt}/Materials/M_Op_Dark.mat", null, 0.4f, false, lit);
+        Material dark = EditorAssets.MakeMaterial($"{OperatorArtFolder}/Materials/M_Op_Dark.mat", null, 0.4f, false, lit);
         var tray = GameObject.CreatePrimitive(PrimitiveType.Cube);
         Object.DestroyImmediate(tray.GetComponent<Collider>());
         tray.name = "Tray";

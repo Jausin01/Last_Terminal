@@ -11,10 +11,12 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class PartnerKeypadUser : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string InteractorField = nameof(interactor);
     public const string CombatField = nameof(combat);
 
+    // Her animator (keypad clips, hand IK), interactor and combat (stopped first), and the short scripted walk to the spot.
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private PartnerInteractor interactor;
     [SerializeField] private PartnerCombat combat;
@@ -27,18 +29,22 @@ public class PartnerKeypadUser : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float contactTime = 0.3f;
     [Tooltip("Press clip: hand IK fades in / holds / fades out (normalized).")]
     [SerializeField] private Vector4 ikWindow = new Vector4(0.05f, 0.25f, 0.55f, 0.8f);
+    // How much the hand IK pulls the finger onto the key.
     [SerializeField, Range(0f, 1f)] private float ikWeight = 0.9f;
     [Tooltip("Her wrist from her fingertip at the press (her space: x right, y up, z forward).")]
     [SerializeField] private Vector3 wristFromTip = new Vector3(0.04f, 0.03f, -0.129f);
 
+    // Crossfade between the keypad clips (s), and the max time for the scripted walk-in (s).
     [Header("Timing")]
     [SerializeField] private float clipBlend = 0.2f;
     [SerializeField] private float enterTimeout = 1.5f;
     [Tooltip("Sent to a keypad without the code (\"digita o codigo\"): she waits this long for the first key (s) - time to think and speak.")]
     [SerializeField] private float firstKeyWait = 25f;
 
+    // Steps of a keypad use.
     private enum Step { None, Approach, WalkIn, Face, Raise, Hold, Press, Lower, Waiting }
 
+    // Her agent, the step, the panel, the keys still to press, the key being pressed (pressed / Enter seen), a timer, the pose in front of the panel, and what to run once she leaves.
     private NavMeshAgent agent;
     private Step step;
     private ButtonPanel keypad;
@@ -55,10 +61,12 @@ public class PartnerKeypadUser : MonoBehaviour
 
     public event Action<ButtonPanel, char> KeyPressed;   // each key she pressed (after the panel took it)
 
+    // Read-only state for commands and the operator UI.
     public bool IsBusy => step != Step.None;
     public bool IsAtKeypad => step >= Step.Raise;
     public ButtonPanel Current => keypad;
 
+    // Gets the agent; checks the references.
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -143,6 +151,7 @@ public class PartnerKeypadUser : MonoBehaviour
         Done();
     }
 
+    // Runs the current step.
     private void Update()
     {
         switch (step)
@@ -186,6 +195,7 @@ public class PartnerKeypadUser : MonoBehaviour
         }
     }
 
+    // NavMesh walk to the panel, then the scripted walk-in.
     private void UpdateApproach()
     {
         // another command sent her somewhere else: give up
@@ -206,6 +216,7 @@ public class PartnerKeypadUser : MonoBehaviour
         step = Step.WalkIn;
     }
 
+    // Raises her hand to the panel.
     private void Raise()
     {
         walker.Stop();
@@ -214,12 +225,14 @@ public class PartnerKeypadUser : MonoBehaviour
         timer = 0f;
     }
 
+    // Hand up, waiting for the next key (lowers it after the wait time).
     private void Hold()
     {
         step = Step.Hold;
         timer = 0f;
     }
 
+    // Plays the press for one key, finger guided onto it by IK.
     private void Press(char key)
     {
         pressing = key;
@@ -231,6 +244,7 @@ public class PartnerKeypadUser : MonoBehaviour
         step = Step.Press;
     }
 
+    // Press clip: IK in / out by phase, the key fires at the contact time.
     private void UpdatePress()
     {
         timer += Time.deltaTime;
@@ -264,6 +278,7 @@ public class PartnerKeypadUser : MonoBehaviour
     // waiting for the next key: the panel's time; for the first key of a code not said yet, longer
     private float WaitTime => anyKey ? keypad.HoldTime : Mathf.Max(keypad.HoldTime, firstKeyWait);
 
+    // Drops the IK and lowers the hand.
     private void Lower()
     {
         partnerAnimator.SetRightHandTarget(Vector3.zero, 0f);
@@ -271,6 +286,7 @@ public class PartnerKeypadUser : MonoBehaviour
         step = Step.Lower;
     }
 
+    // Hands her back to the agent and runs what was queued after leaving.
     private void Finish()
     {
         partnerAnimator.EndKeypad();
@@ -280,12 +296,14 @@ public class PartnerKeypadUser : MonoBehaviour
         then?.Invoke();
     }
 
+    // Is this keypad clip playing, and at what normalized time?
     private bool ClipTime(PartnerAnimator.KeypadClip wanted, out float t)
     {
         bool playing = partnerAnimator.TryGetKeypadTime(out PartnerAnimator.KeypadClip clip, out t);
         return playing && clip == wanted;
     }
 
+    // Ends the scripted control: snaps her to the NavMesh and gives the body back to the agent.
     private void EndScriptedHere()
     {
         partnerAnimator.SetScriptedRootMotion(false);
@@ -297,6 +315,7 @@ public class PartnerKeypadUser : MonoBehaviour
         agent.isStopped = false;
     }
 
+    // Clears the state.
     private void Done()
     {
         keypad = null;
@@ -304,5 +323,6 @@ public class PartnerKeypadUser : MonoBehaviour
         afterLeaving = null;
     }
 
+    // A vector flattened onto the floor.
     private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 }

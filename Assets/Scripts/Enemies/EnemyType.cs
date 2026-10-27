@@ -12,9 +12,11 @@ public enum EnemyStartMode { Idle, Wander, Feeding }
 [CreateAssetMenu(menuName = "Last Terminal/Enemy Type", fileName = "EnemyType")]
 public class EnemyType : ScriptableObject
 {
+    // One attack of this type: which clip, how likely, its range, timing, damage and cooldown.
     [Serializable]
     public class Attack
     {
+        // The attack clip used.
         public EnemyAttackSlot slot;
         [Tooltip("Chance against the other usable attacks.")]
         [Min(0f)] public float weight = 1f;
@@ -30,6 +32,7 @@ public class EnemyType : ScriptableObject
         [Min(0f)] public float cooldown = 1f;
     }
 
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string AttacksField = nameof(attacks);
     public const string DisplayNameField = nameof(displayName);
     public const string CommandKeyField = nameof(commandKey);
@@ -52,9 +55,11 @@ public class EnemyType : ScriptableObject
     public const string StaggerTimeField = nameof(staggerTime);
     public const string WanderPauseField = nameof(wanderPause);
 
+    // Name shown in the HUD.
     [SerializeField] private string displayName = "Zombie";
     [Tooltip("Name the operator can use for it (lexicon key: \"zombie\", \"killer\"); \"enemy\" works for all.")]
     [SerializeField] private string commandKey = "zombie";
+    // Hit points.
     [SerializeField, Min(1)] private int maxHealth = 80;
 
     [Header("Movement")]
@@ -62,6 +67,7 @@ public class EnemyType : ScriptableObject
     [SerializeField] private float walkSpeed = 0.45f;
     [Tooltip("Speed the walk clip shows at 1x (m/s): the clip is sped up / slowed down to match walkSpeed.")]
     [SerializeField] private float walkClipSpeed = 0.34f;
+    // Running types: run speed and the speed the run clip shows at 1x.
     [SerializeField] private bool runs;
     [SerializeField] private float runSpeed = 2.6f;
     [SerializeField] private float runClipSpeed = 3f;
@@ -70,6 +76,7 @@ public class EnemyType : ScriptableObject
     [Tooltip("Seconds from standing to full speed (the legs lead, no sliding).")]
     [SerializeField] private float stepInTime = 0.4f;
 
+    // How far it sees (m).
     [Header("Senses")]
     [SerializeField] private float sightRange = 9f;
     [Tooltip("Field of view (deg, total).")]
@@ -78,21 +85,26 @@ public class EnemyType : ScriptableObject
     [SerializeField] private float hearRange = 3f;
     [Tooltip("While feeding it sees nothing and hears only this close (m).")]
     [SerializeField] private float feedingHearRange = 2f;
+    // Screams when it first notices her (others nearby hear it).
     [SerializeField] private bool screamsOnAlert = true;
     [Tooltip("She left its room this long ago: it gives up and goes back (s).")]
     [SerializeField] private float loseTime = 5f;
 
+    // Its attacks.
     [Header("Combat")]
     [SerializeField] private Attack[] attacks = new Attack[0];
     [Tooltip("Speed of the attack clips.")]
     [SerializeField, Range(0.5f, 2f)] private float attackSpeed = 1f;
     [Tooltip("A hit of at least this much staggers it (interrupts its attack).")]
     [SerializeField] private int staggerDamage = 30;
+    // How long a stagger lasts (s).
     [SerializeField] private float staggerTime = 0.7f;
 
+    // Pause between wander points (s).
     [Header("Wander")]
     [SerializeField] private float wanderPause = 3f;
 
+    // Read by EnemyBrain and the HUD.
     public string DisplayName => displayName;
     public string CommandKey => commandKey;
     public int MaxHealth => maxHealth;

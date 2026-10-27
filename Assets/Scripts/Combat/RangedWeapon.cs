@@ -13,8 +13,10 @@ using UnityEngine;
 [RequireComponent(typeof(Weapon))]
 public class RangedWeapon : MonoBehaviour
 {
+    // How a reload is shown (see the top of the file).
     public enum ReloadMode { Timer, Magazine, Shells }
 
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string AmmoField = nameof(ammo);
     public const string MagazineSizeField = nameof(magazineSize);
     public const string DamageField = nameof(damage);
@@ -32,6 +34,7 @@ public class RangedWeapon : MonoBehaviour
     public const string CarryUpField = nameof(carryUp);
     public const string PumpField = nameof(pump);
 
+    // The ammo item this gun uses (taken from her inventory) and how many rounds fit in it.
     [SerializeField] private AmmoItem ammo;
     [SerializeField, Min(1)] private int magazineSize = 7;
 
@@ -42,10 +45,12 @@ public class RangedWeapon : MonoBehaviour
     [SerializeField, Min(1)] private int pellets = 1;
     [Tooltip("Random cone around the aim direction (deg).")]
     [SerializeField, Range(0f, 20f)] private float spread = 1f;
+    // Maximum shot distance (m).
     [SerializeField, Min(1f)] private float range = 40f;
     [Tooltip("Minimum time between shots (s): trigger / pump.")]
     [SerializeField, Min(0.05f)] private float fireInterval = 0.3f;
 
+    // Reload style.
     [Header("Reload")]
     [SerializeField] private ReloadMode reloadStyle = ReloadMode.Timer;
     [Tooltip("Timer style: whole magazine (s), or one round when Reload Per Round is on.")]
@@ -55,16 +60,19 @@ public class RangedWeapon : MonoBehaviour
     [Tooltip("Magazine / shell mesh of the model (child of the gun, at its place in the gun).")]
     [SerializeField] private Transform reloadProp;
 
+    // Magazine style moments: magazine drops out, the left hand grabs the new one, starts sliding it in, it is in.
     [Header("Magazine style (normalized time of the reload clip)")]
     [SerializeField, Range(0f, 1f)] private float magOut = 0.18f;
     [SerializeField, Range(0f, 1f)] private float magGrab = 0.31f;
     [SerializeField, Range(0f, 1f)] private float magInsertStart = 0.77f;
     [SerializeField, Range(0f, 1f)] private float magInsert = 0.82f;
 
+    // Shells style moments within one loop: shell grabbed at the belt, shell pushed in.
     [Header("Shells style (one loop of the clip = one shell)")]
     [SerializeField, Range(0f, 1f)] private float shellGrab = 0.30f;
     [SerializeField, Range(0f, 1f)] private float shellInsert = 0.79f;
 
+    // Pose of the prop in her left hand (left-hand frame: position, forward, up).
     [Header("Prop in the left hand (left-hand frame)")]
     [SerializeField] private Vector3 carryPosition;
     [SerializeField] private Vector3 carryForward = Vector3.forward;
@@ -73,6 +81,7 @@ public class RangedWeapon : MonoBehaviour
     [Header("Pump (shotgun)")]
     [Tooltip("Forend mesh: slides back and forward after every shot (the left hand follows it).")]
     [SerializeField] private Transform pump;
+    // Pump: how far it slides back, the delay after the shot, how long the back-and-forth takes.
     [SerializeField] private float pumpTravel = 0.07f;
     [SerializeField] private float pumpDelay = 0.2f;
     [SerializeField] private float pumpTime = 0.35f;
@@ -80,16 +89,19 @@ public class RangedWeapon : MonoBehaviour
     [Header("Feel")]
     [Tooltip("Upper-body kick per shot (deg).")]
     [SerializeField, Range(0f, 20f)] private float recoil = 4f;
+    // Sounds: shot, reload, empty click.
     [SerializeField] private AudioClip fireSound;
     [SerializeField] private AudioClip reloadSound;
     [SerializeField] private AudioClip emptySound;
 
+    // The Weapon on the same object, the reload prop's pose in the gun, the pump's rest position and its timer (-1 = idle).
     private Weapon weapon;
     private Vector3 propHomePosition;
     private Quaternion propHomeRotation;
     private Vector3 pumpHome;
     private float pumpTimer = -1f;
 
+    // Values read by PartnerShooter and ReloadVisuals.
     public AmmoItem Ammo => ammo;
     public int MagazineSize => magazineSize;
     public int Damage => damage;
@@ -104,6 +116,7 @@ public class RangedWeapon : MonoBehaviour
     public AudioClip ReloadSound => reloadSound;
     public AudioClip EmptySound => emptySound;
 
+    // The reload style actually used (a clip style needs its prop; without one it falls back to Timer).
     public ReloadMode Style => reloadStyle == ReloadMode.Timer || reloadProp != null ? reloadStyle : ReloadMode.Timer;
     public Transform ReloadProp => reloadProp;
     public float MagOut => magOut;
@@ -116,6 +129,7 @@ public class RangedWeapon : MonoBehaviour
     public Vector3 CarryForward => carryForward;
     public Vector3 CarryUp => carryUp;
 
+    // The barrel tip (shots leave from here).
     public Transform Muzzle => Weapon.Muzzle;
     public Weapon Weapon
     {
@@ -126,6 +140,7 @@ public class RangedWeapon : MonoBehaviour
         }
     }
 
+    // Remembers where the reload prop and the pump rest.
     private void Awake()
     {
         if (reloadProp != null)
@@ -161,6 +176,7 @@ public class RangedWeapon : MonoBehaviour
         if (pump != null) pumpTimer = 0f;
     }
 
+    // Animates the pump back and forward after a shot; the left hand follows through Weapon.SetLeftSlide.
     private void Update()
     {
         if (pump == null || pumpTimer < 0f) return;

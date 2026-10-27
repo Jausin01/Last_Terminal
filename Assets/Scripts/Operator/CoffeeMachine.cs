@@ -4,25 +4,31 @@ using UnityEngine;
 // again when it's ready, he takes the cup (FirstPersonPlayer: left button on nothing = a sip). One cup at a time.
 public class CoffeeMachine : OperatorInteractable
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string CupOnTrayField = nameof(cupOnTray);
     public const string GlowField = nameof(glow);
     public const string AudioField = nameof(audioSource);
 
+    // Nothing / brewing / a cup waiting.
     private enum State { Idle, Brewing, Ready }
 
     [Tooltip("The cup that appears in the opening when it's done.")]
     [SerializeField] private GameObject cupOnTray;
     [Tooltip("Light in the opening (on while brewing / ready).")]
     [SerializeField] private Light glow;
+    // Sound source on the machine, and the brewing time (s).
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private float brewTime = 3.4f;
 
+    // Current state, brew time left, the glow's full intensity.
     private State state;
     private float timer;
     private float glowIntensity;
 
+    // Push to brew, grab to take the cup.
     public override HandMotion Motion => state == State.Ready ? HandMotion.Grab : HandMotion.Push;
 
+    // Label for the current state.
     public override string Label(GameLanguage language)
     {
         switch (state)
@@ -33,12 +39,14 @@ public class CoffeeMachine : OperatorInteractable
         }
     }
 
+    // No cup, glow off.
     private void Awake()
     {
         if (cupOnTray != null) cupOnTray.SetActive(false);
         if (glow != null) { glowIntensity = glow.intensity; glow.intensity = 0f; }
     }
 
+    // Idle: brew (one cup at a time). Ready: he takes the cup.
     public override void Interact(FirstPersonPlayer player)
     {
         GameLanguage l = player.Language;
@@ -65,6 +73,7 @@ public class CoffeeMachine : OperatorInteractable
         }
     }
 
+    // Brewing timer; the glow pulses while brewing, stays on when ready.
     private void Update()
     {
         if (state == State.Brewing)

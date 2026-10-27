@@ -8,24 +8,30 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class PartnerElevatorUser : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string InteractorField = nameof(interactor);
     public const string CombatField = nameof(combat);
     public const string TravelField = nameof(travel);
 
+    // Why a ride can't start.
     public enum Result { Ok, NoKey, OutOfService, Busy }
 
+    // Her animator, interactor (walks, inventory), combat (holster) and the scene travel.
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private PartnerInteractor interactor;
     [SerializeField] private PartnerCombat combat;
     [SerializeField] private ElevatorTravel travel;
+    // The exact walk in / out of the car, and the distance where the agent hands over to it.
     [SerializeField] private ScriptedWalker walker = new ScriptedWalker();
     [SerializeField] private float handoffDistance = 0.6f;
     [Tooltip("Give up waiting for doors after this long (s).")]
     [SerializeField] private float doorTimeout = 4f;
 
+    // Steps of a ride (and of an arrival).
     private enum Step { None, Approach, WaitOpen, WalkIn, TurnOut, WaitClosed, Riding, ArriveWait, WalkOut }
 
+    // Her agent, the current step, the elevator and the step timer.
     private NavMeshAgent agent;
     private Step step;
     private Elevator elevator;
@@ -34,9 +40,11 @@ public class PartnerElevatorUser : MonoBehaviour
     public event Action<Elevator> Departing;   // doors shut with her inside
     public event Action<Elevator> Arrived;     // she stepped out at the destination
 
+    // Busy with an elevator; the elevator in use.
     public bool IsBusy => step != Step.None;
     public Elevator Current => elevator;
 
+    // Checks the references; binds the walker.
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -49,6 +57,7 @@ public class PartnerElevatorUser : MonoBehaviour
         walker.Bind(transform, partnerAnimator);
     }
 
+    // "Take the elevator": key and service checks, holsters, walks up to it.
     public Result Ride(Elevator target)
     {
         if (!enabled || target == null) return Result.Busy;
@@ -80,6 +89,7 @@ public class PartnerElevatorUser : MonoBehaviour
         step = Step.ArriveWait;
     }
 
+    // The ride / arrival steps.
     private void Update()
     {
         if (step == Step.None) return;
@@ -117,6 +127,7 @@ public class PartnerElevatorUser : MonoBehaviour
         }
     }
 
+    // Close enough: the agent hands over to the scripted walk and the doors open.
     private void UpdateApproach()
     {
         if ((Flat(agent.destination) - Flat(elevator.Outside.position)).sqrMagnitude > 0.36f) { Done(); return; }   // sent elsewhere
@@ -151,6 +162,7 @@ public class PartnerElevatorUser : MonoBehaviour
         Done();
     }
 
+    // Gives her back to the agent where she stands.
     private void EndScriptedHere()
     {
         partnerAnimator.EndScripted();
@@ -161,11 +173,13 @@ public class PartnerElevatorUser : MonoBehaviour
         agent.isStopped = false;
     }
 
+    // Ride over.
     private void Done()
     {
         step = Step.None;
         elevator = null;
     }
 
+    // A vector flattened onto the floor.
     private static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0f, v.z);
 }

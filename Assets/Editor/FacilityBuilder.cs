@@ -11,9 +11,10 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 // Editor-only builders for the facility: prefabs (CCTV camera, doors), the test level (rooms, walls, doors, cameras,
-// lights), the camera filter profile and the operator HUD. Called by HelenaSetupMenu (menus 3 and 4).
+// lights), the camera filter profile and the operator HUD. Called by menu 3 (HelenaSetupMenu) and the location builders.
 internal static class FacilityBuilder
 {
+    // Art, prefab and data paths of the facility.
     private const string CctvFolder = "Assets/Art/Props/CCTV";
     internal const string DoorsFolder = "Assets/Art/Props/Doors";
     internal const string EnvFolder = "Assets/Art/Environment";
@@ -26,18 +27,22 @@ internal static class FacilityBuilder
     private const string FilterProfilePath = DataFolder + "/CameraFilter.asset";
     private const string StaticNoisePath = DataFolder + "/StaticNoise.asset";
 
+    // Level measures (m): wall height / thickness, CCTV camera height.
     internal const float WallHeight = 3f;
     internal const float WallThickness = 0.2f;
     internal const float CameraHeight = 2.75f;
     internal const float PartnerRadius = 0.3f;      // her NavMeshAgent radius
     internal const float WoodDoorWidth = 1.06f;       // outer width of the frames (SM_Door*)
+    // Security door opening width (m).
     internal const float SecurityDoorWidth = 1.44f;
 
+    // Emission property id.
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
-    private static readonly int BaseMapStId = Shader.PropertyToID("_BaseMap_ST");
 
+    // What the level build returns to the scene menu.
     internal struct Level
     {
+        // NavMesh, rooms, doors, cameras, the content root and the keypads.
         public NavMeshSurface Surface;
         public List<Room> Rooms;
         public List<Door> Doors;
@@ -46,6 +51,7 @@ internal static class FacilityBuilder
         public List<Keypad> Keypads;
         public int StartCamera;          // the camera the operator starts on (her cell)
         public Vector3 PartnerStart;     // where she starts (in her cell)
+        // Her start facing (deg).
         public float PartnerStartYaw;
     }
 
@@ -59,8 +65,8 @@ internal static class FacilityBuilder
     // ================================================================== prefabs (menu 3)
     internal static void BuildPrefabs(Scene preview, Shader lit)
     {
-        HelenaSetupMenu.EnsureFolder("Assets", "Prefabs");
-        HelenaSetupMenu.EnsureFolder("Assets/Prefabs", "Facility");
+        EditorAssets.EnsureFolder("Assets", "Prefabs");
+        EditorAssets.EnsureFolder("Assets/Prefabs", "Facility");
 
         // materials
         Material cctvMat = RemapSingle($"{CctvFolder}/SM_CCTV.fbx", "M_CCTV", $"{CctvFolder}/T_CCTV.png", 0.35f, lit, CctvFolder);
@@ -86,6 +92,7 @@ internal static class FacilityBuilder
         BuildDoorPrefab(preview, "SM_DoorSecurity", SecurityDoorPrefabPath, Door.Kind.Sliding, "Panel", new Vector3(1.2f, 2.24f, 0.3f));
     }
 
+    // Builds the CCTV camera prefab (model + SecurityCamera).
     private static void BuildCctvPrefab(Scene preview)
     {
         if (AssetDatabase.LoadAssetAtPath<GameObject>(CctvPrefabPath) != null) { Debug.Log("[Facility] Prefab already exists, kept: " + CctvPrefabPath); return; }
@@ -97,14 +104,15 @@ internal static class FacilityBuilder
         visual.name = "Model";
         visual.transform.SetParent(root.transform, false);
         var cam = root.AddComponent<SecurityCamera>();
-        HelenaSetupMenu.SetReference(cam, SecurityCamera.PanField, HelenaSetupMenu.FindDeep(visual.transform, "Pan"));
-        HelenaSetupMenu.SetReference(cam, SecurityCamera.TiltField, HelenaSetupMenu.FindDeep(visual.transform, "Tilt"));
-        HelenaSetupMenu.SetReference(cam, SecurityCamera.LensField, HelenaSetupMenu.FindDeep(visual.transform, "Lens"));
+        EditorSerialized.SetReference(cam, SecurityCamera.PanField, EditorScene.FindDeep(visual.transform, "Pan"));
+        EditorSerialized.SetReference(cam, SecurityCamera.TiltField, EditorScene.FindDeep(visual.transform, "Tilt"));
+        EditorSerialized.SetReference(cam, SecurityCamera.LensField, EditorScene.FindDeep(visual.transform, "Lens"));
         PrefabUtility.SaveAsPrefabAsset(root, CctvPrefabPath);
         Object.DestroyImmediate(root);
         Debug.Log("[Facility] Prefab built: " + CctvPrefabPath);
     }
 
+    // Builds a door prefab (model + Door + obstacle + lamp).
     private static void BuildDoorPrefab(Scene preview, string modelName, string path, Door.Kind kind, string partName, Vector3 blockSize)
     {
         if (AssetDatabase.LoadAssetAtPath<GameObject>(path) != null) { Debug.Log("[Facility] Prefab already exists, kept: " + path); return; }
@@ -115,8 +123,8 @@ internal static class FacilityBuilder
         var visual = (GameObject)PrefabUtility.InstantiatePrefab(model, preview);
         visual.name = "Model";
         visual.transform.SetParent(root.transform, false);
-        Transform part = HelenaSetupMenu.FindDeep(visual.transform, partName);
-        Transform lampT = HelenaSetupMenu.FindDeep(visual.transform, "Lamp");
+        Transform part = EditorScene.FindDeep(visual.transform, partName);
+        Transform lampT = EditorScene.FindDeep(visual.transform, "Lamp");
         if (part != null) part.gameObject.AddComponent<BoxCollider>();   // shots / clicks hit the door, moves with it
 
         // NavMesh hole while closed (its own object, so turning it off touches nothing else)
@@ -142,6 +150,7 @@ internal static class FacilityBuilder
         Debug.Log("[Facility] Prefab built: " + path);
     }
 
+    // Remaps a model's single material to a project material.
     private static Material RemapSingle(string fbxPath, string matName, string texPath, float smooth, Shader lit, string folder)
     {
         if (!(AssetImporter.GetAtPath(fbxPath) is ModelImporter mi)) { Debug.LogWarning("[Facility] Model not found: " + fbxPath); return null; }
@@ -151,12 +160,13 @@ internal static class FacilityBuilder
         return m;
     }
 
+    // A material with a texture (made once, updated in place).
     internal static Material MaterialFor(string matPath, string texPath, float smooth, Shader lit, string folder)
     {
         if (lit == null) return null;
-        HelenaSetupMenu.EnsureFolder(folder, "Materials");
+        EditorAssets.EnsureFolder(folder, "Materials");
         Texture2D tex = texPath != null ? AssetDatabase.LoadAssetAtPath<Texture2D>(texPath) : null;
-        Material m = HelenaSetupMenu.MakeMaterial(matPath, tex, smooth, false, lit);
+        Material m = EditorAssets.MakeMaterial(matPath, tex, smooth, false, lit);
         if (texPath == null) { m.SetColor("_BaseColor", Color.white); EditorUtility.SetDirty(m); }
         return m;
     }
@@ -288,8 +298,8 @@ internal static class FacilityBuilder
     {
         var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{KeypadFolder}/T_Keypad.png");
         if (tex == null) { Debug.LogWarning($"[Facility] {KeypadFolder}/T_Keypad.png missing: no keypad (the cell door stays locked)."); return null; }
-        HelenaSetupMenu.EnsureFolder(KeypadFolder, "Materials");
-        Material face = HelenaSetupMenu.MakeMaterial($"{KeypadFolder}/Materials/M_Keypad.mat", tex, 0.45f, false, lit);
+        EditorAssets.EnsureFolder(KeypadFolder, "Materials");
+        Material face = EditorAssets.MakeMaterial($"{KeypadFolder}/Materials/M_Keypad.mat", tex, 0.45f, false, lit);
 
         var root = new GameObject("Keypad_" + door.DisplayName.Replace(" ", ""));
         root.transform.SetParent(parent, false);
@@ -349,11 +359,11 @@ internal static class FacilityBuilder
         audio.volume = 0.6f;
 
         var keypad = root.AddComponent<Keypad>();
-        HelenaSetupMenu.SetReference(keypad, Keypad.DoorField, door);
-        HelenaSetupMenu.SetString(keypad, Keypad.CodeField, code);
-        HelenaSetupMenu.SetReferenceArray(keypad, Keypad.KeysField, keys);
-        HelenaSetupMenu.SetReference(keypad, Keypad.DisplayField, text);
-        HelenaSetupMenu.SetReference(keypad, Keypad.AudioSourceField, audio);
+        EditorSerialized.SetReference(keypad, Keypad.DoorField, door);
+        EditorSerialized.SetString(keypad, Keypad.CodeField, code);
+        EditorSerialized.SetReferenceArray(keypad, Keypad.KeysField, keys);
+        EditorSerialized.SetReference(keypad, Keypad.DisplayField, text);
+        EditorSerialized.SetReference(keypad, Keypad.AudioSourceField, audio);
         return keypad;
     }
 
@@ -379,6 +389,7 @@ internal static class FacilityBuilder
         }
     }
 
+    // Marks a room as a safe zone.
     internal static void SetSafeZone(Room room)
     {
         var so = new SerializedObject(room);
@@ -401,6 +412,7 @@ internal static class FacilityBuilder
         }
     }
 
+    // A room: floor, ceiling, lamp and its Room area.
     private static Room AddRoom(Transform rooms, Transform geometry, Material floorMat, string displayName, Rect r, Color lightColor, float intensity) =>
         AddRoom(rooms, geometry, floorMat, displayName, Portuguese(displayName), r, lightColor, intensity);
 
@@ -412,8 +424,8 @@ internal static class FacilityBuilder
         go.transform.SetParent(rooms, false);
         go.transform.position = new Vector3(r.center.x, 0f, r.center.y);
         var room = go.AddComponent<Room>();
-        HelenaSetupMenu.SetString(room, Room.DisplayNameField, displayName);
-        HelenaSetupMenu.SetString(room, Room.DisplayNamePtField, displayNamePt);
+        EditorSerialized.SetString(room, Room.DisplayNameField, displayName);
+        EditorSerialized.SetString(room, Room.DisplayNamePtField, displayNamePt);
         var so = new SerializedObject(room);
         so.FindProperty(Room.SizeField).vector2Value = r.size;
         so.ApplyModifiedPropertiesWithoutUndo();
@@ -438,6 +450,7 @@ internal static class FacilityBuilder
             Block(parent, "Wall", new Vector3((a + b) * 0.5f, WallHeight * 0.5f, z), new Vector3(b - a + WallThickness, WallHeight, WallThickness), m, 2f, true);
     }
 
+    // A wall along z with door openings.
     internal static void WallZ(Transform parent, Material m, float x, float z0, float z1, params (float center, float width)[] gaps)
     {
         foreach (var (a, b) in Segments(z0, z1, gaps))
@@ -473,6 +486,7 @@ internal static class FacilityBuilder
         return go;
     }
 
+    // A box mesh with tiled UVs.
     private static Mesh BoxMesh(Vector3 s, float tile, bool wallUv)
     {
         Vector3 h = s * 0.5f;
@@ -500,8 +514,10 @@ internal static class FacilityBuilder
         return mesh;
     }
 
+    // Materials of the door number plates.
     internal struct DoorSigns { public Material Wall, Plates; }
 
+    // Places a door prefab with its number plates.
     internal static Door AddDoor(Transform parent, string prefabPath, string displayName, Vector3 pos, float yaw, bool open,
                                 int number, DoorSigns signs)
     {
@@ -511,7 +527,7 @@ internal static class FacilityBuilder
         go.name = "Door_" + displayName.Replace(" ", "");
         go.transform.SetPositionAndRotation(pos, Quaternion.Euler(0f, yaw, 0f));
         var door = go.GetComponent<Door>();
-        HelenaSetupMenu.SetString(door, Door.DisplayNameField, displayName);
+        EditorSerialized.SetString(door, Door.DisplayNameField, displayName);
         var so = new SerializedObject(door);
         so.FindProperty(Door.StartOpenField).boolValue = open;
         so.FindProperty(Door.NumberField).intValue = number;
@@ -536,8 +552,8 @@ internal static class FacilityBuilder
             else r.sharedMaterial = signs.Wall;
         }
         var sign = header.AddComponent<DoorSign>();
-        HelenaSetupMenu.SetReference(sign, DoorSign.DoorField, door);
-        HelenaSetupMenu.SetReferenceArray(sign, DoorSign.PlatesField, plates);
+        EditorSerialized.SetReference(sign, DoorSign.DoorField, door);
+        EditorSerialized.SetReferenceArray(sign, DoorSign.PlatesField, plates);
     }
 
     // a CCTV camera in a corner of the room, aimed at a point (any scene: the casino uses it too)
@@ -550,8 +566,8 @@ internal static class FacilityBuilder
         Vector3 flat = lookAt - mount; flat.y = 0f;
         go.transform.SetPositionAndRotation(mount, Quaternion.LookRotation(flat));
         var cam = go.GetComponent<SecurityCamera>();
-        HelenaSetupMenu.SetString(cam, SecurityCamera.LabelField, label);
-        HelenaSetupMenu.SetReference(cam, SecurityCamera.RoomField, room);
+        EditorSerialized.SetString(cam, SecurityCamera.LabelField, label);
+        EditorSerialized.SetReference(cam, SecurityCamera.RoomField, room);
         // look down at a point ~1 m above the floor at the target
         float pitch = Mathf.Atan2(mount.y - 1f, flat.magnitude) * Mathf.Rad2Deg;
         var so = new SerializedObject(cam);
@@ -566,8 +582,8 @@ internal static class FacilityBuilder
     {
         var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(FilterProfilePath);
         if (profile != null) return profile;   // tune it in the inspector, never overwritten
-        HelenaSetupMenu.EnsureFolder("Assets", "Data");
-        HelenaSetupMenu.EnsureFolder("Assets/Data", "Facility");
+        EditorAssets.EnsureFolder("Assets", "Data");
+        EditorAssets.EnsureFolder("Assets/Data", "Facility");
         profile = ScriptableObject.CreateInstance<VolumeProfile>();
         AssetDatabase.CreateAsset(profile, FilterProfilePath);
 
@@ -602,12 +618,14 @@ internal static class FacilityBuilder
         return c;
     }
 
+    // The static noise texture of the CCTV overlay (made once).
     private static Texture2D EnsureStaticNoise()
     {
         var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(StaticNoisePath);
         if (tex != null) return tex;
-        HelenaSetupMenu.EnsureFolder("Assets", "Data");
-        HelenaSetupMenu.EnsureFolder("Assets/Data", "Facility");
+        EditorAssets.EnsureFolder("Assets", "Data");
+        EditorAssets.EnsureFolder("Assets/Data", "Facility");
+        // Texture size (px).
         const int size = 128;
         tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "StaticNoise", wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Point };
         var rnd = new System.Random(7);
@@ -623,6 +641,7 @@ internal static class FacilityBuilder
         return tex;
     }
 
+    // HUD colors.
     private static readonly Color Phosphor = new Color(0.45f, 1f, 0.55f);
     private static readonly Color Dim = new Color(0.2f, 0.5f, 0.27f);
 
@@ -631,12 +650,12 @@ internal static class FacilityBuilder
                                         List<Room> rooms, List<Door> doors, Volume volume,
                                         string placeName = "FACILITY", string placeNamePt = "INSTALAÇÃO")
     {
-        var root = HelenaSetupMenu.CreateUiObject(canvas, "CameraHud");
+        var root = EditorUi.CreateUiObject(canvas, "CameraHud");
         root.transform.SetSiblingIndex(0);   // under the ammo HUD, save screen and fader
-        HelenaSetupMenu.Stretch((RectTransform)root.transform);
+        EditorUi.Stretch((RectTransform)root.transform);
 
         // filter overlays (strength set by CameraFilter)
-        RawImage scan = Overlay(root.transform, "Scanlines", HelenaSetupMenu.EnsureScanlines(), new Rect(0f, 0f, 1f, 180f));
+        RawImage scan = Overlay(root.transform, "Scanlines", LocationUiBuilder.EnsureScanlines(), new Rect(0f, 0f, 1f, 180f));
         RawImage noise = Overlay(root.transform, "Grain", EnsureStaticNoise(), new Rect(0f, 0f, 6f, 4f));
         RawImage staticBurst = Overlay(root.transform, "Static", EnsureStaticNoise(), new Rect(0f, 0f, 2f, 2f));
         staticBurst.color = new Color(1f, 1f, 1f, 0f);
@@ -651,54 +670,54 @@ internal static class FacilityBuilder
         }
 
         Vector2 tl = new Vector2(0f, 1f), tr = new Vector2(1f, 1f), bl = Vector2.zero, bc = new Vector2(0.5f, 0f);
-        var rec = HelenaSetupMenu.CreateUiObject(root.transform, "RecDot").AddComponent<Image>();
+        var rec = EditorUi.CreateUiObject(root.transform, "RecDot").AddComponent<Image>();
         rec.color = new Color(1f, 0.15f, 0.1f);
         rec.raycastTarget = false;
-        HelenaSetupMenu.Place(rec.rectTransform, tl, tl, tl, new Vector2(52f, -50f), new Vector2(14f, 14f));
-        TMP_Text recText = HelenaSetupMenu.CreateText(root.transform, "RecText", 20, TextAlignmentOptions.Left, new Color(1f, 0.3f, 0.25f));
+        EditorUi.Place(rec.rectTransform, tl, tl, tl, new Vector2(52f, -50f), new Vector2(14f, 14f));
+        TMP_Text recText = EditorUi.CreateText(root.transform, "RecText", 20, TextAlignmentOptions.Left, new Color(1f, 0.3f, 0.25f));
         recText.text = "REC";
-        HelenaSetupMenu.Place(recText.rectTransform, tl, tl, tl, new Vector2(74f, -44f), new Vector2(80f, 26f));
-        TMP_Text camLabel = HelenaSetupMenu.CreateText(root.transform, "CameraLabel", 38, TextAlignmentOptions.Left, Phosphor);
-        HelenaSetupMenu.Place(camLabel.rectTransform, tl, tl, tl, new Vector2(50f, -72f), new Vector2(400f, 44f));
-        TMP_Text roomLabel = HelenaSetupMenu.CreateText(root.transform, "RoomLabel", 22, TextAlignmentOptions.Left, Phosphor);
-        HelenaSetupMenu.Place(roomLabel.rectTransform, tl, tl, tl, new Vector2(52f, -116f), new Vector2(400f, 28f));
-        TMP_Text clock = HelenaSetupMenu.CreateText(root.transform, "Clock", 22, TextAlignmentOptions.Right, Phosphor);
-        HelenaSetupMenu.Place(clock.rectTransform, tr, tr, tr, new Vector2(-50f, -44f), new Vector2(420f, 28f));
-        TMP_Text subject = HelenaSetupMenu.CreateText(root.transform, "Subject", 18, TextAlignmentOptions.Right, Phosphor);
-        HelenaSetupMenu.Place(subject.rectTransform, tr, tr, tr, new Vector2(-50f, -76f), new Vector2(420f, 26f));
-        TMP_Text hint = HelenaSetupMenu.CreateText(root.transform, "Hint", 15, TextAlignmentOptions.Left, Dim);
-        HelenaSetupMenu.Place(hint.rectTransform, bl, bl, bl, new Vector2(50f, 40f), new Vector2(600f, 24f));
+        EditorUi.Place(recText.rectTransform, tl, tl, tl, new Vector2(74f, -44f), new Vector2(80f, 26f));
+        TMP_Text camLabel = EditorUi.CreateText(root.transform, "CameraLabel", 38, TextAlignmentOptions.Left, Phosphor);
+        EditorUi.Place(camLabel.rectTransform, tl, tl, tl, new Vector2(50f, -72f), new Vector2(400f, 44f));
+        TMP_Text roomLabel = EditorUi.CreateText(root.transform, "RoomLabel", 22, TextAlignmentOptions.Left, Phosphor);
+        EditorUi.Place(roomLabel.rectTransform, tl, tl, tl, new Vector2(52f, -116f), new Vector2(400f, 28f));
+        TMP_Text clock = EditorUi.CreateText(root.transform, "Clock", 22, TextAlignmentOptions.Right, Phosphor);
+        EditorUi.Place(clock.rectTransform, tr, tr, tr, new Vector2(-50f, -44f), new Vector2(420f, 28f));
+        TMP_Text subject = EditorUi.CreateText(root.transform, "Subject", 18, TextAlignmentOptions.Right, Phosphor);
+        EditorUi.Place(subject.rectTransform, tr, tr, tr, new Vector2(-50f, -76f), new Vector2(420f, 26f));
+        TMP_Text hint = EditorUi.CreateText(root.transform, "Hint", 15, TextAlignmentOptions.Left, Dim);
+        EditorUi.Place(hint.rectTransform, bl, bl, bl, new Vector2(50f, 40f), new Vector2(600f, 24f));
 
         // pan indicator: a line with a marker, < > at the ends
-        var bar = HelenaSetupMenu.CreateUiObject(root.transform, "PanBar").AddComponent<Image>();
+        var bar = EditorUi.CreateUiObject(root.transform, "PanBar").AddComponent<Image>();
         bar.color = Dim;
         bar.raycastTarget = false;
-        HelenaSetupMenu.Place(bar.rectTransform, bc, bc, new Vector2(0.5f, 0.5f), new Vector2(0f, 60f), new Vector2(320f, 2f));
-        var marker = HelenaSetupMenu.CreateUiObject(bar.transform, "Marker").AddComponent<Image>();
+        EditorUi.Place(bar.rectTransform, bc, bc, new Vector2(0.5f, 0.5f), new Vector2(0f, 60f), new Vector2(320f, 2f));
+        var marker = EditorUi.CreateUiObject(bar.transform, "Marker").AddComponent<Image>();
         marker.color = Phosphor;
         marker.raycastTarget = false;
-        HelenaSetupMenu.Place(marker.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(8f, 18f));
-        TMP_Text left = HelenaSetupMenu.CreateText(bar.transform, "Left", 18, TextAlignmentOptions.Center, Dim); left.text = "<";
-        HelenaSetupMenu.Place(left.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-18f, 0f), new Vector2(20f, 24f));
-        TMP_Text right = HelenaSetupMenu.CreateText(bar.transform, "Right", 18, TextAlignmentOptions.Center, Dim); right.text = ">";
-        HelenaSetupMenu.Place(right.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(18f, 0f), new Vector2(20f, 24f));
+        EditorUi.Place(marker.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(8f, 18f));
+        TMP_Text left = EditorUi.CreateText(bar.transform, "Left", 18, TextAlignmentOptions.Center, Dim); left.text = "<";
+        EditorUi.Place(left.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-18f, 0f), new Vector2(20f, 24f));
+        TMP_Text right = EditorUi.CreateText(bar.transform, "Right", 18, TextAlignmentOptions.Center, Dim); right.text = ">";
+        EditorUi.Place(right.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(18f, 0f), new Vector2(20f, 24f));
 
         // map panel: the blueprint (left, dark well with a frame) + the info column (right); content built by the HUD
         Vector2 mid = new Vector2(0.5f, 0.5f);
         // (canvas 1280 x 720: nearly the whole screen; the map zooms with the wheel, the side column scrolls)
         CanvasGroup map = Panel(root.transform, "MapPanel", "FACILITY MAP  //  SECURITY NETWORK", new Vector2(1250f, 700f));
-        var well = HelenaSetupMenu.CreateUiObject(map.transform.GetChild(1), "MapWell").AddComponent<Image>();
+        var well = EditorUi.CreateUiObject(map.transform.GetChild(1), "MapWell").AddComponent<Image>();
         well.color = new Color(0f, 0.025f, 0.012f, 0.95f);
         well.raycastTarget = false;
-        HelenaSetupMenu.Place(well.rectTransform, mid, mid, mid, new Vector2(-195f, -18f), new Vector2(830f, 636f));
+        EditorUi.Place(well.rectTransform, mid, mid, mid, new Vector2(-195f, -18f), new Vector2(830f, 636f));
         var wellLine = well.gameObject.AddComponent<Outline>();
         wellLine.effectColor = Dim;
         wellLine.effectDistance = new Vector2(1f, -1f);
-        var area = HelenaSetupMenu.CreateUiObject(well.transform, "MapArea").GetComponent<RectTransform>();
-        HelenaSetupMenu.Place(area, mid, mid, mid, Vector2.zero, new Vector2(816f, 622f));
+        var area = EditorUi.CreateUiObject(well.transform, "MapArea").GetComponent<RectTransform>();
+        EditorUi.Place(area, mid, mid, mid, Vector2.zero, new Vector2(816f, 622f));
         area.gameObject.AddComponent<RectMask2D>();   // the grid stays inside the well
-        var side = HelenaSetupMenu.CreateUiObject(map.transform.GetChild(1), "MapSide").GetComponent<RectTransform>();
-        HelenaSetupMenu.Place(side, mid, mid, mid, new Vector2(424f, -18f), new Vector2(372f, 636f));
+        var side = EditorUi.CreateUiObject(map.transform.GetChild(1), "MapSide").GetComponent<RectTransform>();
+        EditorUi.Place(side, mid, mid, mid, new Vector2(424f, -18f), new Vector2(372f, 636f));
 
         // the large map lets the picture show through (the camera stays readable behind it)
         map.transform.GetChild(0).GetComponent<Image>().color = new Color(0f, 0.02f, 0.01f, 0.25f);
@@ -707,8 +726,8 @@ internal static class FacilityBuilder
 
         // the corner map (first Tab): bottom right, a title strip with the follow button, the window the drawing moves into
         Vector2 br = new Vector2(1f, 0f);
-        var mini = HelenaSetupMenu.CreateUiObject(root.transform, "MiniMap");
-        HelenaSetupMenu.Place((RectTransform)mini.transform, br, br, br, new Vector2(-34f, 34f), new Vector2(410f, 268f));
+        var mini = EditorUi.CreateUiObject(root.transform, "MiniMap");
+        EditorUi.Place((RectTransform)mini.transform, br, br, br, new Vector2(-34f, 34f), new Vector2(410f, 268f));
         CanvasGroup miniGroup = mini.AddComponent<CanvasGroup>();
         miniGroup.alpha = 0f; miniGroup.interactable = false; miniGroup.blocksRaycasts = false;
         Image miniFrame = mini.AddComponent<Image>();
@@ -717,107 +736,109 @@ internal static class FacilityBuilder
         miniLine.effectColor = Dim;
         miniLine.effectDistance = new Vector2(2f, -2f);
         Vector2 top = new Vector2(0.5f, 1f), tl2 = new Vector2(0f, 1f), tr2 = new Vector2(1f, 1f);
-        TMP_Text miniTitle = HelenaSetupMenu.CreateText(mini.transform, "Title", 14, TextAlignmentOptions.Left, Phosphor);
-        HelenaSetupMenu.Place(miniTitle.rectTransform, tl2, tl2, tl2, new Vector2(8f, -4f), new Vector2(220f, 22f));
-        var follow = HelenaSetupMenu.CreateUiObject(mini.transform, "Follow");
-        HelenaSetupMenu.Place((RectTransform)follow.transform, tr2, tr2, tr2, new Vector2(-6f, -4f), new Vector2(170f, 22f));
+        TMP_Text miniTitle = EditorUi.CreateText(mini.transform, "Title", 14, TextAlignmentOptions.Left, Phosphor);
+        EditorUi.Place(miniTitle.rectTransform, tl2, tl2, tl2, new Vector2(8f, -4f), new Vector2(220f, 22f));
+        var follow = EditorUi.CreateUiObject(mini.transform, "Follow");
+        EditorUi.Place((RectTransform)follow.transform, tr2, tr2, tr2, new Vector2(-6f, -4f), new Vector2(170f, 22f));
         Image followBack = follow.AddComponent<Image>();
         followBack.color = new Color(Phosphor.r, Phosphor.g, Phosphor.b, 0.12f);
         Button followButton = follow.AddComponent<Button>();
         followButton.targetGraphic = followBack;
-        TMP_Text followLabel = HelenaSetupMenu.CreateText(follow.transform, "Label", 13, TextAlignmentOptions.Center, Phosphor);
-        HelenaSetupMenu.Stretch(followLabel.rectTransform);
-        var miniWell = HelenaSetupMenu.CreateUiObject(mini.transform, "Well").AddComponent<Image>();
+        TMP_Text followLabel = EditorUi.CreateText(follow.transform, "Label", 13, TextAlignmentOptions.Center, Phosphor);
+        EditorUi.Stretch(followLabel.rectTransform);
+        var miniWell = EditorUi.CreateUiObject(mini.transform, "Well").AddComponent<Image>();
         miniWell.color = new Color(0f, 0.025f, 0.012f, 0.78f);
         miniWell.raycastTarget = true;   // the cursor on the map belongs to the map
-        HelenaSetupMenu.Place(miniWell.rectTransform, top, top, top, new Vector2(0f, -30f), new Vector2(398f, 232f));
-        var miniArea = HelenaSetupMenu.CreateUiObject(miniWell.transform, "MiniArea").GetComponent<RectTransform>();
-        HelenaSetupMenu.Stretch(miniArea);
+        EditorUi.Place(miniWell.rectTransform, top, top, top, new Vector2(0f, -30f), new Vector2(398f, 232f));
+        var miniArea = EditorUi.CreateUiObject(miniWell.transform, "MiniArea").GetComponent<RectTransform>();
+        EditorUi.Stretch(miniArea);
         miniArea.gameObject.AddComponent<RectMask2D>();
 
         // settings panel
         CanvasGroup settingsPanel = Panel(root.transform, "SettingsPanel", "SETTINGS", new Vector2(760f, 600f));
-        var rows = HelenaSetupMenu.CreateUiObject(settingsPanel.transform.GetChild(1), "Rows").GetComponent<RectTransform>();
-        HelenaSetupMenu.Place(rows, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 190f), Vector2.zero);
+        var rows = EditorUi.CreateUiObject(settingsPanel.transform.GetChild(1), "Rows").GetComponent<RectTransform>();
+        EditorUi.Place(rows, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 190f), Vector2.zero);
 
         var hud = root.AddComponent<SecurityCameraHud>();
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.SystemField, system);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.SettingsField, settings);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.PartnerField, partner);
-        HelenaSetupMenu.SetReferenceArray(hud, SecurityCameraHud.RoomsField, rooms);
-        HelenaSetupMenu.SetReferenceArray(hud, SecurityCameraHud.DoorsField, doors);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.CameraLabelField, camLabel);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.RoomLabelField, roomLabel);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.RecDotField, rec);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.ClockField, clock);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.SubjectField, subject);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.PanBarField, bar.rectTransform);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.PanMarkerField, marker.rectTransform);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.StaticImageField, staticBurst);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.HintField, hint);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MapPanelField, map);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MapAreaField, area);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MapSideField, side);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.SettingsPanelField, settingsPanel);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.SettingsRowsField, rows);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.SystemField, system);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.SettingsField, settings);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.PartnerField, partner);
+        EditorSerialized.SetReferenceArray(hud, SecurityCameraHud.RoomsField, rooms);
+        EditorSerialized.SetReferenceArray(hud, SecurityCameraHud.DoorsField, doors);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.CameraLabelField, camLabel);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.RoomLabelField, roomLabel);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.RecDotField, rec);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.ClockField, clock);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.SubjectField, subject);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.PanBarField, bar.rectTransform);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.PanMarkerField, marker.rectTransform);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.StaticImageField, staticBurst);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.HintField, hint);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.MapPanelField, map);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.MapAreaField, area);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.MapSideField, side);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.SettingsPanelField, settingsPanel);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.SettingsRowsField, rows);
         // the panel titles (Panel: Frame/Title) follow the language too
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MapTitleField, map.transform.GetChild(1).Find("Title").GetComponent<TMP_Text>());
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.SettingsTitleField, settingsPanel.transform.GetChild(1).Find("Title").GetComponent<TMP_Text>());
-        HelenaSetupMenu.SetString(hud, SecurityCameraHud.PlaceNameField, placeName);
-        HelenaSetupMenu.SetString(hud, SecurityCameraHud.PlaceNamePtField, placeNamePt);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MiniPanelField, miniGroup);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MiniAreaField, miniArea);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MiniTitleField, miniTitle);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MiniFollowField, followButton);
-        HelenaSetupMenu.SetReference(hud, SecurityCameraHud.MiniFollowLabelField, followLabel);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.MapTitleField, map.transform.GetChild(1).Find("Title").GetComponent<TMP_Text>());
+        EditorSerialized.SetReference(hud, SecurityCameraHud.SettingsTitleField, settingsPanel.transform.GetChild(1).Find("Title").GetComponent<TMP_Text>());
+        EditorSerialized.SetString(hud, SecurityCameraHud.PlaceNameField, placeName);
+        EditorSerialized.SetString(hud, SecurityCameraHud.PlaceNamePtField, placeNamePt);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.MiniPanelField, miniGroup);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.MiniAreaField, miniArea);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.MiniTitleField, miniTitle);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.MiniFollowField, followButton);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.MiniFollowLabelField, followLabel);
 
         var filter = root.AddComponent<CameraFilter>();
-        HelenaSetupMenu.SetReference(filter, CameraFilter.SettingsField, settings);
-        HelenaSetupMenu.SetReference(filter, CameraFilter.VolumeField, volume);
-        HelenaSetupMenu.SetReference(filter, CameraFilter.ScanlinesField, scan);
-        HelenaSetupMenu.SetReference(filter, CameraFilter.NoiseField, noise);
+        EditorSerialized.SetReference(filter, CameraFilter.SettingsField, settings);
+        EditorSerialized.SetReference(filter, CameraFilter.VolumeField, volume);
+        EditorSerialized.SetReference(filter, CameraFilter.ScanlinesField, scan);
+        EditorSerialized.SetReference(filter, CameraFilter.NoiseField, noise);
     }
 
+    // A RawImage overlay stretched over its parent.
     private static RawImage Overlay(Transform parent, string objectName, Texture tex, Rect uv)
     {
-        var img = HelenaSetupMenu.CreateUiObject(parent, objectName).AddComponent<RawImage>();
-        HelenaSetupMenu.Stretch(img.rectTransform);
+        var img = EditorUi.CreateUiObject(parent, objectName).AddComponent<RawImage>();
+        EditorUi.Stretch(img.rectTransform);
         img.texture = tex;
         img.uvRect = uv;
         img.raycastTarget = false;
         return img;
     }
 
+    // A HUD bar.
     private static void Bar(Transform parent, Vector2 anchor, Vector2 position, Vector2 size, Vector2 pivot)
     {
-        var img = HelenaSetupMenu.CreateUiObject(parent, "Corner").AddComponent<Image>();
+        var img = EditorUi.CreateUiObject(parent, "Corner").AddComponent<Image>();
         img.color = Phosphor;
         img.raycastTarget = false;
         // negative sizes flip the pivot side
         Vector2 abs = new Vector2(Mathf.Abs(size.x), Mathf.Abs(size.y));
         Vector2 p = new Vector2(size.x < 0f ? 1f : 0f, size.y < 0f ? 1f : 0f);
-        HelenaSetupMenu.Place(img.rectTransform, anchor, anchor, p, position, abs);
+        EditorUi.Place(img.rectTransform, anchor, anchor, p, position, abs);
     }
 
     // backdrop (child 0) + frame (child 1, holds the content) + title
     private static CanvasGroup Panel(Transform parent, string objectName, string title, Vector2 size)
     {
-        var go = HelenaSetupMenu.CreateUiObject(parent, objectName);
-        HelenaSetupMenu.Stretch((RectTransform)go.transform);
+        var go = EditorUi.CreateUiObject(parent, objectName);
+        EditorUi.Stretch((RectTransform)go.transform);
         var group = go.AddComponent<CanvasGroup>();
         group.alpha = 0f; group.interactable = false; group.blocksRaycasts = false;
-        var backdrop = HelenaSetupMenu.CreateUiObject(go.transform, "Backdrop").AddComponent<Image>();
-        HelenaSetupMenu.Stretch(backdrop.rectTransform);
+        var backdrop = EditorUi.CreateUiObject(go.transform, "Backdrop").AddComponent<Image>();
+        EditorUi.Stretch(backdrop.rectTransform);
         backdrop.color = new Color(0f, 0.02f, 0.01f, 0.55f);
-        var frame = HelenaSetupMenu.CreateUiObject(go.transform, "Frame").AddComponent<Image>();
-        HelenaSetupMenu.Place(frame.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, size);
+        var frame = EditorUi.CreateUiObject(go.transform, "Frame").AddComponent<Image>();
+        EditorUi.Place(frame.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, size);
         frame.color = new Color(0.01f, 0.05f, 0.025f, 0.92f);
         var outline = frame.gameObject.AddComponent<Outline>();
         outline.effectColor = Dim;
         outline.effectDistance = new Vector2(3f, -3f);
-        TMP_Text t = HelenaSetupMenu.CreateText(frame.transform, "Title", 18, TextAlignmentOptions.Center, Phosphor);
+        TMP_Text t = EditorUi.CreateText(frame.transform, "Title", 18, TextAlignmentOptions.Center, Phosphor);
         t.text = "<mspace=0.6em>" + title + "</mspace>";
-        HelenaSetupMenu.Place(t.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -12f), new Vector2(size.x - 20f, 28f));
+        EditorUi.Place(t.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -12f), new Vector2(size.x - 20f, 28f));
         return group;
     }
 }

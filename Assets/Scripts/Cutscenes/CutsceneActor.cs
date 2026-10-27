@@ -11,6 +11,7 @@ using UnityEngine.AI;
 // (forward = where the fingers point, up = the back of the hand), so it can rest on an edge instead of going through it.
 public class CutsceneActor : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string DisplayNameField = nameof(displayName);
     public const string AgentField = nameof(agent);
     public const string AnimatorField = nameof(animator);
@@ -21,12 +22,15 @@ public class CutsceneActor : MonoBehaviour
 
     [Tooltip("Name shown on its subtitles.")]
     [SerializeField] private string displayName = "???";
+    // Color of its name on the subtitles.
     [SerializeField] private Color nameColor = new Color(0.85f, 0.25f, 0.3f);
     [Tooltip("Optional: walks on the NavMesh. Without one it glides.")]
     [SerializeField] private NavMeshAgent agent;
+    // Its Animator (a character other than Helena).
     [SerializeField] private Animator animator;
     [Tooltip("Helena: her animator does the clips (leave the slots empty).")]
     [SerializeField] private PartnerAnimator partnerAnimator;
+    // Two empty clips used as slots to play any clip on the CutsceneA / CutsceneB states.
     [SerializeField] private AnimationClip slotA;
     [SerializeField] private AnimationClip slotB;
     [Tooltip("Helena: sitting on the floor while the operator was away - a cutscene can start with her like that.")]
@@ -36,23 +40,29 @@ public class CutsceneActor : MonoBehaviour
     [Tooltip("Animator float set to the speed while moving (empty = none).")]
     [SerializeField] private string speedParameter = "Speed";
 
+    // Clip slots (other characters), the agent's normal speed, and whether a cutscene owns it now.
     private CutsceneClipSlots slots;
     private float normalSpeed;
     private bool inCutscene;
     private bool animating;     // a clip / state is playing (scripted)
+    // Gliding without an agent: on / target.
     private bool gliding;
     private Vector3 glideTarget;
+    // The speed parameter of its Animator (if it has one).
     private int speedParamId;
     private bool hasSpeedParam;
     private int restState;      // another character: the state it was in when the cutscene began
+    // Hand IK: targets, current / wanted weight and blend speed, and whether the hands turn onto the targets.
     private Transform ikLeft, ikRight;
     private float ikWeight, ikGoal, ikSpeed = 4f;
     private bool ikOrient;
 
+    // State and subtitle data read by the director.
     public bool IsResting => rest != null && rest.IsResting;
     public string DisplayName => displayName;
     public Color NameColor => nameColor;
 
+    // Sets up the clip slots and the speed parameter; remembers the agent speed.
     private void Awake()
     {
         if (partnerAnimator == null && animator != null)
@@ -65,6 +75,7 @@ public class CutsceneActor : MonoBehaviour
         if (agent != null) normalSpeed = agent.speed;
     }
 
+    // The cutscene takes it: no path; sitting on the floor = the cutscene keeps that pose; remembers its state.
     public void BeginCutscene()
     {
         if (inCutscene) return;
@@ -72,7 +83,7 @@ public class CutsceneActor : MonoBehaviour
         if (agent != null && agent.isOnNavMesh) agent.ResetPath();
         if (IsResting)
         {
-            // still sitting on the floor (scripted): the cutscene owns that pose now ("Voltar ao normal" gets her up)
+            // still sitting on the floor (scripted): the cutscene owns that pose now ("Back to normal" gets her up)
             rest.Release();
             animating = true;
         }
@@ -80,6 +91,7 @@ public class CutsceneActor : MonoBehaviour
             restState = animator.GetCurrentAnimatorStateInfo(0).shortNameHash;
     }
 
+    // The cutscene lets it go: hands free, animation back to normal, normal speed.
     public void EndCutscene()
     {
         if (!inCutscene) return;
@@ -105,6 +117,7 @@ public class CutsceneActor : MonoBehaviour
         glideTarget = point;
     }
 
+    // Has it reached the point (agent stopped, or the glide ended)?
     public bool HasArrived(Vector3 point)
     {
         if (agent != null && agent.isOnNavMesh)
@@ -116,12 +129,14 @@ public class CutsceneActor : MonoBehaviour
         return !gliding;
     }
 
+    // Stops walking / gliding.
     public void StopMoving()
     {
         if (agent != null && agent.isOnNavMesh) agent.ResetPath();
         gliding = false;
     }
 
+    // Jumps to a place (yaw only).
     public void Teleport(Vector3 position, Quaternion rotation)
     {
         StopMoving();
@@ -150,6 +165,7 @@ public class CutsceneActor : MonoBehaviour
         if (blend <= 0f) ikWeight = ikGoal;
     }
 
+    // Unity IK pass: hand positions on their targets.
     private void OnAnimatorIK(int layerIndex)
     {
         if (animator == null || ikWeight <= 0f) return;
@@ -157,6 +173,7 @@ public class CutsceneActor : MonoBehaviour
         Hand(AvatarIKGoal.RightHand, ikRight);
     }
 
+    // One hand on its target (weight 0 when it has none).
     private void Hand(AvatarIKGoal goal, Transform target)
     {
         animator.SetIKPositionWeight(goal, target != null ? ikWeight : 0f);
@@ -188,6 +205,7 @@ public class CutsceneActor : MonoBehaviour
         hand.rotation = Quaternion.Slerp(Quaternion.identity, fix, ikWeight) * hand.rotation;
     }
 
+    // Blends the hand IK weight; moves the glide.
     private void Update()
     {
         if (ikWeight != ikGoal)
@@ -223,6 +241,7 @@ public class CutsceneActor : MonoBehaviour
         animating = true;
     }
 
+    // Plays a state of its Animator by name (Helena: through her PartnerAnimator).
     public bool PlayState(string state, float blend)
     {
         StopMoving();
@@ -243,6 +262,7 @@ public class CutsceneActor : MonoBehaviour
         return true;
     }
 
+    // The clip played by PlayClip has ended.
     public bool IsClipDone => partnerAnimator != null ? partnerAnimator.IsCutsceneClipDone : slots == null || slots.IsDone;
 
     // back to normal (her walk / idle; another character: its default state)

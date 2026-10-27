@@ -6,6 +6,7 @@ using UnityEngine;
 // down), the bets on the layout, the last number and what was won, and what to say.
 public class RouletteHud : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string GameField = nameof(game);
     public const string SettingsField = nameof(settings);
     public const string GroupField = nameof(group);
@@ -13,38 +14,46 @@ public class RouletteHud : MonoBehaviour
     public const string BodyField = nameof(body);
     public const string PromptField = nameof(prompt);
 
+    // The roulette game, the settings, the panel and its texts.
     [SerializeField] private RouletteGame game;
     [SerializeField] private CameraSettings settings;
     [SerializeField] private CanvasGroup group;
     [SerializeField] private TMP_Text header;
     [SerializeField] private TMP_Text body;
     [SerializeField] private TMP_Text prompt;
+    // Fade time (s).
     [SerializeField] private float fadeTime = 0.25f;
 
+    // Text builder, rebuild pending, last chips shown.
     private readonly StringBuilder sb = new StringBuilder();
     private bool dirty = true;
     private int shownChips = -1;
 
+    // Checks references; hidden at start.
     private void Awake()
     {
         if (game == null || group == null || header == null || body == null || prompt == null) { enabled = false; return; }
         group.alpha = 0f;
     }
 
+    // Listens to the game's changes.
     private void OnEnable()
     {
         if (game != null) game.Changed += MarkDirty;
         if (settings != null) settings.Changed += MarkDirty;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (game != null) game.Changed -= MarkDirty;
         if (settings != null) settings.Changed -= MarkDirty;
     }
 
+    // Something changed: rebuild on the next LateUpdate.
     private void MarkDirty() => dirty = true;
 
+    // Fades in while she is the croupier; rebuilds on change.
     private void LateUpdate()
     {
         group.alpha = Mathf.MoveTowards(group.alpha, game.IsOpen ? 1f : 0f, Time.unscaledDeltaTime / Mathf.Max(fadeTime, 0.01f));
@@ -56,6 +65,7 @@ public class RouletteHud : MonoBehaviour
         Rebuild();
     }
 
+    // Writes chips, stake, the bets, the last number / win and the prompt.
     private void Rebuild()
     {
         bool pt = settings != null && settings.Language == GameLanguage.Portuguese;
@@ -85,6 +95,7 @@ public class RouletteHud : MonoBehaviour
             : "\"25 ON RED\" · \"NUMBER 17\" · \"SPIN\" · \"I'M DONE\"";
     }
 
+    // A bet's name.
     private static string Name(RouletteGame.Bet b, bool pt)
     {
         switch (b.Kind)

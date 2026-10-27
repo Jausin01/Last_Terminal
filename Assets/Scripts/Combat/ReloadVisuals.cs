@@ -8,19 +8,24 @@ using UnityEngine;
 [DefaultExecutionOrder(50)]
 public class ReloadVisuals : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string ShooterField = nameof(shooter);
 
+    // Her animator (reload clip time, left hand pose) and her shooter (current gun, reloading or not).
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private PartnerShooter shooter;
     [Tooltip("Seconds the dropped magazine stays on the floor.")]
     [SerializeField] private float dropLifetime = 6f;
+    // How the dropped magazine copy falls (initial speed, mass).
     [SerializeField] private float dropSpeed = 0.8f;
     [SerializeField] private float dropMass = 0.3f;
 
+    // The gun whose props are being driven, and whether its empty magazine was already dropped this reload.
     private RangedWeapon shown;
     private bool dropped;
 
+    // Checks the references.
     private void Awake()
     {
         if (partnerAnimator == null || shooter == null)
@@ -30,6 +35,7 @@ public class ReloadVisuals : MonoBehaviour
         }
     }
 
+    // After the hand / gun pose of the frame: drives the reload prop of the current gun along the reload clip.
     private void LateUpdate()
     {
         RangedWeapon r = shooter.Current;
@@ -52,6 +58,7 @@ public class ReloadVisuals : MonoBehaviour
         else UpdateShell(r, t - Mathf.Floor(t));
     }
 
+    // Magazine style: out of the gun, hidden, in the left hand, sliding into the grip, home.
     private void UpdateMagazine(RangedWeapon r, float t)
     {
         if (t < r.MagOut) { Rest(r); return; }
@@ -75,6 +82,7 @@ public class ReloadVisuals : MonoBehaviour
         r.ReloadProp.SetPositionAndRotation(pos, rot);
     }
 
+    // Shells style: one shell visible in the left hand during each loop.
     private void UpdateShell(RangedWeapon r, float loopTime)
     {
         bool inHand = loopTime >= r.ShellGrab && loopTime < r.ShellInsert;
@@ -118,6 +126,7 @@ public class ReloadVisuals : MonoBehaviour
         Destroy(copy, dropLifetime);
     }
 
+    // The prop back in the gun (a magazine shows; shells hide).
     private static void Rest(RangedWeapon r)
     {
         if (r.ReloadProp == null) return;
@@ -125,6 +134,7 @@ public class ReloadVisuals : MonoBehaviour
         SetVisible(r, r.Style == RangedWeapon.ReloadMode.Magazine);   // magazine in the gun; shells stay hidden
     }
 
+    // Shows / hides the prop (only when it changes).
     private static void SetVisible(RangedWeapon r, bool visible)
     {
         if (r.ReloadProp.gameObject.activeSelf != visible) r.ReloadProp.gameObject.SetActive(visible);

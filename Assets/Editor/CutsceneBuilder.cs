@@ -15,18 +15,20 @@ using UnityEngine.UI;
 // 12 - a new cutscene in the open scene, with a few example steps, where the Scene view is looking
 internal static class CutsceneBuilder
 {
+    // Where the slot clips are saved; Helena's subtitle color.
     private const string SlotFolder = "Assets/Data/Cutscenes";
     private static readonly Color HelenaColor = new Color(0.85f, 0.25f, 0.3f);
 
     // ------------------------------------------------------------------ clip states
     internal static void EnsureSlotClips(out AnimationClip a, out AnimationClip b)
     {
-        HelenaSetupMenu.EnsureFolder("Assets", "Data");
-        HelenaSetupMenu.EnsureFolder("Assets/Data", "Cutscenes");
+        EditorAssets.EnsureFolder("Assets", "Data");
+        EditorAssets.EnsureFolder("Assets/Data", "Cutscenes");
         a = SlotClip("CutsceneSlotA");
         b = SlotClip("CutsceneSlotB");
     }
 
+    // The empty clip of a cutscene slot (made once).
     private static AnimationClip SlotClip(string name)
     {
         string path = $"{SlotFolder}/{name}.anim";
@@ -49,6 +51,7 @@ internal static class CutsceneBuilder
         EditorUtility.SetDirty(ctrl);
     }
 
+    // Menu 11: adds the cutscene slot states to the selected controller.
     [MenuItem("Last Terminal/11 - Cutscenes: Add Clip States To Selected Animator Controller")]
     public static void AddSlotsToSelectedController()
     {
@@ -66,7 +69,7 @@ internal static class CutsceneBuilder
         var go = new GameObject("CutsceneCam");
         go.transform.SetParent(parent, false);
         var cam = go.AddComponent<SecurityCamera>();
-        HelenaSetupMenu.SetString(cam, SecurityCamera.LabelField, "CAM ??");
+        EditorSerialized.SetString(cam, SecurityCamera.LabelField, "CAM ??");
         var so = new SerializedObject(cam);
         so.FindProperty(SecurityCamera.YawRangeField).floatValue = 0f;
         so.ApplyModifiedPropertiesWithoutUndo();
@@ -81,62 +84,62 @@ internal static class CutsceneBuilder
     {
         // her clip states
         EnsureSlotClips(out AnimationClip a, out AnimationClip b);
-        HelenaSetupMenu.SetReference(partnerAnimator, PartnerAnimator.CutsceneSlotAField, a);
-        HelenaSetupMenu.SetReference(partnerAnimator, PartnerAnimator.CutsceneSlotBField, b);
+        EditorSerialized.SetReference(partnerAnimator, PartnerAnimator.CutsceneSlotAField, a);
+        EditorSerialized.SetReference(partnerAnimator, PartnerAnimator.CutsceneSlotBField, b);
         var actor = helena.GetComponent<CutsceneActor>();
         if (actor == null) actor = helena.AddComponent<CutsceneActor>();
-        HelenaSetupMenu.SetString(actor, CutsceneActor.DisplayNameField, "HELENA");
-        HelenaSetupMenu.SetReference(actor, CutsceneActor.AgentField, helena.GetComponent<NavMeshAgent>());
-        HelenaSetupMenu.SetReference(actor, CutsceneActor.AnimatorField, helena.GetComponent<Animator>());
-        HelenaSetupMenu.SetReference(actor, CutsceneActor.PartnerAnimatorField, partnerAnimator);
-        HelenaSetupMenu.SetReference(actor, CutsceneActor.RestField, helena.GetComponent<PartnerRest>());
+        EditorSerialized.SetString(actor, CutsceneActor.DisplayNameField, "HELENA");
+        EditorSerialized.SetReference(actor, CutsceneActor.AgentField, helena.GetComponent<NavMeshAgent>());
+        EditorSerialized.SetReference(actor, CutsceneActor.AnimatorField, helena.GetComponent<Animator>());
+        EditorSerialized.SetReference(actor, CutsceneActor.PartnerAnimatorField, partnerAnimator);
+        EditorSerialized.SetReference(actor, CutsceneActor.RestField, helena.GetComponent<PartnerRest>());
         var aso = new SerializedObject(actor);
         aso.FindProperty("nameColor").colorValue = HelenaColor;
         aso.ApplyModifiedPropertiesWithoutUndo();
 
         // the screen
-        var root = HelenaSetupMenu.CreateUiObject(canvas, "Cutscene");
-        HelenaSetupMenu.Stretch((RectTransform)root.transform);
-        var barsGo = HelenaSetupMenu.CreateUiObject(root.transform, "Bars");
-        HelenaSetupMenu.Stretch((RectTransform)barsGo.transform);
+        var root = EditorUi.CreateUiObject(canvas, "Cutscene");
+        EditorUi.Stretch((RectTransform)root.transform);
+        var barsGo = EditorUi.CreateUiObject(root.transform, "Bars");
+        EditorUi.Stretch((RectTransform)barsGo.transform);
         var bars = barsGo.AddComponent<CanvasGroup>();
         bars.blocksRaycasts = false;
         Bar(barsGo.transform, "Top", new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f));
         Bar(barsGo.transform, "Bottom", Vector2.zero, new Vector2(1f, 0f), new Vector2(0.5f, 0f));
-        TMP_Text hint = HelenaSetupMenu.CreateText(barsGo.transform, "Skip", 18, TextAlignmentOptions.Right, new Color(0.7f, 0.7f, 0.7f));
-        HelenaSetupMenu.Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-24f, 22f), new Vector2(300f, 30f));
+        TMP_Text hint = EditorUi.CreateText(barsGo.transform, "Skip", 18, TextAlignmentOptions.Right, new Color(0.7f, 0.7f, 0.7f));
+        EditorUi.Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-24f, 22f), new Vector2(300f, 30f));
 
-        var subGo = HelenaSetupMenu.CreateUiObject(root.transform, "Subtitle");
+        var subGo = EditorUi.CreateUiObject(root.transform, "Subtitle");
         Vector2 bc = new Vector2(0.5f, 0f);
-        HelenaSetupMenu.Place((RectTransform)subGo.transform, bc, bc, bc, new Vector2(0f, 96f), new Vector2(1100f, 90f));
+        EditorUi.Place((RectTransform)subGo.transform, bc, bc, bc, new Vector2(0f, 96f), new Vector2(1100f, 90f));
         var subGroup = subGo.AddComponent<CanvasGroup>();
         subGroup.blocksRaycasts = false;
-        Image band = HelenaSetupMenu.CreateUiObject(subGo.transform, "Band").AddComponent<Image>();
-        HelenaSetupMenu.Stretch(band.rectTransform);
+        Image band = EditorUi.CreateUiObject(subGo.transform, "Band").AddComponent<Image>();
+        EditorUi.Stretch(band.rectTransform);
         band.color = new Color(0f, 0f, 0f, 0.5f);
         band.raycastTarget = false;
-        TMP_Text sub = HelenaSetupMenu.CreateText(subGo.transform, "Text", 28, TextAlignmentOptions.Center, Color.white);
-        HelenaSetupMenu.Stretch(sub.rectTransform);
+        TMP_Text sub = EditorUi.CreateText(subGo.transform, "Text", 28, TextAlignmentOptions.Center, Color.white);
+        EditorUi.Stretch(sub.rectTransform);
         sub.margin = new Vector4(20f, 6f, 20f, 6f);
 
         // "say: ..." (the operator's line)
-        var promptGo = HelenaSetupMenu.CreateUiObject(root.transform, "Prompt");
-        HelenaSetupMenu.Place((RectTransform)promptGo.transform, bc, bc, bc, new Vector2(0f, 290f), new Vector2(1000f, 110f));
+        var promptGo = EditorUi.CreateUiObject(root.transform, "Prompt");
+        EditorUi.Place((RectTransform)promptGo.transform, bc, bc, bc, new Vector2(0f, 290f), new Vector2(1000f, 110f));
         var promptGroup = promptGo.AddComponent<CanvasGroup>();
         promptGroup.blocksRaycasts = false;
-        Image promptBack = HelenaSetupMenu.CreateUiObject(promptGo.transform, "Back").AddComponent<Image>();
-        HelenaSetupMenu.Stretch(promptBack.rectTransform);
+        Image promptBack = EditorUi.CreateUiObject(promptGo.transform, "Back").AddComponent<Image>();
+        EditorUi.Stretch(promptBack.rectTransform);
         promptBack.color = new Color(0f, 0.04f, 0.08f, 0.8f);
         promptBack.raycastTarget = false;
-        TMP_Text prompt = HelenaSetupMenu.CreateText(promptGo.transform, "Text", 30, TextAlignmentOptions.Center, Color.white);
-        HelenaSetupMenu.Stretch(prompt.rectTransform);
+        TMP_Text prompt = EditorUi.CreateText(promptGo.transform, "Text", 30, TextAlignmentOptions.Center, Color.white);
+        EditorUi.Stretch(prompt.rectTransform);
         prompt.margin = new Vector4(20f, 8f, 20f, 8f);
 
         // the thoughts block (top-left, under the camera name)
         ThoughtView thoughts = ThoughtViewBuilder.Build(root.transform, settings);
 
-        Image black = HelenaSetupMenu.CreateUiObject(root.transform, "Fade").AddComponent<Image>();
-        HelenaSetupMenu.Stretch(black.rectTransform);
+        Image black = EditorUi.CreateUiObject(root.transform, "Fade").AddComponent<Image>();
+        EditorUi.Stretch(black.rectTransform);
         black.color = Color.black;
         black.raycastTarget = false;
         var fade = black.gameObject.AddComponent<CanvasGroup>();
@@ -149,35 +152,36 @@ internal static class CutsceneBuilder
         audio.playOnAwake = false;
         audio.spatialBlend = 0f;
         var d = go.AddComponent<CutsceneDirector>();
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.CameraSystemField, cameraSystem);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.ShotCameraField, shotCamera);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.StationField, station);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.EncounterField, encounter);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.HelenaField, actor);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.HelenaAnimatorField, partnerAnimator);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.HelenaVoiceField, voice);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.StoryField, story);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.SettingsField, settings);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.AudioField, audio);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.BarsField, bars);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.FadeField, fade);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.SubtitleGroupField, subGroup);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.SubtitleTextField, sub);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.SkipHintField, hint);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.VoiceInputField, voiceInput);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.ConsoleField, console);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.PromptGroupField, promptGroup);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.PromptTextField, prompt);
-        HelenaSetupMenu.SetReference(d, CutsceneDirector.ThoughtViewField, thoughts);
+        EditorSerialized.SetReference(d, CutsceneDirector.CameraSystemField, cameraSystem);
+        EditorSerialized.SetReference(d, CutsceneDirector.ShotCameraField, shotCamera);
+        EditorSerialized.SetReference(d, CutsceneDirector.StationField, station);
+        EditorSerialized.SetReference(d, CutsceneDirector.EncounterField, encounter);
+        EditorSerialized.SetReference(d, CutsceneDirector.HelenaField, actor);
+        EditorSerialized.SetReference(d, CutsceneDirector.HelenaAnimatorField, partnerAnimator);
+        EditorSerialized.SetReference(d, CutsceneDirector.HelenaVoiceField, voice);
+        EditorSerialized.SetReference(d, CutsceneDirector.StoryField, story);
+        EditorSerialized.SetReference(d, CutsceneDirector.SettingsField, settings);
+        EditorSerialized.SetReference(d, CutsceneDirector.AudioField, audio);
+        EditorSerialized.SetReference(d, CutsceneDirector.BarsField, bars);
+        EditorSerialized.SetReference(d, CutsceneDirector.FadeField, fade);
+        EditorSerialized.SetReference(d, CutsceneDirector.SubtitleGroupField, subGroup);
+        EditorSerialized.SetReference(d, CutsceneDirector.SubtitleTextField, sub);
+        EditorSerialized.SetReference(d, CutsceneDirector.SkipHintField, hint);
+        EditorSerialized.SetReference(d, CutsceneDirector.VoiceInputField, voiceInput);
+        EditorSerialized.SetReference(d, CutsceneDirector.ConsoleField, console);
+        EditorSerialized.SetReference(d, CutsceneDirector.PromptGroupField, promptGroup);
+        EditorSerialized.SetReference(d, CutsceneDirector.PromptTextField, prompt);
+        EditorSerialized.SetReference(d, CutsceneDirector.ThoughtViewField, thoughts);
         return d;
     }
 
+    // One black cinema bar.
     private static void Bar(Transform parent, string name, Vector2 min, Vector2 max, Vector2 pivot)
     {
-        Image img = HelenaSetupMenu.CreateUiObject(parent, name).AddComponent<Image>();
+        Image img = EditorUi.CreateUiObject(parent, name).AddComponent<Image>();
         img.color = Color.black;
         img.raycastTarget = false;
-        HelenaSetupMenu.Place(img.rectTransform, min, max, pivot, Vector2.zero, new Vector2(0f, 70f));
+        EditorUi.Place(img.rectTransform, min, max, pivot, Vector2.zero, new Vector2(0f, 70f));
     }
 
     // ------------------------------------------------------------------ menus on the open scene
@@ -212,13 +216,14 @@ internal static class CutsceneBuilder
         CutsceneDirector d = Build(console.transform.parent, cameraSystem, shot, First<OperatorStation>(scene), First<CombatEncounter>(scene),
                                    partnerAnimator.gameObject, partnerAnimator, First<PartnerVoice>(scene), First<StoryProgress>(scene),
                                    First<CameraSettings>(scene), First<VoiceCommandInput>(scene), console);
-        foreach (Cutscene c in All<Cutscene>(scene)) HelenaSetupMenu.SetReference(c, Cutscene.DirectorField, d);
+        foreach (Cutscene c in All<Cutscene>(scene)) EditorSerialized.SetReference(c, Cutscene.DirectorField, d);
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         Selection.activeGameObject = d.gameObject;
         Debug.Log($"[Cutscene] Director added to {scene.name}. New cutscene: Last Terminal/12. (Run Last Terminal/2 once so her Animator has the clip states.)");
     }
 
+    // Creates a sample cutscene in the open scene.
     [MenuItem("Last Terminal/12 - Cutscenes: New Cutscene (where the Scene view looks)")]
     public static void NewCutscene()
     {
@@ -234,9 +239,9 @@ internal static class CutsceneBuilder
         Undo.RegisterCreatedObjectUndo(go, "New Cutscene");
         go.transform.position = focus;
         var cutscene = go.AddComponent<Cutscene>();
-        HelenaSetupMenu.SetReference(cutscene, Cutscene.DirectorField, d);
+        EditorSerialized.SetReference(cutscene, Cutscene.DirectorField, d);
         var trigger = go.AddComponent<CutsceneTrigger>();
-        HelenaSetupMenu.SetReference(trigger, CutsceneTrigger.CutsceneField, cutscene);
+        EditorSerialized.SetReference(trigger, CutsceneTrigger.CutsceneField, cutscene);
         var tso = new SerializedObject(trigger);
         tso.FindProperty(CutsceneTrigger.WhenField).enumValueIndex = (int)CutsceneTrigger.When.Manual;
         tso.ApplyModifiedPropertiesWithoutUndo();
@@ -302,10 +307,10 @@ internal static class CutsceneBuilder
         var go = new GameObject("Cutscene_Intro");
         go.transform.position = cell.transform.position;
         var cutscene = go.AddComponent<Cutscene>();
-        HelenaSetupMenu.SetReference(cutscene, Cutscene.DirectorField, d);
-        HelenaSetupMenu.SetString(cutscene, Cutscene.IdField, "intro_cell");
+        EditorSerialized.SetReference(cutscene, Cutscene.DirectorField, d);
+        EditorSerialized.SetString(cutscene, Cutscene.IdField, "intro_cell");
         var trigger = go.AddComponent<CutsceneTrigger>();
-        HelenaSetupMenu.SetReference(trigger, CutsceneTrigger.CutsceneField, cutscene);
+        EditorSerialized.SetReference(trigger, CutsceneTrigger.CutsceneField, cutscene);
         var tso = new SerializedObject(trigger);
         tso.FindProperty(CutsceneTrigger.WhenField).enumValueIndex = (int)CutsceneTrigger.When.SceneStart;
         tso.FindProperty("delay").floatValue = 1f;
@@ -336,13 +341,15 @@ internal static class CutsceneBuilder
         Add(steps, new OperatorLineStep { textPt = "Sim.", textEn = "Yes." });
         so.ApplyModifiedPropertiesWithoutUndo();
 
-        if (station != null) HelenaSetupMenu.SetReference(station, OperatorStation.IntroCutsceneField, cutscene);
+        if (station != null) EditorSerialized.SetReference(station, OperatorStation.IntroCutsceneField, cutscene);
         Debug.Log("[Cutscene] Cutscene_Intro built (plays the first time the operator opens the cameras). Edit its steps freely.", go);
         return cutscene;
     }
 
+    // A line of Helena's.
     private static SayStep Line(CutsceneActor who, string pt, string en) => new SayStep { actor = who, textPt = pt, textEn = en, pauseAfter = 0.35f };
 
+    // Adds a step to the steps list.
     private static void Add(SerializedProperty list, CutsceneStep step)
     {
         list.arraySize++;

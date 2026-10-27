@@ -28,6 +28,7 @@ using UnityEngine.UI;
 // cutscene with its own camera; at its end (or Esc) he stands where it left him (Wake End) and walks around.
 public class OperatorStation : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PlayerField = nameof(player);
     public const string HudField = nameof(hud);
     public const string DesktopField = nameof(desktop);
@@ -66,23 +67,28 @@ public class OperatorStation : MonoBehaviour
     public const string SettingsLabelField = nameof(settingsLabel);
     public const string CancelLabelField = nameof(cancelLabel);
 
+    // Where the operator is (see the top of the file).
     public enum Mode { Room, Desktop, Operator, Pinball, Focus }
 
+    // The first-person player and his room HUD.
     [Header("The room")]
     [SerializeField] private FirstPersonPlayer player;
     [SerializeField] private OperatorRoomHud hud;
     [Tooltip("What his PC shows (OperatorDesktop or the fake OS, OperatorOS).")]
     [SerializeField] private DesktopScreen desktop;
+    // The room's camera and listener (on everywhere except in the camera program).
     [SerializeField] private Camera roomCamera;
     [SerializeField] private AudioListener roomListener;
     [Tooltip("His eyes sitting at the desk.")]
     [SerializeField] private Transform seatView;
     [Tooltip("Right in front of the monitor (the screen fills the view).")]
     [SerializeField] private Transform screenView;
+    // The pinball machine of his room.
     [SerializeField] private PinballMachine pinball;
     [Tooltip("Optional: the PC's power button (off = he can't sit and use it).")]
     [SerializeField] private PcPower pcPower;
 
+    // The camera program's view camera and listener.
     [Header("The camera program")]
     [SerializeField] private Camera viewCamera;
     [SerializeField] private AudioListener viewListener;
@@ -90,8 +96,10 @@ public class OperatorStation : MonoBehaviour
     [SerializeField] private Canvas operatorCanvas;
     [Tooltip("On only in the camera program (camera system, clicks, combat keys, test keys, the CCTV filter...).")]
     [SerializeField] private Behaviour[] operatorBehaviours = new Behaviour[0];
+    // The CCTV camera system (Esc in it opens the close dialog).
     [SerializeField] private SecurityCameraSystem cameraSystem;
 
+    // Helena: her rest (sitting while he's away), her position, the rooms, the fight and her voice.
     [Header("Helena")]
     [SerializeField] private PartnerRest partnerRest;
     [SerializeField] private Transform partner;
@@ -99,16 +107,19 @@ public class OperatorStation : MonoBehaviour
     [SerializeField] private CombatEncounter encounter;
     [SerializeField] private PartnerVoice voice;
 
+    // Shared: the play session (was he operating?) and the settings.
     [Header("Shared")]
     [SerializeField] private GameSession session;
     [SerializeField] private CameraSettings settings;
     [Tooltip("Optional: the cutscene of the first time at the cameras. Until it has played, sitting at the PC " +
              "doesn't get her up (the cutscene does).")]
+    // The first-time cameras cutscene.
     [SerializeField] private Cutscene introCutscene;
 
     [Header("Waking up")]
     [Tooltip("Optional: the cutscene of his first time in the room (he wakes up on the cot). Played when the room " +
              "starts, until it has been seen. Its director's Cinema Camera shows it.")]
+    // The wake-up cutscene of his first time in the room.
     [SerializeField] private Cutscene wakeCutscene;
     [Tooltip("Where he stands when it ends (on the floor; the blue arrow = where he looks).")]
     [SerializeField] private Transform wakeEnd;
@@ -121,6 +132,7 @@ public class OperatorStation : MonoBehaviour
     [Tooltip("Optional: the settings window (else the camera program's own settings panel).")]
     [SerializeField] private SettingsWindow settingsWindow;
 
+    // The "close the program?" dialog: panel, texts, buttons and their labels.
     [Header("Close dialog")]
     [SerializeField] private CanvasGroup dialog;
     [SerializeField] private TMP_Text dialogTitle;
@@ -133,22 +145,28 @@ public class OperatorStation : MonoBehaviour
     [SerializeField] private TMP_Text settingsLabel;
     [SerializeField] private TMP_Text cancelLabel;
 
+    // Esc.
     [Header("Input")]
     [SerializeField] private InputAction back = new InputAction("Back", InputActionType.Button, "<Keyboard>/escape");
     [Tooltip("A click gives the cursor back to the game (the editor frees it with Esc).")]
     [SerializeField] private InputAction relock = new InputAction("Relock", InputActionType.Button, "<Mouse>/leftButton");
 
+    // Current mode, a view transition running, the dialog open, the thing looked at up close.
     private Mode mode = Mode.Room;
     private bool transitioning;
     private bool dialogOpen;
     private FocusInteractable focused;
+    // The location scene: being loaded, and the scene once loaded.
     private bool loadingLocation;
     private Scene locationSceneLoaded;
 
+    // Current mode (read by cutscenes and the session).
     public Mode Current => mode;
+    // Language helpers.
     private bool Pt => settings != null && settings.Language == GameLanguage.Portuguese;
     private GameLanguage Language => Pt ? GameLanguage.Portuguese : GameLanguage.English;
 
+    // Checks the references; wires the dialog buttons.
     private void Awake()
     {
         if (player == null || hud == null || desktop == null || roomCamera == null)
@@ -163,6 +181,7 @@ public class OperatorStation : MonoBehaviour
         SetDialog(false);
     }
 
+    // Inputs, the link (registers itself, waits for a location), the desktop's and camera program's requests.
     private void OnEnable()
     {
         back.Enable(); relock.Enable();
@@ -173,6 +192,7 @@ public class OperatorStation : MonoBehaviour
         if (desktop != null) { desktop.ProgramRequested += EnterOperator; desktop.StandRequested += StandUp; desktop.ShutdownRequested += OnShutdown; }
     }
 
+    // Stops listening and unregisters.
     private void OnDisable()
     {
         back.performed -= OnBack;
@@ -183,6 +203,7 @@ public class OperatorStation : MonoBehaviour
         if (desktop != null) { desktop.ProgramRequested -= EnterOperator; desktop.StandRequested -= StandUp; desktop.ShutdownRequested -= OnShutdown; }
     }
 
+    // Starts at the PC (came from another scene while operating) or in the room (Helena waits; the wake-up cutscene the first time).
     private void Start()
     {
         bool atPc = HasOperator && session != null && session.WasOperating;
@@ -218,6 +239,7 @@ public class OperatorStation : MonoBehaviour
         if (!wakeCutscene.Play()) OnWakeFinished(wakeCutscene);
     }
 
+    // The wake-up cutscene ended: the room camera back, he stands where it left him.
     private void OnWakeFinished(Cutscene cutscene)
     {
         if (cutscene != wakeCutscene) return;
@@ -231,6 +253,7 @@ public class OperatorStation : MonoBehaviour
         Apply(Mode.Room);
     }
 
+    // The camera program is here (own scene or a loaded location); a location can be loaded.
     private bool HasOperator => cameraSystem != null && viewCamera != null;
     private bool CanLoadLocation => !HasOperator && !string.IsNullOrEmpty(locationScene) && Application.CanStreamedLevelBeLoaded(locationScene);
 
@@ -299,6 +322,7 @@ public class OperatorStation : MonoBehaviour
             }));
     }
 
+    // The camera program: loads the location first if needed; Helena gets up (unless the intro cutscene will).
     private void EnterOperator()
     {
         if (!HasOperator)
@@ -315,6 +339,7 @@ public class OperatorStation : MonoBehaviour
         }
     }
 
+    // Desktop -> sits back, then stands: the room.
     private void StandUp()
     {
         if (transitioning || mode != Mode.Desktop) return;
@@ -354,6 +379,7 @@ public class OperatorStation : MonoBehaviour
         });
     }
 
+    // Leaves the close-up view: back to his eyes, the room.
     public void ExitFocus()
     {
         if (transitioning || mode != Mode.Focus) return;
@@ -386,6 +412,7 @@ public class OperatorStation : MonoBehaviour
         });
     }
 
+    // Leaves the pinball: back to his eyes, the room.
     private void ExitPinball()
     {
         if (transitioning || mode != Mode.Pinball) return;
@@ -399,6 +426,7 @@ public class OperatorStation : MonoBehaviour
         });
     }
 
+    // Switches everything to a mode: the operator's behaviours / canvas / camera, the room camera, the desktop, the HUD, the cursor, the active scene.
     private void Apply(Mode next)
     {
         mode = next;
@@ -424,12 +452,14 @@ public class OperatorStation : MonoBehaviour
         if (session != null) session.SetOperating(op);
     }
 
+    // Locks / frees the mouse cursor.
     private static void LockCursor(bool locked)
     {
         Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
         Cursor.visible = !locked;
     }
 
+    // Cursor relock after the editor freed it; forwards frames to a close-up view.
     private void Update()
     {
         // the editor frees the cursor on Esc: a click takes it back
@@ -467,6 +497,7 @@ public class OperatorStation : MonoBehaviour
         SetDialog(!dialogOpen);
     }
 
+    // Opens / closes the close dialog (texts in the current language).
     private void SetDialog(bool open)
     {
         dialogOpen = open;
@@ -484,6 +515,7 @@ public class OperatorStation : MonoBehaviour
         if (cancelLabel != null) cancelLabel.text = Pt ? "CANCELAR" : "CANCEL";
     }
 
+    // CLOSE: only if Helena can be left alone; she sits and waits; the desktop.
     private void OnCloseProgram()
     {
         if (!CanLeave(out string reason))
@@ -498,6 +530,7 @@ public class OperatorStation : MonoBehaviour
         Apply(Mode.Desktop);
     }
 
+    // SETTINGS: the settings window over the cameras (or the camera program's own panel).
     private void OnSettings()
     {
         SetDialog(false);
@@ -510,11 +543,13 @@ public class OperatorStation : MonoBehaviour
         if (cameraSystem != null) cameraSystem.SetSettingsOpen(true);
     }
 
+    // The settings window closed: the cameras take input again.
     private void OnSettingsClosed()
     {
         if (mode == Mode.Operator && cameraSystem != null) cameraSystem.SetOverlayOpen(false);
     }
 
+    // CANCEL: closes the dialog.
     private void OnCancel() => SetDialog(false);
 
     // she can be left alone: safe zone, no fight, not in the middle of something

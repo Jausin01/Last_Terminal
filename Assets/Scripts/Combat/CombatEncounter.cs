@@ -10,10 +10,12 @@ using UnityEngine;
 // The focus is the hostile she is fighting now (set by the commands); the combat HUD highlights it.
 public class CombatEncounter : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string TargetsField = nameof(targets);
     public const string PartnerField = nameof(partner);
     public const string PartnerHealthField = nameof(partnerHealth);
 
+    // Where the rooms and the shootable hostiles are, and her transform.
     [SerializeField] private CommandTargets targets;
     [SerializeField] private Transform partner;
     [Tooltip("Her health: when she gets hurt, the closest hostile of her area joins the fight right away.")]
@@ -31,6 +33,7 @@ public class CombatEncounter : MonoBehaviour
     [Tooltip("Combat ends this long after the last hostile is gone (s).")]
     [SerializeField] private float endDelay = 2f;
 
+    // Hostiles in the fight (sorted by number) and the number each one got.
     private readonly List<Health> engaged = new List<Health>();
     private readonly Dictionary<Health, int> numbers = new Dictionary<Health, int>();
     private readonly HashSet<Health> downed = new HashSet<Health>();   // TargetDown already sent
@@ -43,12 +46,15 @@ public class CombatEncounter : MonoBehaviour
     private Room area;
     private bool hasArea;
 
+    // Combat begins / ends (music, HUD, her stance listen to these).
     public event Action CombatStarted;
     public event Action CombatEnded;
     public event Action TargetsChanged;          // joined / left / renumbered
     public event Action<Health> TargetDown;      // a hostile was defeated (engaged or not: shot from far away too)
+    // The hostile she is fighting now changed.
     public event Action<Health> FocusChanged;
 
+    // State read by the commands and the HUD.
     public bool InCombat => inCombat;
     public IReadOnlyList<Health> Engaged => engaged;
     public Health Focus => focus;
@@ -75,6 +81,7 @@ public class CombatEncounter : MonoBehaviour
         return h != null ? Distance(h, from) : float.MaxValue;
     }
 
+    // Listens for her getting hurt and for each hostile getting hurt (provokes it).
     private void OnEnable()
     {
         if (partnerHealth != null) partnerHealth.Damaged += OnPartnerHurt;
@@ -89,6 +96,7 @@ public class CombatEncounter : MonoBehaviour
         }
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (partnerHealth != null) partnerHealth.Damaged -= OnPartnerHurt;
@@ -128,6 +136,7 @@ public class CombatEncounter : MonoBehaviour
         if (best != null) Provoke(best);
     }
 
+    // Checks the references.
     private void Awake()
     {
         if (targets == null || partner == null)
@@ -137,8 +146,10 @@ public class CombatEncounter : MonoBehaviour
         }
     }
 
+    // The number the operator uses for a hostile (0 = not in the fight).
     public int NumberOf(Health target) => target != null && numbers.TryGetValue(target, out int n) ? n : 0;
 
+    // The hostile with that number (null = none).
     public Health Get(int number)
     {
         foreach (KeyValuePair<Health, int> pair in numbers)
@@ -146,6 +157,7 @@ public class CombatEncounter : MonoBehaviour
         return null;
     }
 
+    // The hostile she is fighting now (only an engaged one).
     public void SetFocus(Health target)
     {
         if (target != null && !numbers.ContainsKey(target)) target = null;
@@ -154,6 +166,7 @@ public class CombatEncounter : MonoBehaviour
         FocusChanged?.Invoke(focus);
     }
 
+    // Every frame: her area, hostiles leaving (dead / far / gone) and joining the fight, combat start / end.
     private void Update()
     {
         bool changed = false;
@@ -224,6 +237,7 @@ public class CombatEncounter : MonoBehaviour
         return false;
     }
 
+    // The lowest number no engaged hostile uses.
     private int LowestFreeNumber()
     {
         int n = 1;
@@ -231,6 +245,7 @@ public class CombatEncounter : MonoBehaviour
         return n;
     }
 
+    // Floor distance from a hostile to a point.
     private static float Distance(Health h, Vector3 at)
     {
         Vector3 d = h.transform.position - at;

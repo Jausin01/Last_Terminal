@@ -6,26 +6,32 @@ using UnityEngine.InputSystem;
 // Esc again: back to the room. The main board of the case and the boards of the old case all use this.
 public class EvidenceBoard : FocusInteractable
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string ItemsField = nameof(items);
     public const string PanelField = nameof(panel);
 
+    // The pinned items, the side panel, the zoom time, and the mouse inputs.
     [SerializeField] private EvidenceItem[] items = new EvidenceItem[0];
     [SerializeField] private EvidencePanel panel;
     [SerializeField] private float zoomTime = 0.45f;
     [SerializeField] private InputAction point = new InputAction("Point", InputActionType.Value, "<Pointer>/position");
     [SerializeField] private InputAction click = new InputAction("Click", InputActionType.Button, "<Mouse>/leftButton");
 
+    // Looking at the board now; the item under the mouse; the item zoomed on.
     private bool focusedNow;
     private EvidenceItem hovered;
     private EvidenceItem zoomed;
 
+    // Enables the mouse inputs.
     private void OnEnable() { point.Enable(); click.Enable(); }
     private void OnDisable() { point.Disable(); click.Disable(); }
 
+    // The hint at the bottom (zoomed or not).
     private string HintText(GameLanguage l, bool zoomedIn) => zoomedIn
         ? Pick(l, "Click another photo   |   Esc: back to the board", "Clique em outra foto   |   Esc: voltar ao quadro")
         : Pick(l, "Click a photo to look closer   |   Esc: back", "Clique numa foto para ver de perto   |   Esc: voltar");
 
+    // Looking at the board: items unlocked by the story become clickable.
     public override void BeginFocus(FirstPersonPlayer player)
     {
         focusedNow = true;
@@ -36,6 +42,7 @@ public class EvidenceBoard : FocusInteractable
         OperatorSounds.Play(player.Audio, OperatorSounds.Kind.Paper, 0.5f);
     }
 
+    // Hover highlight and click to zoom.
     public override void UpdateFocus(FirstPersonPlayer player)
     {
         if (!focusedNow || player.IsBlending) return;
@@ -49,6 +56,7 @@ public class EvidenceBoard : FocusInteractable
         if (click.WasPressedThisFrame() && hovered != null && hovered != zoomed) ZoomTo(player, hovered);
     }
 
+    // The clickable item under the mouse (nearest hit).
     private EvidenceItem ItemUnderMouse(Camera view)
     {
         Ray ray = view.ScreenPointToRay(point.ReadValue<Vector2>());
@@ -66,6 +74,7 @@ public class EvidenceBoard : FocusInteractable
         return best;
     }
 
+    // Zooms on an item: panel text, his thought, its "seen" flag.
     private void ZoomTo(FirstPersonPlayer player, EvidenceItem item)
     {
         if (hovered != null) hovered.SetHighlight(false);
@@ -81,6 +90,7 @@ public class EvidenceBoard : FocusInteractable
         OperatorSounds.Play(player.Audio, OperatorSounds.Kind.Paper, 0.6f);
     }
 
+    // Esc while zoomed: back to the whole board.
     public override bool HandleBack(FirstPersonPlayer player)
     {
         if (zoomed == null) return false;
@@ -91,6 +101,7 @@ public class EvidenceBoard : FocusInteractable
         return true;
     }
 
+    // Leaving the board: nothing clickable.
     public override void EndFocus(FirstPersonPlayer player)
     {
         focusedNow = false;

@@ -8,6 +8,7 @@ using UnityEngine.SceneManagement;
 // of that stop (SaveSystem.TransferArrived) and the picture comes back as the doors open.
 public class ElevatorTravel : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string SaveSystemField = nameof(saveSystem);
     public const string SessionField = nameof(session);
     public const string UserField = nameof(user);
@@ -17,24 +18,30 @@ public class ElevatorTravel : MonoBehaviour
     public const string SettingsField = nameof(settings);
     public const string CameraSystemField = nameof(cameraSystem);
 
+    // The save system (her state), the session asset (between scenes) and her elevator user.
     [SerializeField] private SaveSystem saveSystem;
     [SerializeField] private GameSession session;
     [SerializeField] private PartnerElevatorUser user;
     [Tooltip("The elevators of this scene (arrivals are matched by their stop).")]
     [SerializeField] private Elevator[] elevators = new Elevator[0];
+    // Black screen with the floor label; settings (language).
     [SerializeField] private CanvasGroup fader;
     [SerializeField] private TMP_Text label;
     [SerializeField] private CameraSettings settings;
     [Tooltip("Arriving: the view goes to the camera that sees her.")]
     [SerializeField] private SecurityCameraSystem cameraSystem;
+    // Fade time (s).
     [SerializeField] private float fadeTime = 0.8f;
     [Tooltip("At least this long in the dark (the ride), even when the scene loads faster (s).")]
     [SerializeField] private float minimumRide = 1.2f;
 
+    // A ride is in progress.
     private bool going;
 
+    // A ride is in progress.
     public bool IsTraveling => going;
 
+    // Checks references; screen clear at start.
     private void Awake()
     {
         if (saveSystem == null || session == null || user == null || fader == null)
@@ -49,19 +56,23 @@ public class ElevatorTravel : MonoBehaviour
         if (label != null) label.text = "";
     }
 
+    // Listens to her arriving in the car.
     private void OnEnable()
     {
         if (saveSystem != null) saveSystem.TransferArrived += OnArrived;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (saveSystem != null) saveSystem.TransferArrived -= OnArrived;
     }
 
+    // Can this stop be reached (scene in the build)?
     public bool CanGo(ElevatorStop stop) =>
         stop != null && !string.IsNullOrEmpty(stop.SceneName) && Application.CanStreamedLevelBeLoaded(stop.SceneName);
 
+    // Starts the ride from an elevator.
     public bool Go(Elevator from)
     {
         if (going || from == null || !CanGo(from.Destination)) { user.Cancel(); return false; }
@@ -69,6 +80,7 @@ public class ElevatorTravel : MonoBehaviour
         return true;
     }
 
+    // Fade out, state to the session, load the destination scene.
     private IEnumerator Ride(ElevatorStop to, ElevatorStop from)
     {
         going = true;
@@ -122,6 +134,7 @@ public class ElevatorTravel : MonoBehaviour
         }
     }
 
+    // Fades the black screen.
     private IEnumerator Fade(float to, float time)
     {
         float from = fader.alpha;

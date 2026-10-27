@@ -9,6 +9,7 @@ using UnityEngine;
 // the key transforms (in that order) are where her finger goes. Beeps are made here (no audio files needed).
 public class Keypad : ButtonPanel
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string DoorField = nameof(door);
     public const string CodeField = nameof(code);
     public const string KeysField = nameof(keys);
@@ -18,13 +19,16 @@ public class Keypad : ButtonPanel
     public const char Clear = 'C';
     public const char Enter = 'E';
 
+    // What a key press did.
     public enum Result { Typed, Cleared, Accepted, Rejected, AlreadyOpen }
 
+    // The door it opens.
     [SerializeField] private Door door;
     [Tooltip("Digits only.")]
     [SerializeField] private string code = "17";
     [Tooltip("Key transforms in KeyOrder: 1 2 3 4 5 6 7 8 9 C 0 E.")]
     [SerializeField] private Transform[] keys = new Transform[12];
+    // Display, sound source, max digits kept, error time (s), display colors.
     [SerializeField] private TMP_Text display;
     [SerializeField] private AudioSource audioSource;
     [SerializeField, Min(1)] private int maxDigits = 8;
@@ -33,18 +37,22 @@ public class Keypad : ButtonPanel
     [SerializeField] private Color errorColor = new Color(1f, 0.15f, 0.1f);
     [SerializeField] private Color openColor = new Color(0.25f, 1f, 0.35f);
 
+    // Digits typed, opened, error time left, the generated sounds.
     private string entered = "";
     private bool open;
     private float errorTimer;
     private AudioClip beep, buzz, chime;
 
+    // Raised on every key.
     public event Action<Keypad, Result> Used;
 
+    // Read-only state.
     public Door Door => door;
     public Result LastResult { get; private set; } = Result.Typed;
     public bool IsOpen => open;
     public string Entered => entered;
 
+    // Makes the sounds; clears the display.
     private void Awake()
     {
         if (door == null || keys == null || keys.Length != KeyOrder.Length)
@@ -67,6 +75,7 @@ public class Keypad : ButtonPanel
         return i >= 0 && keys[i] != null;
     }
 
+    // A key: digit, C (clear) or E (submit).
     public override void Press(char key)
     {
         key = char.ToUpperInvariant(key);
@@ -86,6 +95,7 @@ public class Keypad : ButtonPanel
         Used?.Invoke(this, result);
     }
 
+    // Checks the last digits against the code: opens the door or flashes ERROR.
     private Result Submit()
     {
         Debug.Log($"[Keypad] {name}: \"{entered}\" entered ({(entered.EndsWith(code) ? "right" : "wrong")}).", this);
@@ -103,6 +113,7 @@ public class Keypad : ButtonPanel
         return Result.Rejected;
     }
 
+    // Clears the ERROR after a while.
     private void Update()
     {
         if (errorTimer <= 0f) return;
@@ -110,6 +121,7 @@ public class Keypad : ButtonPanel
         if (errorTimer <= 0f) Refresh();
     }
 
+    // Display text and color.
     private void Refresh()
     {
         if (display == null) return;
@@ -118,6 +130,7 @@ public class Keypad : ButtonPanel
         else { display.text = entered.Length > 0 ? entered : "CODE"; display.color = typingColor; }
     }
 
+    // Plays a sound.
     private void Play(AudioClip clip)
     {
         if (audioSource != null && clip != null) audioSource.PlayOneShot(clip);
@@ -126,6 +139,7 @@ public class Keypad : ButtonPanel
     // a short tone (two notes when toFrequency > 0), square wave for the error buzz
     private static AudioClip Tone(string clipName, float seconds, float frequency, float secondFrequency, bool square)
     {
+        // Sample rate of the generated clips.
         const int rate = 22050;
         int n = Mathf.CeilToInt(seconds * rate);
         var data = new float[n];

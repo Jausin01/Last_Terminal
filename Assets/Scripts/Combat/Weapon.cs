@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// How she holds a weapon (picks the animation set).
 public enum WeaponHoldType { Pistol = 0, Shotgun = 1, Blade = 2, Blunt = 3 }
 
 // A weapon model + how she holds it.
@@ -10,6 +11,7 @@ public enum WeaponHoldType { Pistol = 0, Shotgun = 1, Blade = 2, Blunt = 3 }
 // Two-handed weapons also define where the left hand goes, in the gun frame (x = right, y = up, z = toward the muzzle).
 public class Weapon : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string GripPointField = nameof(gripPoint);
     public const string MuzzleField = nameof(muzzle);
     public const string UpHintField = nameof(upHint);
@@ -24,10 +26,12 @@ public class Weapon : MonoBehaviour
     public const string RightFingersField = nameof(rightFingers);
     public const string LeftFingersField = nameof(leftFingers);
 
+    // Markers in the model: where her palm holds it, the barrel tip, the gun's "up".
     [SerializeField] private Transform gripPoint;
     [SerializeField] private Transform muzzle;
     [SerializeField] private Transform upHint;
 
+    // Hold type, and the right-hand hold for the aim pose and the idle pose (grip point, barrel direction, up), hand frame.
     [Header("Right-hand hold (hand frame)")]
     [SerializeField] private WeaponHoldType holdType = WeaponHoldType.Pistol;
     [SerializeField] private Vector3 aimGrip = new Vector3(0f, 0f, 0.025f);
@@ -37,6 +41,7 @@ public class Weapon : MonoBehaviour
     [SerializeField] private Vector3 idleBarrel = new Vector3(0.9785f, 0.2060f, 0.0014f);
     [SerializeField] private Vector3 idleUp = new Vector3(0.1564f, 0.9877f, 0f);
 
+    // Two-handed: the left hand goes on the forend.
     [Header("Left hand (two-handed weapons, gun frame)")]
     [SerializeField] private bool twoHanded;
     [Tooltip("Point on the pump / forend axis the left palm wraps (from the GripPoint).")]
@@ -56,6 +61,7 @@ public class Weapon : MonoBehaviour
 
     private float leftSlide;   // pump racked back (m): the left hand follows it
 
+    // Values read by her IK (PartnerAnimator) and the shooter.
     public Transform GripPoint => gripPoint;
     public Transform Muzzle => muzzle;
     public Transform UpHint => upHint;

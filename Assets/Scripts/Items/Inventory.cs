@@ -6,20 +6,26 @@ using UnityEngine;
 // HUD, voice feedback and weapons listen to Changed instead of polling.
 public class Inventory : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string SlotCountField = nameof(slotCount);
     public const string StartingItemsField = nameof(startingItems);
 
+    // Number of slots, and what she carries at the start of a new game.
     [SerializeField, Min(1)] private int slotCount = 8;
     [SerializeField] private List<ItemStack> startingItems = new List<ItemStack>();
 
+    // The slots in use.
     private readonly List<ItemStack> slots = new List<ItemStack>();
 
+    // Raised whenever the contents change.
     public event Action Changed;
 
+    // Read by the HUD and the save system.
     public int SlotCount => slotCount;
     public int UsedSlots => slots.Count;
     public IReadOnlyList<ItemStack> Slots => slots;
 
+    // Fills the starting items.
     private void Awake()
     {
         foreach (ItemStack s in startingItems)
@@ -60,6 +66,7 @@ public class Inventory : MonoBehaviour
         Changed?.Invoke();
     }
 
+    // Total units of an item across every slot.
     public int Count(ItemDefinition item)
     {
         int total = 0;
@@ -68,6 +75,7 @@ public class Inventory : MonoBehaviour
         return total;
     }
 
+    // Does she carry at least this many?
     public bool Has(ItemDefinition item, int amount = 1) => item != null && Count(item) >= amount;
 
     // All or nothing: removes only if she has enough.

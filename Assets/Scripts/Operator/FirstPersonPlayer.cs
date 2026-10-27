@@ -9,6 +9,7 @@ using UnityEngine.InputSystem;
 // The view can be taken away (BlendViewTo: sitting at the PC, leaning over the pinball) and given back (BlendViewHome).
 public class FirstPersonPlayer : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string ControllerField = nameof(controller);
     public const string ViewField = nameof(view);
     public const string ArmsField = nameof(arms);
@@ -28,17 +29,20 @@ public class FirstPersonPlayer : MonoBehaviour
     public const string GrabClip = "grab.R";
     public const string PushClip = "push.R";
 
+    // His character controller and his eyes (the camera).
     [SerializeField] private CharacterController controller;
     [SerializeField] private Camera view;
     [Tooltip("The first person arms (child of the view).")]
     [SerializeField] private Animator arms;
     [Tooltip("The coffee cup in his right hand (hidden until he takes one).")]
     [SerializeField] private GameObject cup;
+    // The room HUD, the settings (language), the story flags and his sound source (hands, sips).
     [SerializeField] private OperatorRoomHud hud;
     [SerializeField] private CameraSettings settings;
     [SerializeField] private StoryProgress story;
     [SerializeField] private AudioSource audioSource;
 
+    // Walk / run speed, gravity, eye height.
     [Header("Movement")]
     [SerializeField] private float walkSpeed = 1.6f;
     [SerializeField] private float runSpeed = 2.8f;
@@ -46,29 +50,36 @@ public class FirstPersonPlayer : MonoBehaviour
     [SerializeField] private float eyeHeight = 1.62f;
     [Tooltip("Degrees per pixel of mouse movement.")]
     [SerializeField] private float lookSensitivity = 0.1f;
+    // Look up / down limit (deg) and the head bob height.
     [SerializeField] private float maxPitch = 80f;
     [SerializeField] private float bobAmount = 0.022f;
     [SerializeField] private float bobFrequency = 1.9f;   // steps per meter (roughly)
 
+    // How far he can use things (m), what the use ray hits, and sips in one coffee.
     [Header("Use")]
     [SerializeField] private float reach = 2.4f;
     [SerializeField] private LayerMask useMask = ~0;
     [SerializeField, Min(1)] private int sipsPerCup = 3;
 
+    // Inputs: move (WASD / arrows), mouse look, use (left button), run (Shift).
     [Header("Input (bindings added when empty)")]
     [SerializeField] private InputAction move = new InputAction("Move", InputActionType.Value, expectedControlType: "Vector2");
     [SerializeField] private InputAction look = new InputAction("Look", InputActionType.Value, "<Mouse>/delta", expectedControlType: "Vector2");
     [SerializeField] private InputAction use = new InputAction("Use", InputActionType.Button, "<Mouse>/leftButton");
     [SerializeField] private InputAction run = new InputAction("Run", InputActionType.Button, "<Keyboard>/leftShift");
 
+    // Hashes of the arms' states.
     private static readonly int GrabId = Animator.StringToHash(GrabState);
     private static readonly int PushId = Animator.StringToHash(PushState);
 
+    // Walking around is on; view angles; fall speed; head bob phase.
     private bool controlActive;
     private float yaw, pitch;
     private float fallSpeed;
     private float bobPhase;
+    // What is under the dot now.
     private OperatorInteractable target;
+    // Sips left in the cup, the drinking animation timer, a sip waiting to sound, arms warning shown once.
     private int sips;
     private float drinkTimer;
     private bool sipPending;
@@ -81,6 +92,7 @@ public class FirstPersonPlayer : MonoBehaviour
     private float blendTime, blendDuration;
     private Action blendDone;
 
+    // State and services read by the interactables and the station.
     public bool HasCup => sips > 0;
     public bool IsControlActive => controlActive;
     public bool IsBlending => blending;
@@ -90,8 +102,10 @@ public class FirstPersonPlayer : MonoBehaviour
     public AudioSource Audio => audioSource;
     public Camera View => view;
 
+    // His eyes in his local space.
     private Vector3 EyeLocal => new Vector3(0f, eyeHeight, 0f);
 
+    // Default move bindings, reference checks, view at the eyes, no cup.
     private void Awake()
     {
         if (move.bindings.Count == 0)
@@ -112,6 +126,7 @@ public class FirstPersonPlayer : MonoBehaviour
         if (cup != null) cup.SetActive(false);
     }
 
+    // Enables / disables the inputs.
     private void OnEnable() { move.Enable(); look.Enable(); use.Enable(); run.Enable(); }
     private void OnDisable() { move.Disable(); look.Disable(); use.Disable(); run.Disable(); }
 
@@ -126,11 +141,13 @@ public class FirstPersonPlayer : MonoBehaviour
         }
     }
 
+    // Shows / hides the first-person arms.
     public void SetArmsVisible(bool on)
     {
         if (arms != null) arms.gameObject.SetActive(on);
     }
 
+    // View blend, drinking, then (when in control) the note, look, move, aim and use.
     private void Update()
     {
         UpdateBlend();
@@ -147,6 +164,7 @@ public class FirstPersonPlayer : MonoBehaviour
         if (use.WasPressedThisFrame()) Use();
     }
 
+    // Mouse look: yaw on the body, pitch on the view.
     private void Look()
     {
         Vector2 d = look.ReadValue<Vector2>() * lookSensitivity;
@@ -156,6 +174,7 @@ public class FirstPersonPlayer : MonoBehaviour
         if (!awayFromHome) view.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 
+    // Walks with the character controller (gravity), with head bob.
     private void Move()
     {
         Vector2 input = Vector2.ClampMagnitude(move.ReadValue<Vector2>(), 1f);
@@ -173,6 +192,7 @@ public class FirstPersonPlayer : MonoBehaviour
         if (!awayFromHome) view.transform.localPosition = EyeLocal + new Vector3(Mathf.Cos(bobPhase) * bobAmount * 0.4f, bob - bobAmount * 0.5f, 0f);
     }
 
+    // What is under the dot within reach (its label on the HUD).
     private void Aim()
     {
         target = null;
@@ -182,6 +202,7 @@ public class FirstPersonPlayer : MonoBehaviour
         hud.SetHover(target != null ? target.Label(Language) : null);
     }
 
+    // Uses the target (arm motion first), or sips the coffee.
     private void Use()
     {
         if (target != null)
@@ -193,6 +214,7 @@ public class FirstPersonPlayer : MonoBehaviour
         if (HasCup) Drink();
     }
 
+    // Plays the arms' grab / push animation.
     public void PlayHand(OperatorInteractable.HandMotion motion)
     {
         if (arms == null || !arms.gameObject.activeInHierarchy || motion == OperatorInteractable.HandMotion.None) return;
@@ -214,6 +236,7 @@ public class FirstPersonPlayer : MonoBehaviour
         if (cup != null) cup.SetActive(true);
     }
 
+    // Lifts the cup; the sip sound comes a moment later.
     private void Drink()
     {
         if (drinkTimer > 0f) return;
@@ -222,6 +245,7 @@ public class FirstPersonPlayer : MonoBehaviour
         sipPending = true;
     }
 
+    // The sip; an empty cup disappears and counts in the story.
     private void UpdateDrink()
     {
         if (drinkTimer <= 0f) return;
@@ -254,6 +278,7 @@ public class FirstPersonPlayer : MonoBehaviour
         StartBlend(Vector3.zero, Quaternion.identity, seconds, true, done);
     }
 
+    // Starts a view blend toward a pose (or home).
     private void StartBlend(Vector3 position, Quaternion rotation, float seconds, bool home, Action done)
     {
         blendFromPos = view.transform.position;
@@ -267,6 +292,7 @@ public class FirstPersonPlayer : MonoBehaviour
         blending = true;
     }
 
+    // Advances the blend (smooth step); at home the view is reattached to his eyes.
     private void UpdateBlend()
     {
         if (!blending) return;

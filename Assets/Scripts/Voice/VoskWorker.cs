@@ -13,18 +13,24 @@ using System.Threading;
 // be heard: commands come out much more reliably. A model that can't take a grammar is used free (any word).
 public sealed class VoskWorker : IDisposable
 {
+    // What the worker reports.
     public enum OutputKind { Loaded, Failed, Partial, Final }
 
+    // One report: kind and text.
     public struct Output
     {
+        // Loaded / failed / partial / final.
         public OutputKind Kind;
         public string Text;   // Loaded: a description; Failed: the error; Partial / Final: Vosk JSON
     }
 
+    // What the main thread asks for.
     private enum JobKind { Load, Audio, Finish, Reset, Grammar }
 
+    // One job and its data.
     private struct Job
     {
+        // Kind, model path, grammar words / endings, sample rate, audio samples, partial result wanted.
         public JobKind Kind;
         public string Path;
         public string[] Words;
@@ -34,6 +40,7 @@ public sealed class VoskWorker : IDisposable
         public bool Partial;
     }
 
+    // Job queue (main -> worker), output queue (worker -> main), the thread, the native model / recognizer, the current grammar and sample rate.
     private readonly BlockingCollection<Job> jobs = new BlockingCollection<Job>();
     private readonly ConcurrentQueue<Output> outputs = new ConcurrentQueue<Output>();
     private readonly Thread thread;
@@ -54,32 +61,39 @@ public sealed class VoskWorker : IDisposable
         thread.Start();
     }
 
+    // Next output, if any (main thread).
     public bool TryGetOutput(out Output output) => outputs.TryDequeue(out output);
 
     // words: every word of the lexicon (+ fillers); endings: what a "stem*" word can end with
     public void Load(string modelPath, float sampleRate, string[] words, string[] endings) =>
         Add(new Job { Kind = JobKind.Load, Path = modelPath, Rate = sampleRate, Words = words, Endings = endings });
 
+    // Queues audio (16-bit samples).
     public void Audio(short[] samples, bool wantPartial) => Add(new Job { Kind = JobKind.Audio, Samples = samples, Partial = wantPartial });
 
+    // Queues the end of an utterance (final result).
     public void Finish() => Add(new Job { Kind = JobKind.Finish });
 
+    // Queues a reset of the recognizer.
     public void Reset() => Add(new Job { Kind = JobKind.Reset });
 
     // listen only for these words (a line the operator has to say in a cutscene); null = the commands again
     public void UseWords(string[] words, string[] endings = null) => Add(new Job { Kind = JobKind.Grammar, Words = words, Endings = endings });
 
+    // Adds a job (ignored after Dispose).
     private void Add(Job job)
     {
         if (!jobs.IsAddingCompleted) jobs.Add(job);
     }
 
+    // Stops the thread and frees the native objects.
     public void Dispose()
     {
         jobs.CompleteAdding();
         thread.Join(2000);
     }
 
+    // Thread loop: runs jobs until the queue is closed.
     private void Run()
     {
         try
@@ -96,6 +110,7 @@ public sealed class VoskWorker : IDisposable
         }
     }
 
+    // Runs one job.
     private void Do(Job job)
     {
         switch (job.Kind)
@@ -119,6 +134,7 @@ public sealed class VoskWorker : IDisposable
         }
     }
 
+    // Loads a model (frees the old one) and makes its recognizer.
     private void DoLoad(Job job)
     {
         FreeAll();
@@ -159,6 +175,7 @@ public sealed class VoskWorker : IDisposable
         }
     }
 
+    // Restricts the recognizer to the command words, with their accented / ending variants that exist in the model.
     private void DoGrammar(string[] words, string[] endings)
     {
         if (model == IntPtr.Zero) return;
@@ -220,6 +237,7 @@ public sealed class VoskWorker : IDisposable
         }
     }
 
+    // A word list as a Vosk grammar JSON array.
     private static string ToJson(List<string> words)
     {
         var sb = new StringBuilder("[");
@@ -231,6 +249,7 @@ public sealed class VoskWorker : IDisposable
         return sb.Append(']').ToString();
     }
 
+    // Frees the recognizer and the model.
     private void FreeAll()
     {
         if (recognizer != IntPtr.Zero) { VoskNative.vosk_recognizer_free(recognizer); recognizer = IntPtr.Zero; }

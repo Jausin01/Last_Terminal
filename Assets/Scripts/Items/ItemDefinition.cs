@@ -5,18 +5,21 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Last Terminal/Items/Generic Item", fileName = "NewItem")]
 public class ItemDefinition : ScriptableObject
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string IdField = nameof(id);
     public const string DisplayNameField = nameof(displayName);
     public const string MaxStackField = nameof(maxStack);
 
     [Tooltip("Stable id used by voice commands and saves (e.g. item_medkit). Don't change it once used.")]
     [SerializeField] private string id;
+    // Name, description and icon shown by the inventory UI.
     [SerializeField] private string displayName;
     [SerializeField, TextArea] private string description;
     [SerializeField] private Sprite icon;
     [Tooltip("How many fit in one inventory slot.")]
     [SerializeField, Min(1)] private int maxStack = 1;
 
+    // Read by the inventory, the HUD and the commands.
     public string Id => id;
     public string DisplayName => displayName;
     public string Description => description;

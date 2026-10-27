@@ -7,27 +7,35 @@ using UnityEngine;
 // The block grows with the text (the layout on its root); move / resize its RectTransform freely.
 public class ThoughtView : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string GroupField = nameof(group);
     public const string TagField = nameof(tagText);
     public const string BodyField = nameof(body);
     public const string SettingsField = nameof(settings);
 
+    // The block's CanvasGroup (fades).
     [SerializeField] private CanvasGroup group;
     [Tooltip("The small tag over the text (\"THOUGHTS\").")]
     [SerializeField] private TMP_Text tagText;
+    // The thought text.
     [SerializeField] private TMP_Text body;
     [Tooltip("Optional: the tag follows the game language.")]
     [SerializeField] private CameraSettings settings;
+    // Fade in / out (s).
     [SerializeField] private float fadeIn = 0.25f;
     [SerializeField] private float fadeOut = 0.6f;
     [Tooltip("Seconds per character (the shortest stays Min Seconds).")]
     [SerializeField] private float secondsPerChar = 0.06f;
+    // Shortest time on screen (s).
     [SerializeField] private float minSeconds = 2.2f;
 
+    // Time left on screen.
     private float timer;
 
+    // A thought is showing.
     public bool IsShowing => timer > 0f;
 
+    // Hidden at start; checks references.
     private void Awake()
     {
         if (group == null || body == null) { enabled = false; return; }
@@ -51,8 +59,10 @@ public class ThoughtView : MonoBehaviour
         return timer;
     }
 
+    // Hides it at once.
     public void Hide() => timer = 0f;
 
+    // Fades in, holds, fades out.
     private void Update()
     {
         if (timer > 0f) timer -= Time.unscaledDeltaTime;

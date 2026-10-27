@@ -9,15 +9,18 @@ using UnityEngine;
 [RequireComponent(typeof(Inventory))]
 public class PartnerShooter : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string WeaponHolderField = nameof(weaponHolder);
     public const string EffectsMaterialField = nameof(effectsMaterial);
     public const string AudioSourceField = nameof(audioSource);
 
+    // Her animator (aim / reload layer, chest bone) and the weapon holder.
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private WeaponHolder weaponHolder;
     [Tooltip("Unlit vertex-color material for tracers and muzzle flash (URP: the pipeline's default particle material).")]
     [SerializeField] private Material effectsMaterial;
+    // Plays the fire / reload / empty sounds; what a shot can hit.
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private LayerMask hitMask = ~0;
 
@@ -31,25 +34,31 @@ public class PartnerShooter : MonoBehaviour
     [Tooltip("Clip-driven reload that never reaches its Animator state is dropped after this long (s).")]
     [SerializeField] private float reloadClipTimeout = 2f;
 
+    // How fast the recoil settles back (1/s).
     [Header("Feedback")]
     [SerializeField] private float recoilReturn = 10f;
+    // Tracer: how long it shows (s), width and color.
     [SerializeField] private float tracerTime = 0.06f;
     [SerializeField] private float tracerWidth = 0.015f;
     [SerializeField] private Color tracerColor = new Color(1f, 0.85f, 0.5f, 0.8f);
+    // Muzzle flash: how long it shows (s), color, length (m) and its light.
     [SerializeField] private float flashTime = 0.05f;
     [SerializeField] private Color flashColor = new Color(1f, 0.75f, 0.35f, 1f);
     [SerializeField] private float flashLength = 0.18f;
     [SerializeField] private float flashLightRange = 5f;
     [SerializeField] private float flashLightIntensity = 4f;
 
+    // Tracers in the pool; max targets one shot (pellets) can damage.
     private const int TracerCount = 12;
     private const int MaxTargetsPerShot = 8;
 
+    // Ammo reserve, her own health (never shot), the chest bone (recoil) and the rounds in each weapon's magazine.
     private Inventory inventory;
     private Health self;
     private Transform chest;
     private int[] rounds;
 
+    // Reload state: on, which weapon, timer, clip started, magazine done, shell loop counted. Fire cooldown, the shot waiting for her aim, and the current recoil.
     private bool reloading;
     private int reloadIndex = -1;
     private float reloadTimer;
@@ -62,6 +71,7 @@ public class PartnerShooter : MonoBehaviour
     private Vector3 pendingTarget;
     private float recoilAngle;
 
+    // Effect pool: tracers and their timers, next one to use, the flash line / light and its timer. Per-shot damage buffers.
     private LineRenderer[] tracers;
     private float[] tracerTimers;
     private int nextTracer;
@@ -71,6 +81,7 @@ public class PartnerShooter : MonoBehaviour
     private readonly Health[] shotTargets = new Health[MaxTargetsPerShot];
     private readonly int[] shotDamage = new int[MaxTargetsPerShot];
 
+    // Raised on a shot, an empty trigger, reload start / end.
     public event Action<RangedWeapon> Fired;
     public event Action<RangedWeapon> OutOfAmmo;
     public event Action ReloadStarted;
@@ -78,6 +89,7 @@ public class PartnerShooter : MonoBehaviour
     public event Action AmmoChanged;             // magazine or reserve changed
     public event Action<Health, int> Hit;        // target, damage of the shot
 
+    // Read-only state for combat and the HUD.
     public bool IsReloading => reloading;
     public bool HasPendingShot => pending;
     public bool IsBusy => reloading || pending;
@@ -86,12 +98,15 @@ public class PartnerShooter : MonoBehaviour
     public RangedWeapon Current =>
         weaponHolder.IsEquipped && weaponHolder.Current.TryGetComponent(out RangedWeapon r) ? r : null;
 
+    // Rounds in the magazine / ammo left in the inventory for the weapon in hand.
     public int CurrentRounds => Current != null ? rounds[weaponHolder.CurrentIndex] : 0;
     public int CurrentReserve => Current != null && Current.Ammo != null ? inventory.Count(Current.Ammo) : 0;
 
+    // Rounds in a weapon's magazine (save / load).
     public int GetRounds(int loadoutIndex) =>
         loadoutIndex >= 0 && loadoutIndex < rounds.Length ? rounds[loadoutIndex] : 0;
 
+    // Sets a weapon's magazine (save / load), clamped to its size.
     public void SetRounds(int loadoutIndex, int value)
     {
         RangedWeapon r = RangedAt(loadoutIndex);
@@ -100,6 +115,7 @@ public class PartnerShooter : MonoBehaviour
         AmmoChanged?.Invoke();
     }
 
+    // Gets the inventory and health; checks references; builds the effects.
     private void Awake()
     {
         inventory = GetComponent<Inventory>();
@@ -120,22 +136,26 @@ public class PartnerShooter : MonoBehaviour
         CreateEffects();
     }
 
+    // Starts every magazine full.
     private void Start()
     {
         chest = partnerAnimator.GetBone(HumanBodyBones.Chest);
         if (chest == null) chest = partnerAnimator.GetBone(HumanBodyBones.Spine);
     }
 
+    // Listens to the inventory (HUD ammo count).
     private void OnEnable()
     {
         if (inventory != null) inventory.Changed += OnInventoryChanged;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (inventory != null) inventory.Changed -= OnInventoryChanged;
     }
 
+    // Reserve changed: the HUD updates.
     private void OnInventoryChanged() => AmmoChanged?.Invoke();
 
     // Shoot at this point as soon as she is aimed (the caller makes her aim: PartnerCombat.Fire).
@@ -152,8 +172,10 @@ public class PartnerShooter : MonoBehaviour
         return true;
     }
 
+    // Drops the shot waiting for her aim.
     public void CancelPending() => pending = false;
 
+    // Starts a reload (needs reserve ammo and a magazine not full).
     public bool Reload()
     {
         RangedWeapon r = Current;
@@ -179,6 +201,7 @@ public class PartnerShooter : MonoBehaviour
         return true;
     }
 
+    // Each frame: reload, the pending shot, cooldown and effects.
     private void Update()
     {
         if (fireTimer > 0f) fireTimer -= Time.deltaTime;
@@ -186,6 +209,7 @@ public class PartnerShooter : MonoBehaviour
         UpdatePending();
     }
 
+    // Clip-driven reload: magazine at the clip's mark, shell by shell for loop reloads.
     private void UpdateReload()
     {
         if (!reloading) return;
@@ -238,6 +262,7 @@ public class PartnerShooter : MonoBehaviour
         }
     }
 
+    // Timed reload (no clip): fills after the weapon's reload time.
     private void UpdateTimerReload(RangedWeapon r)
     {
         reloadTimer -= Time.deltaTime;
@@ -274,6 +299,7 @@ public class PartnerShooter : MonoBehaviour
         ReloadFinished?.Invoke();
     }
 
+    // Fires the waiting shot once she is aimed (gives up after a timeout).
     private void UpdatePending()
     {
         if (!pending) return;
@@ -294,6 +320,7 @@ public class PartnerShooter : MonoBehaviour
         Shoot(r, index, pendingTarget);
     }
 
+    // Weapon raised and her facing within the aim tolerance of the target?
     private bool IsAimedAt(Vector3 target)
     {
         if (partnerAnimator.AimBlend < aimReadyBlend) return false;
@@ -303,6 +330,7 @@ public class PartnerShooter : MonoBehaviour
         return Vector3.Angle(transform.forward, to) <= aimReadyAngle;
     }
 
+    // Fires: ray(s) from the muzzle, damage summed per target, ammo spent, effects and events.
     private void Shoot(RangedWeapon r, int index, Vector3 target)
     {
         rounds[index]--;
@@ -342,6 +370,7 @@ public class PartnerShooter : MonoBehaviour
         AmmoChanged?.Invoke();
     }
 
+    // Adds damage to a target already hit by this shot, or adds the target; returns the new count.
     private int AddDamage(Health target, int damage, int count)
     {
         for (int i = 0; i < count; i++)
@@ -367,6 +396,7 @@ public class PartnerShooter : MonoBehaviour
         return Quaternion.AngleAxis(angle, side) * dir;
     }
 
+    // After the animation: upper-body recoil on her chest.
     private void LateUpdate()
     {
         // recoil: kick the chest up around her right axis, then let it settle
@@ -410,6 +440,7 @@ public class PartnerShooter : MonoBehaviour
         flashLight.enabled = false;
     }
 
+    // Builds one unlit line (tracer / flash).
     private LineRenderer CreateLine(Transform parent, string lineName)
     {
         var go = new GameObject(lineName);
@@ -424,6 +455,7 @@ public class PartnerShooter : MonoBehaviour
         return line;
     }
 
+    // Shows a tracer from the pool.
     private void ShowTracer(Vector3 from, Vector3 to)
     {
         LineRenderer line = tracers[nextTracer];
@@ -436,6 +468,7 @@ public class PartnerShooter : MonoBehaviour
         line.enabled = true;
     }
 
+    // Shows the muzzle flash and its light.
     private void ShowFlash(Vector3 origin, Vector3 dir)
     {
         flashTimer = flashTime;
@@ -448,6 +481,7 @@ public class PartnerShooter : MonoBehaviour
         flashLight.enabled = true;
     }
 
+    // Fades the tracers and flash out.
     private void UpdateEffects()
     {
         for (int i = 0; i < TracerCount; i++)
@@ -467,11 +501,13 @@ public class PartnerShooter : MonoBehaviour
         }
     }
 
+    // Plays a one-shot sound if there is one.
     private void Play(AudioClip clip)
     {
         if (clip != null && audioSource != null) audioSource.PlayOneShot(clip);
     }
 
+    // The ranged weapon of a loadout slot (null if melee / empty).
     private RangedWeapon RangedAt(int index)
     {
         Weapon w = weaponHolder.GetWeapon(index);

@@ -5,6 +5,7 @@ using UnityEngine;
 // on a pickup it goes with the pickup (its child). Built by the scene menu (Last Terminal/17).
 public class InteractSparkle : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string ViewCameraField = nameof(viewCamera);
     public const string ExaminableField = nameof(examinable);
     public const string StarsField = nameof(stars);
@@ -13,15 +14,19 @@ public class InteractSparkle : MonoBehaviour
     [SerializeField] private Transform viewCamera;
     [Tooltip("Optional: the thing to look at; the sparkle goes out once she has looked at it.")]
     [SerializeField] private Examinable examinable;
+    // The two stars and their size.
     [SerializeField] private Transform[] stars = new Transform[0];
     [SerializeField] private float size = 0.22f;
     [Tooltip("Twinkles per second.")]
     [SerializeField] private float speed = 2.2f;
 
+    // Random twinkle phase (sparkles don't blink together).
     private float phase;
 
+    // Picks the phase.
     private void Awake() => phase = Random.value * 10f;
 
+    // Faces the camera and twinkles.
     private void LateUpdate()
     {
         if (examinable != null && examinable.Seen)

@@ -7,14 +7,17 @@ using UnityEngine;
 // Her right hand reaches toward where the card goes (Animator IK) around the release.
 public class PartnerBlackjackDealer : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
 
+    // Her animator: plays the dealer clips and the hand / feet IK.
     [SerializeField] private PartnerAnimator partnerAnimator;
     [Header("Deal clip (normalized time)")]
     [Tooltip("The card leaves her hand here.")]
     [SerializeField, Range(0f, 1f)] private float releaseTime = 0.5f;
     [Tooltip("Reach toward the card's place between these times (IK on the right hand).")]
     [SerializeField] private Vector2 reachWindow = new Vector2(0.28f, 0.72f);
+    // How strongly her right hand reaches toward the card's place (IK weight at the middle of the window).
     [SerializeField, Range(0f, 1f)] private float reachWeight = 0.6f;
     [Tooltip("The IK target is kept this close to her shoulder (her arm can't reach the far side of the table).")]
     [SerializeField] private float maxReach = 0.58f;
@@ -27,23 +30,31 @@ public class PartnerBlackjackDealer : MonoBehaviour
     [SerializeField] private Vector3 footPlace = new Vector3(0.13f, 0.14f, 0.74f);
     [Tooltip("The knees bend toward this point (up and forward).")]
     [SerializeField] private Vector3 kneeHint = new Vector3(0.17f, 0.9f, 0.6f);
+    // Time to blend her legs under the table / back (s).
     [SerializeField] private float feetBlendTime = 0.5f;
 
+    // The clip running now, whether it started, whether its event (release / pickup) happened, time spent waiting.
     private PartnerAnimator.DealerClip clip;
     private bool running;
     private bool entered;
     private bool released;
     private float timer;
+    // Normalized time of the clip event and where the card goes.
+    private float releaseAt;
     private Vector3 reachTarget;
+    // Callbacks: at the clip event, and when the clip ends.
     private Action onRelease;
     private Action onDone;
 
+    // Legs under the table: the seat they are placed from, planted or not, current blend weight.
     private Transform feetSeat;
     private bool feetPlanted;
     private float feetWeight;
 
+    // A clip is still running.
     public bool IsBusy => running;
 
+    // Checks the animator reference.
     private void Awake()
     {
         if (partnerAnimator == null)
@@ -60,21 +71,26 @@ public class PartnerBlackjackDealer : MonoBehaviour
         feetPlanted = seat != null;
     }
 
+    // She gets up: the legs blend back to the clip.
     public void ReleaseFeet() => feetPlanted = false;
 
+    // Idle / holding the deck between deals (looping clips, no callbacks).
     public void Idle() { Stop(); partnerAnimator.PlayDealerClip(PartnerAnimator.DealerClip.Idle); }
     public void Hold() { Stop(); partnerAnimator.PlayDealerClip(PartnerAnimator.DealerClip.Hold); }
 
+    // One-shot clips with an event in the middle: pick up / put back the deck, peek at the hole card.
     public void PickUpDeck(Action atShoe, Action done) => Play(PartnerAnimator.DealerClip.PickDeck, 0.45f, atShoe, done);
     public void PutBackDeck(Action atShoe, Action done) => Play(PartnerAnimator.DealerClip.PutBack, 0.45f, atShoe, done);
     public void Peek(Action looking, Action done) => Play(PartnerAnimator.DealerClip.Check, peekTime, looking, done);
 
+    // Deals one card: the release callback fires when the card leaves her hand, then done at the end.
     public void DealCard(Vector3 target, Action release, Action done)
     {
         reachTarget = target;
         Play(PartnerAnimator.DealerClip.Deal, releaseTime, release, done);
     }
 
+    // Starts a dealer clip and remembers its callbacks.
     private void Play(PartnerAnimator.DealerClip c, float eventTime, Action atEvent, Action done)
     {
         Stop();
@@ -89,8 +105,8 @@ public class PartnerBlackjackDealer : MonoBehaviour
         partnerAnimator.PlayDealerClip(c);
     }
 
-    private float releaseAt;
 
+    // Cancels the clip callbacks and the reach.
     public void Stop()
     {
         running = false;
@@ -121,6 +137,7 @@ public class PartnerBlackjackDealer : MonoBehaviour
         return true;
     }
 
+    // Follows the running clip: reach weight, event time, end (or timeout if the clip never starts).
     private void Update()
     {
         UpdateFeet();
@@ -149,6 +166,7 @@ public class PartnerBlackjackDealer : MonoBehaviour
         if (t >= 0.97f || timer > timeout) Finish();
     }
 
+    // Ends the clip: the event if it was missed, then the done callback.
     private void Finish()
     {
         if (!released) { released = true; Action r = onRelease; onRelease = null; r?.Invoke(); }
@@ -157,6 +175,7 @@ public class PartnerBlackjackDealer : MonoBehaviour
         d?.Invoke();
     }
 
+    // Blends the feet IK in / out (mirrored left / right from the seat).
     private void UpdateFeet()
     {
         float before = feetWeight;
@@ -168,6 +187,7 @@ public class PartnerBlackjackDealer : MonoBehaviour
                                       feetSeat.TransformPoint(Vector3.Scale(kneeHint, mirror)), feetSeat.TransformPoint(kneeHint), w);
     }
 
+    // The reach target, kept within arm's length of her shoulder.
     private Vector3 ClampedReach(Vector3 target)
     {
         Transform shoulder = partnerAnimator.GetBone(HumanBodyBones.RightUpperArm);

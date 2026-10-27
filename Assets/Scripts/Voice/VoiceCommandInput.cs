@@ -14,6 +14,7 @@ using UnityEngine.InputSystem;
 // camera program: OperatorStation turns it off).
 public class VoiceCommandInput : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string CommandsField = nameof(commands);
     public const string CameraSystemField = nameof(cameraSystem);
     public const string SaveScreenField = nameof(saveScreen);
@@ -24,18 +25,22 @@ public class VoiceCommandInput : MonoBehaviour
     public const string GroupField = nameof(group);
     public const string TextField = nameof(text);
 
+    // Where commands go, and the screens that turn the mic off (camera system, save screen), the settings (language).
     [SerializeField] private PartnerCommands commands;
     [SerializeField] private SecurityCameraSystem cameraSystem;
     [SerializeField] private SaveScreen saveScreen;
     [SerializeField] private CameraSettings settings;
     [Tooltip("The lexicons: their words are what the recognizer listens for.")]
     [SerializeField] private CommandLexicon english;
+    // Portuguese lexicon.
     [SerializeField] private CommandLexicon portuguese;
     [Tooltip("Optional: shows what was heard like a typed command.")]
     [SerializeField] private CommandConsole console;
+    // The "listening / heard" indicator.
     [SerializeField] private CanvasGroup group;
     [SerializeField] private TMP_Text text;
 
+    // Model folders under StreamingAssets per language.
     [Header("Recognition")]
     [SerializeField] private string englishModel = "Vosk/en";
     [SerializeField] private string portugueseModel = "Vosk/pt";
@@ -45,8 +50,10 @@ public class VoiceCommandInput : MonoBehaviour
     [SerializeField] private float preRoll = 0.3f;
     [Tooltip("Audio still taken after the key is released, s.")]
     [SerializeField] private float tail = 0.35f;
+    // How long the heard text stays (s).
     [SerializeField] private float resultTime = 2.5f;
 
+    // Push to talk button.
     [Header("Input (bindings added when empty)")]
     [SerializeField] private InputAction talk = new InputAction("Talk", InputActionType.Button);
 
@@ -57,17 +64,22 @@ public class VoiceCommandInput : MonoBehaviour
     private static readonly string[] EndingsEn = { "", "s", "es", "ed", "ing", "e", "er" };
     private static readonly string[] EndingsPt = { "", "a", "e", "o", "as", "es", "am", "em", "ar", "er", "ir", "ando", "endo", "indo", "ou", "eu", "iu", "ado", "ido", "ada", "ida", "ue", "uem", "ra", "re" };
 
+    // Vosk result JSON.
     [Serializable]
     private class VoskJson
     {
+        // Final text / partial text.
         public string text;
         public string partial;
     }
 
+    // Model loading state.
     private enum State { Loading, Ready, Failed }
 
+    // The recognizer thread.
     private VoskWorker worker;
     private Action<string> overrideHandler;   // a cutscene waiting for the operator's line: what is heard goes there
+    // Model state, language loaded, failure reason, the microphone, its rate, the looping clip, read position and capturing.
     private State state = State.Loading;
     private GameLanguage loadedLanguage;
     private bool languageLoaded;
@@ -78,8 +90,10 @@ public class VoiceCommandInput : MonoBehaviour
     private int readPos;
     private bool capturing;
     private bool awaitingFinish;          // push to talk: the end of the utterance was asked for
+    // No microphone found.
     private bool noMicrophone;
     private readonly List<string> segments = new List<string>();   // push to talk: pieces heard before the release
+    // Tail audio left, partial poll timer, the text heard, its display timer, and a conversion buffer.
     private float tailLeft;
     private float partialTimer;
     private string heard = "";
@@ -87,9 +101,11 @@ public class VoiceCommandInput : MonoBehaviour
     private float[] floatBuffer = new float[0];
     private bool codeGrammar;             // she is at a keypad: listening mostly for the code
 
+    // Language from the settings.
     private GameLanguage Language => settings != null ? settings.Language : GameLanguage.English;
     private bool Pt => Language == GameLanguage.Portuguese;
 
+    // Starts the worker and loads the model.
     private void Awake()
     {
         if (talk.bindings.Count == 0)
@@ -102,12 +118,14 @@ public class VoiceCommandInput : MonoBehaviour
         worker = new VoskWorker();
     }
 
+    // Stops the mic and the worker.
     private void OnDestroy()
     {
         if (worker != null) worker.Dispose();
         worker = null;
     }
 
+    // Enables the button; listens to the settings.
     private void OnEnable()
     {
         talk.Enable();
@@ -116,6 +134,7 @@ public class VoiceCommandInput : MonoBehaviour
         LoadLanguageIfNeeded();
     }
 
+    // Disables the button; stops listening.
     private void OnDisable()
     {
         talk.Disable();
@@ -124,6 +143,7 @@ public class VoiceCommandInput : MonoBehaviour
         StopMicrophone();
     }
 
+    // Language changed: load the other model.
     private void OnSettingsChanged() => LoadLanguageIfNeeded();
 
     // ------------------------------------------------------------------ model
@@ -146,6 +166,7 @@ public class VoiceCommandInput : MonoBehaviour
         worker.Load(path, rate, LexiconWords(lexicon, Pt ? FillersPt : FillersEn), Pt ? EndingsPt : EndingsEn);
     }
 
+    // Every word of a lexicon plus the fillers.
     private static string[] LexiconWords(CommandLexicon lexicon, string[] fillers)
     {
         var words = new HashSet<string>(fillers);
@@ -160,6 +181,7 @@ public class VoiceCommandInput : MonoBehaviour
         return new List<string>(words).ToArray();
     }
 
+    // Adds the words of phrases to a set.
     private static void AddWords(HashSet<string> words, IEnumerable<string> phrases)
     {
         foreach (string p in phrases)
@@ -167,6 +189,7 @@ public class VoiceCommandInput : MonoBehaviour
                 foreach (string w in p.Split(' ')) if (w.Length > 0) words.Add(w.ToLowerInvariant());
     }
 
+    // Recognition unavailable: shows why.
     private void Fail(string reason)
     {
         state = State.Failed;
@@ -185,18 +208,21 @@ public class VoiceCommandInput : MonoBehaviour
         readPos = 0;
     }
 
+    // Stops the microphone.
     private void StopMicrophone()
     {
         if (clip != null && Microphone.IsRecording(device)) Microphone.End(device);
         clip = null;
     }
 
+    // Mic off while typing, in the settings / save screen / a dialog.
     private bool Blocked => (cameraSystem != null && (cameraSystem.IsTyping || cameraSystem.IsSettingsOpen || cameraSystem.IsOverlayOpen
                                                       || (cameraSystem.IsLocked && overrideHandler == null)))
                             || (saveScreen != null && saveScreen.IsOpen)
                             || (commands == null && overrideHandler == null)
                             || (console != null && console.IsOpen);
 
+    // Starts capturing (with the pre-roll).
     private void StartCapture()
     {
         if (clip == null || state != State.Ready) return;
@@ -219,6 +245,7 @@ public class VoiceCommandInput : MonoBehaviour
         else { segments.Clear(); worker.Reset(); }
     }
 
+    // Each frame: push to talk / always listening, audio to the worker, tail, indicator.
     private void Update()
     {
         ReadOutputs();
@@ -284,6 +311,7 @@ public class VoiceCommandInput : MonoBehaviour
         worker.Audio(samples, wantPartial);
     }
 
+    // Reads the worker's outputs (loaded, failed, partial, final).
     private void ReadOutputs()
     {
         if (worker == null) return;
@@ -316,6 +344,7 @@ public class VoiceCommandInput : MonoBehaviour
         }
     }
 
+    // Parses a Vosk JSON result.
     private static VoskJson Parse(string json)
     {
         try { return JsonUtility.FromJson<VoskJson>(json) ?? new VoskJson(); }
@@ -325,6 +354,7 @@ public class VoiceCommandInput : MonoBehaviour
     // "[unk]" = something not in the commands
     private static string Clean(string s) => string.IsNullOrEmpty(s) ? "" : s.Replace("[unk]", " ").Trim().Replace("  ", " ");
 
+    // A final sentence: to the override handler or to Helena as a command.
     private void Heard(string sentence)
     {
         resultTimer = resultTime;
@@ -348,6 +378,7 @@ public class VoiceCommandInput : MonoBehaviour
         if (worker != null) worker.UseWords(LineWords(line));
     }
 
+    // Ends a cutscene override: back to the command words.
     public void EndOverride()
     {
         if (overrideHandler == null) return;

@@ -8,6 +8,7 @@ using UnityEngine.EventSystems;
 // Built by the location scene menus (Last Terminal/17...).
 public class OperatorLocation : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string LinkField = nameof(link);
     public const string ViewCameraField = nameof(viewCamera);
     public const string ViewListenerField = nameof(viewListener);
@@ -21,12 +22,14 @@ public class OperatorLocation : MonoBehaviour
     public const string VoiceField = nameof(voice);
     public const string EventSystemField = nameof(eventSystem);
 
+    // The link asset, and what the station turns on / off: view camera, audio listener, the operator UI canvas.
     [SerializeField] private OperatorLink link;
     [SerializeField] private Camera viewCamera;
     [SerializeField] private AudioListener viewListener;
     [SerializeField] private Canvas operatorCanvas;
     [Tooltip("On only in the camera program (camera system, clicks, combat keys, the microphone, the CCTV filter...).")]
     [SerializeField] private Behaviour[] operatorBehaviours = new Behaviour[0];
+    // Things the station reads from this scene: cameras, Helena (rest, position, voice), targets, combat.
     [SerializeField] private SecurityCameraSystem cameraSystem;
     [SerializeField] private PartnerRest partnerRest;
     [SerializeField] private Transform partner;
@@ -36,6 +39,7 @@ public class OperatorLocation : MonoBehaviour
     [Tooltip("This scene's EventSystem: off when the room's is there.")]
     [SerializeField] private EventSystem eventSystem;
 
+    // Read by the station.
     public Camera ViewCamera => viewCamera;
     public AudioListener ViewListener => viewListener;
     public Canvas OperatorCanvas => operatorCanvas;
@@ -49,6 +53,7 @@ public class OperatorLocation : MonoBehaviour
     // loaded over his room (else: played on its own)
     public bool Linked { get; private set; }
 
+    // Loaded over his room: everything of the camera program starts off; hands itself to the station.
     private void Awake()
     {
         if (link == null || link.Station == null) return;
@@ -61,6 +66,7 @@ public class OperatorLocation : MonoBehaviour
         link.SetLocation(this);
     }
 
+    // Unregisters from the link.
     private void OnDestroy()
     {
         if (link != null) link.ClearLocation(this);

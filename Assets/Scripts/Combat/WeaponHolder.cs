@@ -7,11 +7,13 @@ using UnityEngine;
 // 3) the fingers closed on the weapon (its grip, Last Terminal/19), right hand and left hand on the forend.
 public class WeaponHolder : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
     public const string LoadoutField = nameof(loadout);
     public const string InventoryField = nameof(inventory);
     public const string RequireItemsField = nameof(requireItems);
 
+    // Her animator (hand bones, aim blend) and the weapons she can hold (prefabs).
     [SerializeField] private PartnerAnimator partnerAnimator;
     [SerializeField] private Weapon[] loadout = new Weapon[0];
     [Tooltip("Her inventory: with Require Items, a weapon of the loadout is hers only while she carries its item (WeaponItem, id = the weapon's name).")]
@@ -21,19 +23,23 @@ public class WeaponHolder : MonoBehaviour
     [Tooltip("Seconds to hand the left arm over to the reload clip and back.")]
     [SerializeField] private float leftHandBlendTime = 0.15f;
 
+    // One spawned copy per loadout weapon (made on first use) and the one in her hand (-1 = none).
     private Weapon[] instances;
     private int current = -1;
+    // Left arm bones for the two-handed IK.
     private Transform leftUpperArm;
     private Transform leftLowerArm;
     private Transform leftHand;
     private float leftWeight = 1f;   // left-hand IK: off while a reload clip moves the left arm
     private Transform[] rightJoints, rightEnds, leftJoints, leftEnds;   // finger segments (WeaponGrip)
 
+    // State read by the shooter, the combat logic and the HUD.
     public int LoadoutCount => loadout.Length;
     public int CurrentIndex => current;
     public Weapon Current => current >= 0 ? instances[current] : null;
     public bool IsEquipped => Current != null && Current.gameObject.activeSelf;
 
+    // Checks the references.
     private void Awake()
     {
         if (partnerAnimator == null || loadout.Length == 0 || (requireItems && inventory == null))
@@ -45,6 +51,7 @@ public class WeaponHolder : MonoBehaviour
         instances = new Weapon[loadout.Length];
     }
 
+    // Finds the arm and finger bones (after the Animator is ready).
     private void Start()
     {
         leftUpperArm = partnerAnimator.GetBone(HumanBodyBones.LeftUpperArm);
@@ -54,6 +61,7 @@ public class WeaponHolder : MonoBehaviour
         if (!WeaponGrip.GetFingers(partnerAnimator.GetBone, false, out leftJoints, out leftEnds)) leftJoints = null;
     }
 
+    // The loadout prefab at an index.
     public Weapon GetWeapon(int index) => index >= 0 && index < loadout.Length ? loadout[index] : null;
 
     // she has this weapon (always, without Require Items)
@@ -105,11 +113,13 @@ public class WeaponHolder : MonoBehaviour
         if (Current != null) Current.gameObject.SetActive(false);
     }
 
+    // Shows / hides the weapon in her hand without unequipping it (cutscenes, sitting).
     public void SetVisible(bool visible)
     {
         if (Current != null) Current.gameObject.SetActive(visible);
     }
 
+    // After the animation: places the gun in the right hand, closes the fingers, and for two-handed guns brings the left hand onto the forend (blended out while reloading).
     private void LateUpdate()
     {
         Weapon w = Current;
@@ -127,6 +137,7 @@ public class WeaponHolder : MonoBehaviour
         }
     }
 
+    // Places a weapon in the right hand now (on equip, before the next LateUpdate).
     private bool PlaceInRightHand(Weapon w)
     {
         if (!partnerAnimator.TryGetRightHandFrame(out Vector3 origin, out Vector3 fingers, out Vector3 across, out Vector3 normal))
@@ -135,6 +146,7 @@ public class WeaponHolder : MonoBehaviour
         return true;
     }
 
+    // Left hand onto the forend of a two-handed weapon (IK with a weight).
     private void PlaceLeftHand(Weapon w, float weight)
     {
         if (!WeaponGrip.TryLeftFrame(partnerAnimator.GetBone, out _, out _, out _, out float handLength)) return;

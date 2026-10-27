@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.AI;
 
+// Which pickup clip: from the floor or from a table.
 public enum PickupHeight { Low = 0, Medium = 1 }
 
 // Drives the partner Animator from her NavMeshAgent:
@@ -20,6 +21,7 @@ public enum PickupHeight { Low = 0, Medium = 1 }
 [RequireComponent(typeof(Animator))]
 public class PartnerAnimator : MonoBehaviour
 {
+    // Animator parameter, tag and state names (the editor builds the controller with the same names).
     public const string SpeedParam = "Speed";
     public const string TurnParam = "Turn";
     public const string TurnAngleParam = "TurnAngle";
@@ -82,6 +84,7 @@ public class PartnerAnimator : MonoBehaviour
     // dealer (seated at the blackjack table): states, clip names = FBX file names (HelenaImport)
     public static readonly string[] DealerStates = { "DealerIdle", "DealerPickDeck", "DealerDeal", "DealerHold", "DealerPutBack", "DealerCheck" };
     public static readonly string[] DealerClips = { "HelenaDealerIdle", "HelenaDealerPickDeck", "HelenaDealerDeal", "HelenaDealerHold", "HelenaDealerPutBack", "HelenaDealerCheck" };
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string AgentField = nameof(agent);
     public const string CutsceneSlotAField = nameof(cutsceneSlotA);
     public const string CutsceneSlotBField = nameof(cutsceneSlotB);
@@ -92,10 +95,13 @@ public class PartnerAnimator : MonoBehaviour
     public const float SlotRight90 = 90f;
     public const float SlotRight180 = 180f;
 
+    // Her NavMeshAgent: its velocity drives the locomotion blend.
     [SerializeField] private NavMeshAgent agent;
     [Tooltip("The empty clips of the CutsceneA / CutsceneB states (cutscenes play any clip through them).")]
     [SerializeField] private AnimationClip cutsceneSlotA;
+    // Second empty cutscene slot (cutscene clips alternate A / B to crossfade).
     [SerializeField] private AnimationClip cutsceneSlotB;
+    // Damping of the Speed parameter (s).
     [SerializeField] private float speedDampTime = 0.1f;
     [Tooltip("Seconds from standing to a full walk. The legs lead: she never moves faster than the walk being shown, " +
              "so she steps off instead of sliding off.")]
@@ -108,24 +114,29 @@ public class PartnerAnimator : MonoBehaviour
     [SerializeField] private float movingTurnThreshold = 135f;
     [Tooltip("Above this angle the 180 clips are used (deg).")]
     [SerializeField] private float bigTurnAngle = 135f;
+    // Gives up on a turn that never ends (s).
     [SerializeField] private float turnTimeout = 3f;
 
+    // Measured root rotation of the left 90 / right 90 / left 180 / right 180 clips: the turn speed is scaled so the real angle matches.
     [Header("Real root rotation of each clip (deg, measured from the Mixamo files)")]
     [SerializeField] private float clipLeft90 = -122.6f;
     [SerializeField] private float clipRight90 = 95.6f;
     [SerializeField] private float clipLeft180 = -176.1f;
     [SerializeField] private float clipRight180 = 175.1f;
 
+    // Grab frame of the low / medium clip (normalized), and the max pickup duration (s).
     [Header("Pick up (grab moment = normalized time of the clip, measured from the Mixamo files)")]
     [SerializeField, Range(0f, 1f)] private float grabTimeLow = 0.204f;
     [SerializeField, Range(0f, 1f)] private float grabTimeMedium = 0.447f;
     [SerializeField] private float pickupTimeout = 10f;
     [Tooltip("Right-hand IK toward the item around the grab moment (0 = off).")]
     [SerializeField, Range(0f, 1f)] private float handIKWeight = 0.9f;
+    // Hand IK fade in / out around the grab (normalized span).
     [SerializeField] private float handIKBlendIn = 0.45f;
     [SerializeField] private float handIKBlendOut = 0.35f;
     [Tooltip("The IK goal is the wrist; the palm is about this much below it when grabbing.")]
     [SerializeField] private float wristAboveItem = 0.06f;
+    // Head look-at weight toward the item.
     [SerializeField, Range(0f, 1f)] private float lookAtWeight = 0.6f;
 
     [Header("Armed")]
@@ -141,14 +152,18 @@ public class PartnerAnimator : MonoBehaviour
     [Header("Damage")]
     [Tooltip("Blend into a hit reaction / out of it (s).")]
     [SerializeField] private float hitBlendIn = 0.08f;
+    // Blend out of a hit reaction (s).
     [SerializeField] private float hitBlendOut = 0.3f;
     [Tooltip("Back to standing from this point of a hit clip (normalized; light, heavy).")]
     [SerializeField] private Vector2 hitExit = new Vector2(0.8f, 0.7f);
+    // Gives up on a hit reaction that never ends (s).
     [SerializeField] private float hitTimeout = 4f;
 
+    // Gives up on an attack that never ends (s).
     [Header("Melee")]
     [SerializeField] private float attackTimeout = 8f;
 
+    // Hashed parameter, tag and state ids (no string lookups at runtime).
     private static readonly int SpeedId = Animator.StringToHash(SpeedParam);
     private static readonly int TurnId = Animator.StringToHash(TurnParam);
     private static readonly int TurnAngleId = Animator.StringToHash(TurnAngleParam);
@@ -179,7 +194,6 @@ public class PartnerAnimator : MonoBehaviour
     private static readonly int ArmedLocomotionId = Animator.StringToHash(ArmedLocomotionState);
     private static readonly int DoorSpeedId = Animator.StringToHash(DoorSpeedParam);
     private static readonly int DoorTagId = Animator.StringToHash(DoorTag);
-    private static readonly int KeypadTagId = Animator.StringToHash(KeypadTag);
     private static readonly int FloorSitId = Animator.StringToHash(FloorSitState);
     private static readonly int[] KeypadStateIds = Array.ConvertAll(KeypadStates, Animator.StringToHash);
     private static readonly int DoorInwardsId = Animator.StringToHash(DoorInwardsState);
@@ -193,6 +207,7 @@ public class PartnerAnimator : MonoBehaviour
     private static readonly int[] HitIds = Array.ConvertAll(HitClips, Animator.StringToHash);
     private static readonly int[,] ArmedHitIds = BuildArmedHitIds();
 
+    // Armed hit state ids: [hit clip, hold type].
     private static int[,] BuildArmedHitIds()
     {
         var ids = new int[ArmedHitPrefixes.Length, HoldNames.Length];
@@ -200,12 +215,15 @@ public class PartnerAnimator : MonoBehaviour
             for (int h = 0; h < HoldNames.Length; h++) ids[k, h] = Animator.StringToHash(ArmedHitPrefixes[k] + "_" + HoldNames[h]);
         return ids;
     }
+    // Evade tag and dodge / duck state ids.
     private static readonly int EvadeTagId = Animator.StringToHash(EvadeTag);
     private static readonly int[] EvadeStateIds = Array.ConvertAll(EvadeStates, Animator.StringToHash);
 
+    // The Animator and the transform it moves.
     private Animator animator;
     private Transform body;
 
+    // Turn in place: on, its state entered, rotation scale for the clip, timer, and where she walks after it.
     private bool turning;
     private bool enteredTurnState;
     private float rotationScale = 1f;
@@ -213,21 +231,25 @@ public class PartnerAnimator : MonoBehaviour
     private bool hasTurnDestination;
     private Vector3 turnDestination;
 
+    // Pick up: on, state entered, grab done, grab time, timer.
     private bool picking;
     private bool enteredPickupState;
     private bool grabbed;
     private float grabNormalized;
     private float pickupTimer;
     private float pickupTime;     // seconds into the pickup clip
+    // Pick up clip length and the point her hand reaches for.
     private float pickupLength;
     private Vector3 grabTarget;
 
+    // Armed: weapon out, aiming, the upper-body layer index, its weight and the aim blend.
     private bool armed;
     private bool aiming;
     private int upperLayer = -1;
     private float upperWeight;
     private float aimBlend;
 
+    // Melee: attacking, state entered, timer, progress, the clip playing and the one before.
     private bool attacking;
     private bool enteredAttackState;
     private float attackTimer;
@@ -235,6 +257,7 @@ public class PartnerAnimator : MonoBehaviour
     private int currentAttackHash;
     private int previousAttackHash;
 
+    // Hit reaction: playing, entered, heavy, timer. Dead, locomotion speed scale, and holding her facing (strafe while armed).
     private bool hitPlaying;
     private bool hitEntered;
     private bool hitHeavy;
@@ -243,8 +266,10 @@ public class PartnerAnimator : MonoBehaviour
     private float locomotionScale = 1f;
     private bool holdFacing;
     private float stepSpeed;          // speed the walk is ramping to (m/s), ahead of the agent
+    // Was the Animator in locomotion last frame?
     private bool wasLocomotion;
 
+    // Scripted control: on, the walk speed fed by the caller, root motion applied.
     private bool scripted;
     private float scriptedSpeed;
     private bool scriptedRootMotion;
@@ -252,11 +277,13 @@ public class PartnerAnimator : MonoBehaviour
     private readonly float[] doorClipLength = { 1f, 1f, 1f };   // by DoorClip
     private readonly float[] evadeClipLength = { 1f, 1f };      // by EvadeClip
 
+    // Raised when an attack ends, and at pickup start / grab frame / end.
     public event Action AttackFinished;
     public event Action PickupStarted;
     public event Action PickupGrabbed;
     public event Action PickupFinished;
 
+    // Read-only state for the other partner components.
     public bool IsPickingUp => picking;
     public bool IsTurning => turning;
     public bool IsAttacking => attacking;
@@ -348,6 +375,7 @@ public class PartnerAnimator : MonoBehaviour
         return true;
     }
 
+    // Weapon out / away: armed locomotion and the upper-body layer.
     public void SetArmed(bool value)
     {
         armed = value;
@@ -362,12 +390,14 @@ public class PartnerAnimator : MonoBehaviour
         animator.SetFloat(WeaponTypeId, (float)holdType);
     }
 
+    // Raises / lowers the aim hold.
     public void SetAiming(bool value)
     {
         aiming = armed && value;
         animator.SetBool(AimingId, aiming);
     }
 
+    // Gets the Animator; caches layer and clip lengths; checks the agent.
     private void Awake()
     {
         animator = GetComponent<Animator>();
@@ -383,6 +413,7 @@ public class PartnerAnimator : MonoBehaviour
         cutsceneClips = new CutsceneClipSlots(animator, cutsceneSlotA, cutsceneSlotB);
     }
 
+    // Caches the length of each door clip (to drive them by normalized time).
     private void CacheDoorClipLengths()
     {
         if (animator.runtimeAnimatorController == null) return;
@@ -399,6 +430,7 @@ public class PartnerAnimator : MonoBehaviour
         }
     }
 
+    // Each frame: locomotion speed / armed blend, turn in place, pickups, attacks, hit reactions and the upper-body layer.
     private void Update()
     {
         UpdateArmedLayer();
@@ -486,6 +518,7 @@ public class PartnerAnimator : MonoBehaviour
         animator.SetTrigger(ReloadAbortId);
     }
 
+    // Clears a pending reload abort.
     public void ClearReloadAbort() => animator.ResetTrigger(ReloadAbortId);
 
     // Normalized time of the reload clip being played (counts loops for the shell loop). False when none.
@@ -506,6 +539,7 @@ public class PartnerAnimator : MonoBehaviour
         return true;
     }
 
+    // A reload clip is playing.
     public bool IsReloadPlaying => TryGetReloadTime(out _);
 
     // ------------------------------------------------------------------ melee attack
@@ -523,11 +557,13 @@ public class PartnerAnimator : MonoBehaviour
         animator.SetTrigger(AttackId);
     }
 
+    // Speed of the attack clip (set per phase by PartnerMelee).
     public void SetAttackSpeed(float speed)
     {
         animator.SetFloat(AttackSpeedId, speed);
     }
 
+    // Tracks the attack state: entered, progress, end (AttackFinished) or timeout.
     private void UpdateAttack()
     {
         attackTimer += Time.deltaTime;
@@ -577,6 +613,7 @@ public class PartnerAnimator : MonoBehaviour
         turning = false;
     }
 
+    // Ends scripted control: back to the agent-driven locomotion.
     public void EndScripted()
     {
         scripted = false;
@@ -584,6 +621,7 @@ public class PartnerAnimator : MonoBehaviour
         hasTurnDestination = false;
     }
 
+    // Walk speed fed to the blend while scripted (m/s).
     public void SetScriptedSpeed(float speed) => scriptedSpeed = speed;
 
     // Turn in place with the turn clips while scripted (signed yaw, deg). IsTurning stays true until it ends.
@@ -594,11 +632,13 @@ public class PartnerAnimator : MonoBehaviour
         StartTurn(angle);
         return true;
     }
+    // Applies the clips' root motion while scripted (doors, seat, keypad).
     public void SetScriptedRootMotion(bool on) => scriptedRootMotion = on;
 
     // Seat clips: SitDown -> Typing (loop) while true, StandUp when false.
     public void SetSeated(bool seated) => animator.SetBool(SeatedId, seated);
 
+    // Where she is in the sit / stand sequence.
     public enum SeatPhase { None, SittingDown, Seated, StandingUp }
 
     // Seat clip being played (destination while blending into it) and its normalized time.
@@ -620,8 +660,10 @@ public class PartnerAnimator : MonoBehaviour
     // which seated clips follow the sit-down (set before SetSeated(true))
     public void SetSeatAnimation(SeatAnimation seatAnimation) => animator.SetInteger(SeatActivityId, (int)seatAnimation);
 
+    // Dealer clips at the blackjack table.
     public enum DealerClip { Idle = 0, PickDeck = 1, Deal = 2, Hold = 3, PutBack = 4, Check = 5 }
 
+    // Crossfades to a dealer clip.
     public void PlayDealerClip(DealerClip clip) => animator.CrossFadeInFixedTime(DealerStateIds[(int)clip], 0.2f, 0);
 
     // Dealer clip being played (destination while blending into it) and its normalized time.
@@ -700,14 +742,17 @@ public class PartnerAnimator : MonoBehaviour
         return i >= 0;
     }
 
+    // Back to locomotion after the keypad.
     public void EndKeypad() => animator.CrossFadeInFixedTime(LocomotionId, doorBlendTime, 0);
 
     // ------------------------------------------------------------------ cutscenes (scripted): any clip, any state
     private CutsceneClipSlots cutsceneClips;
 
+    // Cutscene clip slots ready / the current cutscene clip finished.
     public bool CanPlayCutsceneClips => cutsceneClips != null && cutsceneClips.Ready;
     public bool IsCutsceneClipDone => cutsceneClips == null || cutsceneClips.IsDone;
 
+    // Plays any clip through the alternating cutscene slots (A / B), crossfaded.
     public void PlayCutsceneClip(AnimationClip clip, float blendTime)
     {
         if (cutsceneClips == null || !cutsceneClips.Ready)
@@ -739,6 +784,7 @@ public class PartnerAnimator : MonoBehaviour
     // false when the controller has no FloorSit state (the clip was missing when menu 2 ran)
     public bool HasFloorSit => animator.HasState(0, FloorSitId);
 
+    // Sits on the floor (PartnerRest).
     public void PlayFloorSit(float blendTime)
     {
         if (!HasFloorSit) return;
@@ -755,6 +801,7 @@ public class PartnerAnimator : MonoBehaviour
         }
     }
 
+    // Stands up from the floor sit.
     public void EndFloorSit(float blendTime) => animator.CrossFadeInFixedTime(armed ? ArmedLocomotionId : LocomotionId, blendTime, 0);
 
     // ------------------------------------------------------------------ evasion (PartnerEvasion)
@@ -794,6 +841,7 @@ public class PartnerAnimator : MonoBehaviour
     // PartnerCombat keeps her facing a point while she moves (no turning in place toward the path)
     public void SetHoldFacing(bool value) => holdFacing = value;
 
+    // Speed scale of the locomotion (injured / slowed).
     public void SetLocomotionScale(float scale) => locomotionScale = Mathf.Max(0.01f, scale);
 
     // A hit reaction; armed, the version holding the weapon of her hand (her hold type). Heavy = Reaction clips.
@@ -816,6 +864,7 @@ public class PartnerAnimator : MonoBehaviour
         animator.CrossFadeInFixedTime(state, hitBlendIn, 0);
     }
 
+    // Tracks a hit reaction: exits at its exit point or timeout.
     private void UpdateHit()
     {
         hitTimer += Time.deltaTime;
@@ -826,6 +875,7 @@ public class PartnerAnimator : MonoBehaviour
         if ((inHit && info.normalizedTime >= exit) || (hitEntered && !inHit) || hitTimer > hitTimeout) EndHit();
     }
 
+    // Hit reaction over: back to locomotion.
     private void EndHit()
     {
         hitPlaying = false;
@@ -896,6 +946,7 @@ public class PartnerAnimator : MonoBehaviour
         PickupStarted?.Invoke();
     }
 
+    // Tracks the pickup: grab frame (PickupGrabbed), end (PickupFinished) or timeout.
     private void UpdatePickup()
     {
         pickupTimer += Time.deltaTime;
@@ -918,6 +969,7 @@ public class PartnerAnimator : MonoBehaviour
         }
     }
 
+    // Grab frame reached: raises PickupGrabbed.
     private void Grab()
     {
         grabbed = true;
@@ -939,6 +991,7 @@ public class PartnerAnimator : MonoBehaviour
         lookTargetWeight = Mathf.Clamp01(weight);
     }
 
+    // IK pass: right hand to the pickup / keypad / hand target, head look-at, seated feet.
     private void OnAnimatorIK(int layerIndex)
     {
         SeatedFeetIK();
@@ -970,6 +1023,7 @@ public class PartnerAnimator : MonoBehaviour
         animator.SetLookAtPosition(grabTarget);
     }
 
+    // Keeps her feet on the floor while seated.
     private void SeatedFeetIK()
     {
         animator.SetIKPositionWeight(AvatarIKGoal.LeftFoot, seatedFeetWeight);
@@ -1004,6 +1058,7 @@ public class PartnerAnimator : MonoBehaviour
         StartTurn(angle);
     }
 
+    // Starts a turn-in-place clip for an angle (picks 90 / 180, scales its rotation).
     private void StartTurn(float angle)
     {
         // (also used by PlayScriptedTurn: the agent is already stopped then, these lines change nothing)
@@ -1038,6 +1093,7 @@ public class PartnerAnimator : MonoBehaviour
         animator.SetTrigger(TurnId);
     }
 
+    // Tracks the turn: ends when the clip is done or times out.
     private void UpdateTurn()
     {
         turnTimer += Time.deltaTime;
@@ -1049,6 +1105,7 @@ public class PartnerAnimator : MonoBehaviour
             EndTurn();
     }
 
+    // Turn over: the agent walks on to its destination.
     private void EndTurn()
     {
         turning = false;

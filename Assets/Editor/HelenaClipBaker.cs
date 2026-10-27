@@ -17,6 +17,7 @@ using UnityEngine.Playables;
 // 3) the pose is read back as muscles (HumanPoseHandler); only the muscles that changed are written over the copy.
 internal static class HelenaClipBaker
 {
+    // Output folder / suffix of the adjusted clips and the comparison scene path.
     private const string OutParent = "Assets/Characters/Helena/Model2";
     internal const string OutFolder = OutParent + "/Animations";
     internal const string Suffix = "_Helena2";
@@ -26,8 +27,10 @@ internal static class HelenaClipBaker
     private const int SmoothFrames = 3;      // the left-hand weight averaged over +- this many frames (no pops)
     private const float Changed = 0.0001f;   // a muscle that moved less than this is left as it was
 
+    // Finger name parts of the Humanoid bones.
     private static readonly string[] FingerNames = { "Thumb", "Index", "Middle", "Ring", "Little" };
 
+    // Menu 21: bakes every adjusted clip and builds the comparison scene.
     [MenuItem("Last Terminal/21 - Helena 2: Bake Adjusted Weapon Clips (+ compare scene)")]
     private static void Bake()
     {
@@ -37,7 +40,7 @@ internal static class HelenaClipBaker
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
         WeaponGrips.ApplyAll();   // the grips the fingers close to
-        HelenaSetupMenu.EnsureFolder(OutParent, "Animations");
+        EditorAssets.EnsureFolder(OutParent, "Animations");
 
         AnimationClip[] clips = HelenaCompareBuilder.Clips().Where(c => HelenaCompareBuilder.WeaponFor(c.name) >= 0 && !c.name.EndsWith(Suffix)).ToArray();
         var temp = new List<GameObject>();
@@ -80,6 +83,7 @@ internal static class HelenaClipBaker
         Debug.Log($"[Bake] {baked.Count} clips in {OutFolder}. Compare: {ScenePath} (Play).");
     }
 
+    // A temporary instance of a model with its Animator.
     private static Animator Spawn(GameObject model, List<GameObject> temp)
     {
         GameObject go = Object.Instantiate(model);
@@ -220,6 +224,7 @@ internal static class HelenaClipBaker
     private static Vector3 InFrame(Vector3 v, Vector3 x, Vector3 y, Vector3 z) => new Vector3(Vector3.Dot(v, x), Vector3.Dot(v, y), Vector3.Dot(v, z));
     private static Vector3 FromFrame(Vector3 c, Vector3 x, Vector3 y, Vector3 z) => x * c.x + y * c.y + z * c.z;
 
+    // Moving average of a curve's values.
     private static float[] Smooth(float[] v, int radius)
     {
         var r = new float[v.Length];
@@ -246,6 +251,7 @@ internal static class HelenaClipBaker
     // a clip played on a model at any time (edit mode), through a playable graph evaluated by hand
     private sealed class Sampler : System.IDisposable
     {
+        // Graph that samples one clip on an Animator.
         private PlayableGraph graph;
         private AnimationClipPlayable player;
 
@@ -261,12 +267,14 @@ internal static class HelenaClipBaker
             player.Pause();
         }
 
+        // Poses the model at a clip time.
         public void Pose(float time)
         {
             player.SetTime(time);
             graph.Evaluate(0f);
         }
 
+        // Destroys the graph.
         public void Dispose()
         {
             if (graph.IsValid()) graph.Destroy();

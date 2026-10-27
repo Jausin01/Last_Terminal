@@ -16,6 +16,7 @@ using UnityEngine.AI;
 [RequireComponent(typeof(Health))]
 public class EnemyBrain : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string TypeField = nameof(type);
     public const string EnemyAnimatorField = nameof(enemyAnimator);
     public const string WeaponField = nameof(weapon);
@@ -27,17 +28,21 @@ public class EnemyBrain : MonoBehaviour
     public const string ShooterField = nameof(shooter);
     public const string TargetsField = nameof(targets);
 
+    // What the enemy is doing (a small state machine, see the top of the file).
     public enum State { Unaware, Rising, Screaming, Chasing, Attacking, Returning, Dead }
 
+    // Its type (stats, attacks) and its animator wrapper.
     [SerializeField] private EnemyType type;
     [SerializeField] private EnemyAnimator enemyAnimator;
     [Tooltip("Optional: the melee weapon in its hand.")]
     [SerializeField] private EnemyWeapon weapon;
+    // Its body collider (off once dead) and how it starts.
     [SerializeField] private Collider bodyCollider;
     [SerializeField] private EnemyStartMode startMode = EnemyStartMode.Idle;
     [Tooltip("Unique in the scene: its entry in the save files.")]
     [SerializeField] private string saveId = "enemy";
 
+    // Helena (position, health), her shooter (shots alert it) and the rooms.
     [Header("Scene")]
     [SerializeField] private Transform partner;
     [SerializeField] private Health partnerHealth;
@@ -45,6 +50,7 @@ public class EnemyBrain : MonoBehaviour
     [SerializeField] private PartnerShooter shooter;
     [SerializeField] private CommandTargets targets;
 
+    // Eye height for the line of sight (m).
     [Header("Tuning")]
     [SerializeField] private float eyeHeight = 1.6f;
     [Tooltip("Her chest, for the line of sight (m above her feet).")]
@@ -58,30 +64,39 @@ public class EnemyBrain : MonoBehaviour
     [Tooltip("Path to her refreshed every this many seconds.")]
     [SerializeField] private float repathInterval = 0.2f;
 
+    // Its agent and health.
     private NavMeshAgent agent;
     private Health health;
+    // Current state, and where / how it started (it goes back there).
     private State state;
     private Vector3 home;
     private Quaternion homeRotation;
     private bool feeding;          // in the feeding pose right now
     private float timer;           // wander pause / lost-her time
+    // Timers: repath, attack cooldown, stagger.
     private float repathTimer;
     private float cooldown;
     private float staggerTimer;
+    // Current walk speed shown by the legs (ramps up, no sliding).
     private float stepSpeed;
+    // The attack chosen, its damage, whether it already hit, and the fall direction when killed.
     private EnemyType.Attack attack;
     private int attackDamage;
     private bool attackHit;
     private bool deathBackward;
+    // Scratch list of the attacks usable right now.
     private readonly EnemyType.Attack[] usable = new EnemyType.Attack[8];
 
+    // Raised when it notices her (other systems can react).
     public event Action<EnemyBrain> Alerted;
 
+    // State read by the combat HUD, the commands and the save system.
     public State Current => state;
     public bool IsDead => state == State.Dead;
     public string SaveId => saveId;
     public EnemyType Type => type;
 
+    // Gets its components and remembers its start pose; the agent doesn't rotate it (done here).
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -98,6 +113,7 @@ public class EnemyBrain : MonoBehaviour
         agent.updateRotation = false;   // turned here (toward the path or toward her)
     }
 
+    // Listens to its health and to her shots.
     private void OnEnable()
     {
         if (health == null) return;
@@ -106,6 +122,7 @@ public class EnemyBrain : MonoBehaviour
         if (shooter != null) shooter.Fired += OnShot;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (health == null) return;
@@ -114,6 +131,7 @@ public class EnemyBrain : MonoBehaviour
         if (shooter != null) shooter.Fired -= OnShot;
     }
 
+    // Attack clip speed, then its start pose.
     private void Start()
     {
         enemyAnimator.SetAttackSpeed(type.AttackSpeed);
@@ -135,6 +153,7 @@ public class EnemyBrain : MonoBehaviour
         else if (snap) enemyAnimator.SnapLocomotion();
     }
 
+    // It noticed her: get up (feeding), scream, or chase.
     private void Alert()
     {
         if (state != State.Unaware && state != State.Returning) return;
@@ -150,12 +169,14 @@ public class EnemyBrain : MonoBehaviour
         else StartChase();
     }
 
+    // Plays the scream; the chase starts at its end.
     private void StartScream()
     {
         state = State.Screaming;
         enemyAnimator.PlayScream();
     }
 
+    // Chases her (back to locomotion).
     private void StartChase()
     {
         state = State.Chasing;
@@ -164,6 +185,7 @@ public class EnemyBrain : MonoBehaviour
         if (enemyAnimator.IsPlayingState) enemyAnimator.ToLocomotion();
     }
 
+    // Gives up: walks back to where it started.
     private void GiveUp()
     {
         state = State.Returning;
@@ -171,6 +193,7 @@ public class EnemyBrain : MonoBehaviour
         if (agent.isOnNavMesh) { agent.isStopped = false; agent.SetDestination(home); }
     }
 
+    // The state machine, then the locomotion.
     private void Update()
     {
         if (state == State.Dead) return;
@@ -211,6 +234,7 @@ public class EnemyBrain : MonoBehaviour
         UpdateLocomotion(dt);
     }
 
+    // Wander: walks to a random point of its room after each pause.
     private void UpdateWander(float dt)
     {
         if (agent.hasPath && !Arrived()) return;
@@ -224,6 +248,7 @@ public class EnemyBrain : MonoBehaviour
         }
     }
 
+    // A random point of its room on the NavMesh (6 tries).
     private bool TryWanderPoint(out Vector3 point)
     {
         point = home;
@@ -242,6 +267,7 @@ public class EnemyBrain : MonoBehaviour
         return false;
     }
 
+    // Chase: gives up after she left its room long enough; attacks when one reaches (facing her), else follows her path.
     private void UpdateChase(float dt, bool herAlive)
     {
         if (!herAlive) { GiveUp(); return; }
@@ -276,6 +302,7 @@ public class EnemyBrain : MonoBehaviour
     // ------------------------------------------------------------------ attacks
     private float Reach => weapon != null ? weapon.Reach : 0f;
 
+    // Shortest reach of its usable attacks (it stops closer than that while waiting).
     private float MinReach()
     {
         float min = float.MaxValue;
@@ -284,6 +311,7 @@ public class EnemyBrain : MonoBehaviour
         return min < float.MaxValue ? min : 1f;
     }
 
+    // Damage of an attack with its weapon (0 = this weapon can't do it).
     private int DamageOf(EnemyType.Attack a)
     {
         if (weapon == null) return a.damage;
@@ -313,6 +341,7 @@ public class EnemyBrain : MonoBehaviour
         return true;
     }
 
+    // Starts the chosen attack.
     private void StartAttack()
     {
         state = State.Attacking;
@@ -322,6 +351,7 @@ public class EnemyBrain : MonoBehaviour
         enemyAnimator.PlayAttack(attack.slot);
     }
 
+    // Attack: faces her during the wind-up, deals the hit at the hit time if she is still in the zone, then back to the chase.
     private void UpdateAttack(float dt)
     {
         float t = enemyAnimator.PlayingTime;
@@ -335,6 +365,7 @@ public class EnemyBrain : MonoBehaviour
         if (t >= attack.exitTime) EndAttack();
     }
 
+    // Is she in reach, in front of it and with nothing in between?
     private bool InHitZone()
     {
         if (partnerHealth.IsDead) return false;
@@ -343,6 +374,7 @@ public class EnemyBrain : MonoBehaviour
         return CommandTargets.Clear(transform.position + Vector3.up * 1.2f, partner.position + Vector3.up * 1.2f);
     }
 
+    // Attack over: cooldown, chase again.
     private void EndAttack()
     {
         cooldown = attack.cooldown;
@@ -362,6 +394,7 @@ public class EnemyBrain : MonoBehaviour
         return CommandTargets.Clear(transform.position + Vector3.up * eyeHeight, partner.position + Vector3.up * partnerChest);
     }
 
+    // Her shot: heard in its room or close enough.
     private void OnShot(RangedWeapon w)
     {
         if (state != State.Unaware && state != State.Returning) return;
@@ -386,6 +419,7 @@ public class EnemyBrain : MonoBehaviour
         }
     }
 
+    // Killed: falls backward if hit from the front.
     private void OnDied()
     {
         // hit from the front (she is in front of it): it falls backward
@@ -395,6 +429,7 @@ public class EnemyBrain : MonoBehaviour
         EnterDead(false);
     }
 
+    // Dead state: agent and collider off, weapon dropped, death pose (snapped on load).
     private void EnterDead(bool snap)
     {
         state = State.Dead;
@@ -487,6 +522,7 @@ public class EnemyBrain : MonoBehaviour
         }
     }
 
+    // Stops on the spot.
     private void Stop()
     {
         if (agent.enabled && agent.isOnNavMesh)
@@ -496,11 +532,14 @@ public class EnemyBrain : MonoBehaviour
         }
     }
 
+    // Reached the agent's destination.
     private bool Arrived() =>
         agent.enabled && agent.isOnNavMesh && !agent.pathPending && agent.remainingDistance <= agent.stoppingDistance + 0.1f;
 
+    // Turns toward her.
     private void FaceHer(float dt, float speedScale) => Turn(partner.position - transform.position, type.TurnSpeed * speedScale, dt);
 
+    // Turns toward a direction at a max speed.
     private void Turn(Vector3 direction, float degreesPerSecond, float dt)
     {
         direction.y = 0f;
@@ -508,6 +547,7 @@ public class EnemyBrain : MonoBehaviour
         transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(direction), degreesPerSecond * dt);
     }
 
+    // Is the point within an angle of its forward?
     private bool Facing(Vector3 point, float maxAngle)
     {
         Vector3 to = point - transform.position;
@@ -515,6 +555,7 @@ public class EnemyBrain : MonoBehaviour
         return to.sqrMagnitude < 0.0001f || Vector3.Angle(transform.forward, to) <= maxAngle;
     }
 
+    // Floor distance to a point.
     private float FlatDistance(Vector3 point)
     {
         Vector3 d = point - transform.position;

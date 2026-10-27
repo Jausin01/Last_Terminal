@@ -11,6 +11,7 @@ using UnityEngine.InputSystem;
 // Keyboard / gamepad: up/down = slot, left/right = SAVE/LOAD, Enter = confirm, Esc = exit.
 public class SaveScreen : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string SaveSystemField = nameof(saveSystem);
     public const string PanelField = nameof(panel);
     public const string FaderField = nameof(fader);
@@ -19,17 +20,21 @@ public class SaveScreen : MonoBehaviour
     public const string StatusTextField = nameof(statusText);
     public const string HintTextField = nameof(hintText);
 
+    // How the screen was closed.
     public enum Result { Cancelled, Saved, Loaded }
 
+    // The save system and the screen's panel.
     [SerializeField] private SaveSystem saveSystem;
     [SerializeField] private CanvasGroup panel;
     [Tooltip("Full-screen black, used to hide the jump when a save is loaded.")]
     [SerializeField] private CanvasGroup fader;
+    // Header, slot list, status line and key hint.
     [SerializeField] private TMP_Text headerText;
     [SerializeField] private TMP_Text bodyText;
     [SerializeField] private TMP_Text statusText;
     [SerializeField] private TMP_Text hintText;
 
+    // Timings (s): fade, boot typing speed (chars/s), "writing" bar, done message, black between load fades.
     [Header("Timing (s, unscaled)")]
     [SerializeField] private float fadeTime = 0.3f;
     [SerializeField] private float bootCharsPerSecond = 160f;
@@ -37,11 +42,13 @@ public class SaveScreen : MonoBehaviour
     [SerializeField] private float doneTime = 1.0f;
     [SerializeField] private float blackTime = 0.4f;
 
+    // CRT colors and the name in the header.
     [Header("Look")]
     [SerializeField] private Color phosphor = new Color(0.45f, 1f, 0.55f);
     [SerializeField] private Color dim = new Color(0.2f, 0.55f, 0.28f);
     [SerializeField] private string terminalName = "SECURITY NET  v2.11";
 
+    // Navigation input (bindings added when empty).
     [Header("Input (bindings added when empty)")]
     [SerializeField] private InputAction up = new InputAction("Up", InputActionType.Button);
     [SerializeField] private InputAction down = new InputAction("Down", InputActionType.Button);
@@ -50,9 +57,11 @@ public class SaveScreen : MonoBehaviour
     [SerializeField] private InputAction submit = new InputAction("Submit", InputActionType.Button);
     [SerializeField] private InputAction cancel = new InputAction("Cancel", InputActionType.Button);
 
+    // Screen states and the SAVE / LOAD mode.
     private enum State { Closed, Opening, Browsing, ConfirmOverwrite, Writing, Done, LoadingOut, LoadingIn, Closing }
     private enum Mode { Save, Load }
 
+    // State, mode, selected slot, timer, the station name, where to put her back after a load, the close callback, the result, the slot lines and the text builder.
     private State state;
     private Mode mode;
     private int selected;
@@ -65,8 +74,10 @@ public class SaveScreen : MonoBehaviour
     private string[] slotLines;
     private readonly StringBuilder sb = new StringBuilder(512);
 
+    // The screen is open.
     public bool IsOpen => state != State.Closed;
 
+    // Adds default bindings; checks references; hidden at start.
     private void Awake()
     {
         AddDefaultBindings(up, "<Keyboard>/upArrow", "<Keyboard>/w", "<Gamepad>/dpad/up");
@@ -84,6 +95,7 @@ public class SaveScreen : MonoBehaviour
         }
     }
 
+    // Enables the input and hooks the buttons.
     private void OnEnable()
     {
         up.performed += OnUp;
@@ -94,6 +106,7 @@ public class SaveScreen : MonoBehaviour
         cancel.performed += OnCancel;
     }
 
+    // Unhooks and disables the input.
     private void OnDisable()
     {
         up.performed -= OnUp;
@@ -130,6 +143,7 @@ public class SaveScreen : MonoBehaviour
         return true;
     }
 
+    // Each frame: fades, boot text, writing progress, load fades.
     private void Update()
     {
         if (state == State.Closed) return;
@@ -183,6 +197,7 @@ public class SaveScreen : MonoBehaviour
         }
     }
 
+    // Boot done: slot list shown.
     private void EnterBrowsing()
     {
         state = State.Browsing;
@@ -198,6 +213,7 @@ public class SaveScreen : MonoBehaviour
     private void OnLeft(InputAction.CallbackContext ctx) => SetMode(Mode.Save);
     private void OnRight(InputAction.CallbackContext ctx) => SetMode(Mode.Load);
 
+    // Moves the slot cursor.
     private void MoveSelection(int delta)
     {
         if (state != State.Browsing) return;
@@ -206,6 +222,7 @@ public class SaveScreen : MonoBehaviour
         RedrawBody();
     }
 
+    // SAVE / LOAD mode switch.
     private void SetMode(Mode m)
     {
         if (state != State.Browsing || mode == m) return;
@@ -213,6 +230,7 @@ public class SaveScreen : MonoBehaviour
         EnterBrowsing();
     }
 
+    // Enter: confirm overwrite, save or load the slot.
     private void OnSubmit(InputAction.CallbackContext ctx)
     {
         if (state == State.ConfirmOverwrite) { StartWriting(); return; }
@@ -236,6 +254,7 @@ public class SaveScreen : MonoBehaviour
         EnableInput(false);
     }
 
+    // Esc: back out of a confirmation, or exit.
     private void OnCancel(InputAction.CallbackContext ctx)
     {
         if (state == State.ConfirmOverwrite) { EnterBrowsing(); return; }
@@ -250,6 +269,7 @@ public class SaveScreen : MonoBehaviour
         EnableInput(false);
     }
 
+    // Writing bar done: the slot is saved.
     private void FinishWriting()
     {
         bool ok = saveSystem.Save(selected, location, resumePosition, resumeYaw);
@@ -260,6 +280,7 @@ public class SaveScreen : MonoBehaviour
         timer = 0f;
     }
 
+    // Starts fading out with a result.
     private void StartClosing(Result r)
     {
         result = r;
@@ -268,6 +289,7 @@ public class SaveScreen : MonoBehaviour
         EnableInput(false);
     }
 
+    // Closed: callback with the result and slot.
     private void Close(Result r)
     {
         Action<Result, int> callback = onClosed;
@@ -285,6 +307,7 @@ public class SaveScreen : MonoBehaviour
         return sb.ToString();
     }
 
+    // Rebuilds the slot lines from the files.
     private void RefreshSlots()
     {
         int n = saveSystem.SlotCount;
@@ -303,6 +326,7 @@ public class SaveScreen : MonoBehaviour
         }
     }
 
+    // Redraws the list with the cursor and the mode.
     private void RedrawBody()
     {
         string on = ColorUtility.ToHtmlStringRGB(phosphor);
@@ -320,8 +344,10 @@ public class SaveScreen : MonoBehaviour
         bodyText.text = sb.ToString();
     }
 
+    // A text progress bar.
     private static string Bar(float t)
     {
+        // Bar length in characters.
         const int width = 20;
         int filled = Mathf.Clamp(Mathf.RoundToInt(Mathf.Clamp01(t) * width), 0, width);
         return "[" + new string('#', filled) + new string('.', width - filled) + "] " + Mathf.RoundToInt(Mathf.Clamp01(t) * 100f) + "%";
@@ -337,12 +363,14 @@ public class SaveScreen : MonoBehaviour
         }
     }
 
+    // Adds bindings to an action that has none.
     private static void AddDefaultBindings(InputAction action, params string[] paths)
     {
         if (action.bindings.Count > 0) return;
         foreach (string p in paths) action.AddBinding(p);
     }
 
+    // Sets a CanvasGroup's alpha (interactive only when visible).
     private static void SetVisible(CanvasGroup group, float alpha)
     {
         if (group == null) return;

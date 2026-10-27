@@ -11,8 +11,10 @@ using L = PinballLayout;
 // for 20 s). Ball save for the first seconds of each ball. Three balls. No visuals here (PinballMachine shows it).
 public class PinballTable
 {
+    // Table events PinballMachine turns into sounds.
     public enum Sound { Flipper, Bumper, Sling, Lane, Target, Saucer, Kickout, Launch, Drain, Enchanted, BallSaved, ExtraBall }
 
+    // Rules and physics constants: balls per game, mana to enchant, the fixed step (s), the ball speed cap, flipper speed, ball save and enchanted time (s).
     public const int BallsPerGame = 3;
     public const int ManaMax = 100;
     private const float Step = 1f / 960f;
@@ -44,10 +46,12 @@ public class PinballTable
     public bool BallInLane => BallVisible && BallPos.x > L.LaneWall && BallPos.y < 0.2f;
     public bool Captured => captureTimer > 0f;
 
+    // Raised on every table event (sound), a backbox message and the end of a game.
     public event Action<Sound> Played;
     public event Action<string, float> Message;    // text, seconds
     public event Action<long> GameEnded;           // final score
 
+    // Simulation state: flipper buttons and angular speeds, which sensors the ball is in, ball position / velocity, the step accumulator, saucer hold / cooldown, stuck timer, drain pause, launch state, bonus, extra balls given, randomness, and a bonus being shown.
     private readonly bool[] flipperHeld = new bool[2];
     private readonly float[] flipperOmega = new float[2];
     private readonly bool[] inSensor = new bool[8];
@@ -61,6 +65,7 @@ public class PinballTable
     private long bonus;
     private int extraBallsAwarded;
     private readonly System.Random rng = new System.Random();
+    private bool pendingBonus;         // a drain bonus is being shown (AfterDrain serves the next ball)
 
     public PinballTable()
     {
@@ -95,6 +100,7 @@ public class PinballTable
         launchHeld = held;
     }
 
+    // New game: score, lights and counters reset, first ball served.
     public void StartGame()
     {
         Score = 0;
@@ -113,6 +119,7 @@ public class PinballTable
         ServeBall();
     }
 
+    // Puts a new ball in the shooter lane (ball save on).
     private void ServeBall()
     {
         pos = L.BallStart;
@@ -156,12 +163,14 @@ public class PinballTable
         Sync();
     }
 
+    // Copies the ball state to the public read-only properties.
     private void Sync()
     {
         BallPos = pos;
         BallVel = vel;
     }
 
+    // Swings each flipper toward its rest / raised angle.
     private void StepFlippers(float dt)
     {
         for (int i = 0; i < 2; i++)
@@ -174,6 +183,7 @@ public class PinballTable
         }
     }
 
+    // One fixed step of the ball: gravity, walls, posts, bumpers, slings, flippers, plunger, sensors, drain.
     private void StepBall(float dt)
     {
         if (captureTimer > 0f)
@@ -236,6 +246,7 @@ public class PinballTable
         }
     }
 
+    // Pushes the ball out of a capsule wall and bounces it; vn = speed into the wall.
     private bool CollideSegmentRaw(Vector2 a, Vector2 b, float radius, float bounce, out float vn) =>
         CollideSegmentRaw(a, b, radius, bounce, out vn, out _);
 
@@ -250,6 +261,7 @@ public class PinballTable
         return Resolve(q, radius, Vector2.zero, bounce, out vn, out n);
     }
 
+    // Pushes the ball out of a circle and bounces it.
     private bool CollideCircle(Vector2 c, float r, float bounce)
     {
         return Resolve(c, r, Vector2.zero, bounce, out _, out _);
@@ -280,6 +292,7 @@ public class PinballTable
         return true;
     }
 
+    // Ball against a moving flipper (adds the flipper's surface speed).
     private void CollideFlipper(int i)
     {
         L.FlipperDef f = L.Flippers[i];
@@ -295,6 +308,7 @@ public class PinballTable
         Resolve(q, r, surface, 0.3f, out _, out _);
     }
 
+    // Ball against the plunger in the shooter lane (the launch).
     private void CollidePlunger()
     {
         if (pos.x < L.LaneWall) return;
@@ -323,6 +337,7 @@ public class PinballTable
             }
     }
 
+    // Did the ball just enter this sensor circle (once per pass)?
     private bool Enter(int index, L.Circle c)
     {
         bool inside = (pos - c.C).sqrMagnitude < c.R * c.R;
@@ -331,6 +346,7 @@ public class PinballTable
         return entered;
     }
 
+    // Dragon's Lair saucer: holds the ball, counts dragons, lights the extra ball.
     private void Saucer()
     {
         if (saucerCooldown > 0f) return;
@@ -355,6 +371,7 @@ public class PinballTable
         else Message?.Invoke($"DRAGON'S LAIR  {Format(award * (EnchantedLeft > 0f ? 2 : 1))}", 1.6f);
     }
 
+    // Kicks the held ball out of the saucer.
     private void KickOut()
     {
         Vector2 dir = (L.SaucerKick + new Vector2((float)(rng.NextDouble() - 0.5) * 0.25f, 0f)).normalized;
@@ -364,6 +381,7 @@ public class PinballTable
         Played?.Invoke(Sound.Kickout);
     }
 
+    // Pop bumper hit: kick, points, mana, flash.
     private void BumperHit(int i)
     {
         Vector2 n = (pos - L.Bumpers[i].C).normalized;
@@ -376,6 +394,7 @@ public class PinballTable
         Played?.Invoke(Sound.Bumper);
     }
 
+    // Drop target hit: down, points; all three = bonus and reset.
     private void TargetHit(int i)
     {
         TargetDown[i] = true;
@@ -392,6 +411,7 @@ public class PinballTable
         }
     }
 
+    // Rollover lane: lit; all four = multiplier up.
     private void LaneHit(int i)
     {
         AddScore(LaneLit[i] ? 100 : 500);
@@ -417,6 +437,7 @@ public class PinballTable
         for (int i = 0; i < 4; i++) LaneLit[(i + dir + 4) % 4] = old[i];
     }
 
+    // Adds mana; full = ENCHANTED (double score for a while).
     private void AddMana(int amount)
     {
         if (EnchantedLeft > 0f) return;
@@ -428,8 +449,10 @@ public class PinballTable
         Played?.Invoke(Sound.Enchanted);
     }
 
+    // Adds points (doubled while enchanted).
     private void AddScore(long points) => Score += points * (EnchantedLeft > 0f ? 2 : 1);
 
+    // Nudges a ball that stopped moving somewhere it shouldn't.
     private void CheckStuck(float dt)
     {
         if (vel.sqrMagnitude > 0.03f * 0.03f || pos.y < 0.22f || pos.x > L.LaneWall) { stuckTimer = 0f; return; }
@@ -460,8 +483,7 @@ public class PinballTable
         pendingBonus = true;
     }
 
-    private bool pendingBonus;
-
+    // After the drain pause: ball saved, extra ball, next ball or game over.
     private void AfterDrain()
     {
         if (!pendingBonus) { ServeBall(); return; }   // saved
@@ -488,5 +510,6 @@ public class PinballTable
         ServeBall();
     }
 
+    // A score with thousands separators.
     public static string Format(long n) => n.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
 }

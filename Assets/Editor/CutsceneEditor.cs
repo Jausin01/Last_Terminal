@@ -6,12 +6,11 @@ using UnityEditor;
 using UnityEngine;
 
 // The Cutscene inspector: the steps as a list (each with its summary; open one to edit it), move up / down,
-// duplicate, delete, "+ Adicionar passo" (menu by category), groups ("Ao mesmo tempo") edited inside. In Play mode:
+// duplicate, delete, "+ Add step" (menu by category), groups ("At the same time") edited inside. In Play mode:
 // a button to play it now. In the Scene view: where each step sends someone and where each shot is taken from.
 [CustomEditor(typeof(Cutscene))]
 public class CutsceneEditor : Editor
 {
-    private static readonly Color StepColor = new Color(0.22f, 0.22f, 0.25f);
     private static List<(string menu, int order, Type type)> stepTypes;
 
     private static List<(string menu, int order, Type type)> StepTypes
@@ -31,6 +30,7 @@ public class CutsceneEditor : Editor
         }
     }
 
+    // Caches the serialized steps.
     private void OnEnable()
     {
         // a cutscene without its director (made by hand): the scene's one
@@ -43,6 +43,7 @@ public class CutsceneEditor : Editor
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 
+    // Draws the step list (and the play button in Play mode).
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
@@ -74,6 +75,7 @@ public class CutsceneEditor : Editor
         serializedObject.ApplyModifiedProperties();
     }
 
+    // Draws a list of steps (nested for groups): summary, foldout, move / duplicate / delete.
     private void DrawList(SerializedProperty list, int depth)
     {
         // changes to the list are made after drawing it (never in the middle of a layout group)
@@ -118,7 +120,7 @@ public class CutsceneEditor : Editor
             EditorGUILayout.EndVertical();
         }
 
-        if (GUILayout.Button(depth == 0 ? "+ Adicionar passo" : "+ Adicionar passo ao grupo", GUILayout.Height(depth == 0 ? 24 : 20)))
+        if (GUILayout.Button(depth == 0 ? "+ Add step" : "+ Add step to the group", GUILayout.Height(depth == 0 ? 24 : 20)))
             AddMenu(list);
 
         switch (op)
@@ -130,6 +132,7 @@ public class CutsceneEditor : Editor
         }
     }
 
+    // The "+ Add step" menu by category.
     private void AddMenu(SerializedProperty list)
     {
         var menu = new GenericMenu();
@@ -162,6 +165,7 @@ public class CutsceneEditor : Editor
         if (helena != null && f != null && f.FieldType == typeof(CutsceneActor)) f.SetValue(step, helena);
     }
 
+    // Duplicates a step (deep copy).
     private void Duplicate(SerializedProperty list, int index, CutsceneStep value)
     {
         var copy = (CutsceneStep)Activator.CreateInstance(value.GetType());
@@ -196,6 +200,7 @@ public class CutsceneEditor : Editor
         }
     }
 
+    // Scene view marker with a label, linked to the previous one.
     private static void Mark(Transform t, string label, Color color, ref Vector3? last)
     {
         Handles.color = color;
@@ -206,6 +211,7 @@ public class CutsceneEditor : Editor
         last = t.position;
     }
 
+    // Every step, groups opened.
     private static IEnumerable<CutsceneStep> Flatten(IEnumerable<CutsceneStep> steps)
     {
         foreach (CutsceneStep s in steps)

@@ -5,11 +5,13 @@ using UnityEngine;
 // Each new clip goes into the slot that isn't playing, so one clip can crossfade into the next.
 public class CutsceneClipSlots
 {
+    // The two placeholder state names in the controller, and their hashes.
     public const string StateA = "CutsceneA";
     public const string StateB = "CutsceneB";
     private static readonly int StateAId = Animator.StringToHash(StateA);
     private static readonly int StateBId = Animator.StringToHash(StateB);
 
+    // The animator, its override controller, and the two placeholder clips that get replaced.
     private readonly Animator animator;
     private readonly AnimatorOverrideController overrides;
     private readonly AnimationClip slotA, slotB;
@@ -30,8 +32,10 @@ public class CutsceneClipSlots
         Ready = animator.HasState(0, StateAId) && animator.HasState(0, StateBId);
     }
 
+    // A clip is playing in one of the slots.
     public bool IsPlaying => current >= 0;
 
+    // Plays a clip in the free slot (crossfading from the other one).
     public void Play(AnimationClip clip, float blend)
     {
         if (!Ready || clip == null) return;

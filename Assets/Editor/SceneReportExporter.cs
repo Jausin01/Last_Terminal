@@ -21,13 +21,16 @@ using Object = UnityEngine.Object;
 // The scene isn't changed (everything temporary is removed, lighting put back).
 internal static class SceneReportExporter
 {
+    // Limits: labels on the map picture, camera shots, plan cut height (m).
     private const int MaxLabels = 70;
     private const int MaxCameras = 10;
     private const float CutHeight = 2.2f;
 
+    // Types listed without their fields.
     private static readonly HashSet<Type> PlainTypes = new HashSet<Type>
         { typeof(Transform), typeof(MeshFilter), typeof(MeshRenderer), typeof(SkinnedMeshRenderer), typeof(RectTransform) };
 
+    // Menu 15: writes the report folder and zips it.
     [MenuItem("Last Terminal/15 - Export Scene Report (for Claude)")]
     public static void Export()
     {
@@ -62,9 +65,11 @@ internal static class SceneReportExporter
         foreach (Transform c in go.transform) Collect(c.gameObject, into);
     }
 
+    // Our own components on an object (not Unity's).
     private static IEnumerable<MonoBehaviour> OurScripts(GameObject go) =>
         go.GetComponents<MonoBehaviour>().Where(m => m != null && m.GetType().Assembly.GetName().Name.StartsWith("Assembly-CSharp") && !(m is DesignNote));
 
+    // Hierarchy path of a transform.
     private static string PathOf(Transform t)
     {
         var parts = new List<string>();
@@ -73,8 +78,10 @@ internal static class SceneReportExporter
         return string.Join("/", parts);
     }
 
+    // A vector as short text.
     private static string V(Vector3 v) => $"({v.x:0.##}, {v.y:0.##}, {v.z:0.##})";
 
+    // World bounds of an object's renderers.
     private static bool WorldBounds(GameObject go, out Bounds b)
     {
         b = new Bounds();
@@ -95,6 +102,7 @@ internal static class SceneReportExporter
         return true;
     }
 
+    // Is the object a part of an imported model?
     private static bool InsideModel(GameObject go) =>
         PrefabUtility.IsPartOfPrefabInstance(go) && PrefabUtility.GetOutermostPrefabInstanceRoot(go) != go;
 
@@ -108,6 +116,7 @@ internal static class SceneReportExporter
         return sb.ToString();
     }
 
+    // One hierarchy line with its components.
     private static void Line(StringBuilder sb, GameObject go, int depth)
     {
         Transform t = go.transform;
@@ -135,6 +144,7 @@ internal static class SceneReportExporter
         if (summed > 0) sb.Append(new string(' ', (depth + 1) * 2)).AppendLine($"~{summed} mesh pieces");
     }
 
+    // A component and its serialized values.
     private static string Describe(Component c, bool full)
     {
         switch (c)
@@ -168,6 +178,7 @@ internal static class SceneReportExporter
         return sb.ToString();
     }
 
+    // A serialized value as text.
     private static string Value(SerializedProperty p, int depth)
     {
         switch (p.propertyType)
@@ -202,6 +213,7 @@ internal static class SceneReportExporter
         return p.propertyType.ToString();
     }
 
+    // An object reference as text.
     private static string Ref(Object o)
     {
         if (o == null) return "null";
@@ -274,6 +286,7 @@ internal static class SceneReportExporter
         return sb.ToString();
     }
 
+    // World bounds of every object.
     private static bool WorldBoundsAll(List<GameObject> all, out Bounds b)
     {
         b = new Bounds();
@@ -393,6 +406,7 @@ internal static class SceneReportExporter
         return made;
     }
 
+    // Renders a camera to a PNG file.
     private static void Shoot(Camera cam, string file, int w, int h, List<string> made)
     {
         var rt = RenderTexture.GetTemporary(w, h, 24, RenderTextureFormat.ARGB32);
@@ -415,6 +429,7 @@ internal static class SceneReportExporter
         finally { RenderTexture.ReleaseTemporary(rt); }
     }
 
+    // A string safe for a file name.
     private static string Safe(string s) => string.Concat(s.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_'));
 
     // System.IO.Compression.ZipFile when the scripting profile has it (else the folder is sent as it is)

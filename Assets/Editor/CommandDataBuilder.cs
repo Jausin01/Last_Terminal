@@ -11,15 +11,18 @@ using UnityEngine;
 // (missing verbs / names / lines are added; edits and assigned clips are kept).
 public static class CommandDataBuilder
 {
+    // Asset folders and paths: lexicons, the voice bank, the recorded takes and the recording script.
     private const string CommandsFolder = "Assets/Data/Commands";
     private const string VoiceFolder = "Assets/Data/Voice";
     private const string VoiceBankPath = VoiceFolder + "/HelenaVoiceLines.asset";
     public const string VoiceAudioFolder = "Assets/Audio/Voice/Helena";
     private const string ScriptPath = VoiceAudioFolder + "/ROTEIRO_Helena.md";
 
+    // Lexicon asset path of a language.
     private static string LexiconPath(GameLanguage language) =>
         $"{CommandsFolder}/Lexicon_{(language == GameLanguage.Portuguese ? "PT" : "EN")}.asset";
 
+    // Audio subfolder of a language (EN / PT).
     private static string LanguageFolder(GameLanguage language) =>
         $"{VoiceAudioFolder}/{(language == GameLanguage.Portuguese ? "PT" : "EN")}";
 
@@ -30,7 +33,7 @@ public static class CommandDataBuilder
         string current = parts[0];
         for (int i = 1; i < parts.Length; i++)
         {
-            HelenaSetupMenu.EnsureFolder(current, parts[i]);
+            EditorAssets.EnsureFolder(current, parts[i]);
             current += "/" + parts[i];
         }
     }
@@ -69,6 +72,7 @@ public static class CommandDataBuilder
     // names no scene has any more (removed from the lexicons so their phrases don't shadow the new ones)
     private static readonly string[] ObsoleteNames = { "Card Tables", "Slot Floor" };
 
+    // English phrases of each verb.
     private static readonly (CommandVerb verb, string[] phrases)[] EnglishVerbs =
     {
         (CommandVerb.GoTo, new[] { "go", "go to", "go into", "go inside", "walk", "walk to", "head", "head to", "move", "move to",
@@ -157,7 +161,7 @@ public static class CommandDataBuilder
     {
         (CommandVerb.GoTo, new[] { "vai", "va", "vai para", "vai pra", "vai pro", "vai ate", "ir", "ir para", "anda", "anda ate", "ande",
                                    "corre", "corra", "entra", "entre", "entra no", "entra na", "segue", "siga", "volta", "volte" }),
-        // "olha a cama": ela vai até a coisa e comenta ("olha" / "confere" eram GoTo antes)
+        // "look at the bed" / "olha a cama": she walks up to the thing and comments on it ("olha" / "confere" used to be GoTo)
         (CommandVerb.Examine, new[] { "olha", "olhe", "olha a", "olha o", "examina", "examine", "verifica", "verifique", "confere", "confira",
                                       "investiga", "investigue", "o que e isso", "o que tem", "da uma olhada", "de uma olhada", "observa",
                                       "observe", "le", "leia", "procura", "procure", "vasculha" }),
@@ -257,6 +261,7 @@ public static class CommandDataBuilder
         (CommandModifier.Farthest, new[] { "farthest", "furthest", "far", "far one", "farther", "farthest one", "furthest one" }),
     };
 
+    // Portuguese phrases of each modifier.
     private static readonly (CommandModifier modifier, string[] phrases)[] PortugueseModifiers =
     {
         (CommandModifier.Other, new[] { "outro", "outra", "o outro", "a outra", "proximo", "proxima" }),
@@ -306,6 +311,7 @@ public static class CommandDataBuilder
         (1000, new[] { "a thousand", "one thousand", "thousand" }, new[] { "mil" }),
     };
 
+    // Portuguese number words (each number's spellings).
     private static readonly string[][] PortugueseNumbers =
     {
         new[] { "um", "uma", "primeiro", "primeira" }, new[] { "dois", "duas", "segundo", "segunda" }, new[] { "tres", "terceiro", "terceira" },
@@ -313,6 +319,7 @@ public static class CommandDataBuilder
         new[] { "sete", "setimo", "setima" }, new[] { "oito", "oitavo", "oitava" }, new[] { "nove", "nono", "nona" }, new[] { "dez", "decimo", "decima" },
     };
 
+    // Words that point back to the last thing named, per language.
     private static readonly string[] EnglishPronouns = { "it", "that", "this", "there", "them", "those" };
     private static readonly string[] PortuguesePronouns = { "isso", "isto", "aquilo", "ali", "la", "ele", "ela", "nele", "nela" };
 
@@ -384,6 +391,7 @@ public static class CommandDataBuilder
         return bank;
     }
 
+    // Every line Helena says: id, context for the actress, English, Portuguese.
     private static readonly (PartnerLine line, string context, string en, string pt)[] Lines =
     {
         (PartnerLine.Acknowledge, "Recebeu uma ordem e vai fazer (pegar, abrir porta, atacar).", "Okay.", "Tá bom."),
@@ -513,6 +521,7 @@ public static class CommandDataBuilder
         (PartnerLine.OutfitBunny, "Vestiu a roupa de coelhinha (o prêmio mais caro do cassino). Sem graça, mas entrando na brincadeira.", "...Seriously? You're lucky I like you.", "...Sério? Sorte sua que eu gosto de você."),
     };
 
+    // Menu 5: assigns the recorded takes (file name = line id) to the voice bank.
     [MenuItem("Last Terminal/5 - Assign Helena Voice Clips")]
     public static void AssignVoiceClips()
     {
@@ -548,6 +557,7 @@ public static class CommandDataBuilder
         Debug.Log(report + " (lines without a recording show as subtitles only).");
     }
 
+    // Writes the recording script (markdown) for the voice actress.
     [MenuItem("Last Terminal/6 - Export Voice Script")]
     public static void ExportScript()
     {
@@ -558,6 +568,7 @@ public static class CommandDataBuilder
         Debug.Log("[Voice] Script written: " + ScriptPath);
     }
 
+    // The script text: every line with its context and file names.
     private static string BuildScript(VoiceLineBank bank)
     {
         var sb = new StringBuilder();

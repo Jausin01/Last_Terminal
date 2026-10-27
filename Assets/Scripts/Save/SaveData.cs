@@ -6,19 +6,24 @@ using UnityEngine;
 [Serializable]
 public class SaveData
 {
+    // Format version of the save file.
     public const int CurrentVersion = 1;
 
+    // Version of this file.
     public int version = CurrentVersion;
     public string savedAt;          // local date/time, ISO 8601
     public float playTime;          // seconds
     public string location;         // name of the save station
+    // Scene she was in.
     public string scene;
 
+    // Her position, facing, health and inventory.
     public Vector3 position;
     public float yaw;
     public int health;
     public List<SavedStack> inventory = new List<SavedStack>();
     public List<int> magazines = new List<int>();   // rounds in each loadout weapon
+    // Weapon selected and whether it was drawn.
     public int selectedWeapon;
     public bool armed;
     public List<SavedStack> pickups = new List<SavedStack>();   // pickup save id -> what is left
@@ -36,15 +41,20 @@ public class SaveData
 [Serializable]
 public class SceneWorld
 {
+    // Scene name.
     public string scene;
+    // What is left of each pickup, and the enemies.
     public List<SavedStack> pickups = new List<SavedStack>();
     public List<SavedEnemy> enemies = new List<SavedEnemy>();
 }
 
+// One enemy by save id: dead, health, where it was and how it fell.
 [Serializable]
 public class SavedEnemy
 {
+    // Save id.
     public string id;
+    // State and pose.
     public bool dead;
     public int health;
     public Vector3 position;
@@ -52,10 +62,13 @@ public class SavedEnemy
     public bool fellBackward;
 }
 
+// An item id (or pickup id) and an amount.
 [Serializable]
 public class SavedStack
 {
+    // Item / pickup id.
     public string id;
+    // Units.
     public int amount;
 
     public SavedStack() { }   // for the JSON serializer

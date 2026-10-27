@@ -13,6 +13,7 @@ using UnityEngine.SceneManagement;
 // Every reference is assigned in the scene (the Last Terminal menus build it); nothing is searched at runtime.
 public class SaveSystem : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string AgentField = nameof(agent);
     public const string HealthField = nameof(health);
     public const string InventoryField = nameof(inventory);
@@ -27,6 +28,7 @@ public class SaveSystem : MonoBehaviour
     public const string SessionField = nameof(session);
     public const string StoryField = nameof(story);
 
+    // Her components saved / restored: agent (position), health, inventory, combat (weapon drawn), shooter (magazines), weapon holder.
     [Header("Partner")]
     [SerializeField] private NavMeshAgent agent;
     [SerializeField] private Health health;
@@ -35,6 +37,7 @@ public class SaveSystem : MonoBehaviour
     [SerializeField] private PartnerShooter shooter;
     [SerializeField] private WeaponHolder weaponHolder;
 
+    // Item ids -> assets, and the pickups of this scene.
     [Header("World")]
     [SerializeField] private ItemDatabase itemDatabase;
     [SerializeField] private Pickup[] pickups = new Pickup[0];
@@ -49,23 +52,30 @@ public class SaveSystem : MonoBehaviour
     [Tooltip("Optional: the story flags (the operator's files).")]
     [SerializeField] private StoryProgress story;
 
+    // Number of slots and the file name prefix.
     [SerializeField, Min(1)] private int slotCount = 3;
     [SerializeField] private string filePrefix = "save_";
 
+    // Play time carried over from the loaded save.
     private float playTimeOffset;
 
+    // Raised after a slot is written / loaded.
     public event Action<int> Saved;
     public event Action<int> Loaded;
     public event Action<string, string> TransferArrived;   // she came from another scene: arrival stop id, the stop she left (null = a save loaded)
 
+    // Slots, total play time, and the active scene.
     public int SlotCount => slotCount;
     public float PlayTime => playTimeOffset + Time.timeSinceLevelLoad;
     private static string SceneName => SceneManager.GetActiveScene().name;
 
+    // File path of a slot.
     private string PathFor(int slot) => Path.Combine(Application.persistentDataPath, $"{filePrefix}{slot + 1}.json");
 
+    // Does the slot have a file?
     public bool HasSave(int slot) => File.Exists(PathFor(slot));
 
+    // Takes the state carried from another scene (elevator / save), if any.
     private void Start()
     {
         if (session == null || !session.TakeTransfer(out SaveData data, out string stop, out string origin, out bool fromSave)) return;
@@ -87,6 +97,7 @@ public class SaveSystem : MonoBehaviour
         return best;
     }
 
+    // Reads a slot's file (false if missing or broken).
     public bool TryRead(int slot, out SaveData data)
     {
         data = null;
@@ -160,6 +171,7 @@ public class SaveSystem : MonoBehaviour
         return data;
     }
 
+    // Captures this scene's pickups and enemies.
     private SceneWorld CaptureWorld()
     {
         var world = new SceneWorld { scene = SceneName };
@@ -259,6 +271,7 @@ public class SaveSystem : MonoBehaviour
             if (e != null) e.Restore(world.enemies.Find(x => x.id == e.SaveId));
     }
 
+    // Play time as h:mm:ss.
     public static string FormatPlayTime(float seconds)
     {
         int s = Mathf.Max(0, Mathf.FloorToInt(seconds));

@@ -9,18 +9,24 @@ using UnityEngine;
 // Written to <project>/PoseReports/<clip>_<time>.json.
 public static class PoseReport
 {
+    // One bone: world position / rotation and local position / rotation.
     [Serializable] public class Bone { public string name; public Vector3 p; public Quaternion r; public Vector3 lp; public Quaternion lr; }
 
+    // Everything about one model on that frame.
     [Serializable] public class Model
     {
+        // Label, Humanoid or not, avatar name, root pose.
         public string label;
         public bool isHuman;
         public string avatar;
         public Vector3 rootPos; public Quaternion rootRot;
+        // Bones as the clip posed them and after the grip ran.
         public Bone[] anim;
         public Bone[] final;
+        // Hand frame (from the fingers).
         public bool fingersFound;
         public Vector3 frameOrigin, frameFingers, frameAcross, frameNormal;
+        // Weapon: name, active, pose, its markers, aim, hold data and fingers closed.
         public string weapon;
         public bool weaponActive;
         public Vector3 weaponPos; public Quaternion weaponRot;
@@ -30,8 +36,10 @@ public static class PoseReport
         public int rightFingers, leftFingers;
     }
 
+    // The report file: clip, time and the models.
     [Serializable] public class Report { public string clip; public float time; public Model[] models; }
 
+    // Every Humanoid bone of an Animator.
     public static Bone[] Snapshot(Animator a)
     {
         var list = new List<Bone>();
@@ -47,9 +55,11 @@ public static class PoseReport
         return list.ToArray();
     }
 
+    // One bone entry.
     private static Bone Make(string name, Transform t) =>
         new Bone { name = name, p = t.position, r = t.rotation, lp = t.localPosition, lr = t.localRotation };
 
+    // Describes a model and its weapon.
     public static Model Describe(string label, Animator a, Bone[] anim, bool fingersFound, Weapon w, float aim)
     {
         var m = new Model
@@ -74,6 +84,7 @@ public static class PoseReport
         return m;
     }
 
+    // Writes the report JSON; returns its path.
     public static string Write(Report report)
     {
         string folder = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "PoseReports"));

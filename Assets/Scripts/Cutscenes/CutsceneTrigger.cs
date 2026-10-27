@@ -6,28 +6,35 @@ using UnityEngine;
 // It waits for the director (the operator at the cameras, no fight) and fires once.
 public class CutsceneTrigger : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string CutsceneField = nameof(cutscene);
     public const string WhenField = nameof(when);
     public const string RoomField = nameof(room);
     public const string AreaSizeField = nameof(areaSize);
 
+    // What starts the cutscene.
     public enum When { SceneStart, HelenaEntersRoom, HelenaEntersArea, FlagSet, Manual }
 
+    // The cutscene, the start condition, and the room for HelenaEntersRoom.
     [SerializeField] private Cutscene cutscene;
     [SerializeField] private When when = When.HelenaEntersArea;
     [SerializeField] private Room room;
     [Tooltip("The area (this object's position / rotation, this size).")]
     [SerializeField] private Vector3 areaSize = new Vector3(3f, 2f, 3f);
+    // FlagSet: the story flag that starts it.
     [SerializeField] private string flag = "";
     [Tooltip("Only if this flag is set (empty = always).")]
     [SerializeField] private string requiredFlag = "";
     [Tooltip("Never if this flag is set (empty = no such rule).")]
     [SerializeField] private string blockingFlag = "";
+    // Seconds to wait once it could start.
     [SerializeField, Min(0f)] private float delay = 0f;
 
+    // Already started, and how long it has been able to start.
     private bool fired;
     private float waited;
 
+    // Starts the cutscene once its conditions hold and the director can play it (after the delay).
     private void Update()
     {
         if (fired || when == When.Manual || cutscene == null || cutscene.Director == null) return;
@@ -40,6 +47,7 @@ public class CutsceneTrigger : MonoBehaviour
         if (cutscene.Play()) fired = true;
     }
 
+    // The start condition and the required / blocking flags.
     private bool Conditions(CutsceneDirector director)
     {
         StoryProgress story = director.Story;
@@ -56,6 +64,7 @@ public class CutsceneTrigger : MonoBehaviour
         }
     }
 
+    // Is a world point inside the trigger box?
     private bool InArea(Vector3 world)
     {
         Vector3 p = transform.InverseTransformPoint(world);
@@ -63,6 +72,7 @@ public class CutsceneTrigger : MonoBehaviour
         return Mathf.Abs(p.x) <= h.x && Mathf.Abs(p.z) <= h.z && p.y >= -0.5f && p.y <= areaSize.y;
     }
 
+    // Draws the trigger box in the Scene view.
     private void OnDrawGizmos()
     {
         if (when != When.HelenaEntersArea) return;

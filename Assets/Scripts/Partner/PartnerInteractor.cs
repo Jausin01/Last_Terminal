@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.AI;
 
+// Outcome of a pick up attempt.
 public enum PickupResult { Collected, Partial, InventoryFull, OutOfReach }
 
 // What the partner does with the world: walk somewhere, walk to a pickup and take it.
@@ -11,8 +12,10 @@ public enum PickupResult { Collected, Partial, InventoryFull, OutOfReach }
 [RequireComponent(typeof(Inventory))]
 public class PartnerInteractor : MonoBehaviour
 {
+    // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
     public const string PartnerAnimatorField = nameof(partnerAnimator);
 
+    // Her animator (pickup clips, right hand / palm).
     [SerializeField] private PartnerAnimator partnerAnimator;
 
     [Header("Pick up")]
@@ -20,6 +23,7 @@ public class PartnerInteractor : MonoBehaviour
     [SerializeField] private float mediumHeight = 0.5f;
     [Tooltip("Palm position at the grab frame, relative to her feet: x = forward, y = right (m).")]
     [SerializeField] private Vector2 lowReach = new Vector2(0.255f, 0.053f);
+    // Palm position for the medium animation, arrival tolerance, turn speed, and whether the item shows in her hand.
     [SerializeField] private Vector2 mediumReach = new Vector2(0.646f, 0.077f);
     [SerializeField] private float arriveTolerance = 0.05f;
     [Tooltip("If she can't get closer, still try when the item is at most this much beyond her reach (IK covers it).")]
@@ -29,8 +33,10 @@ public class PartnerInteractor : MonoBehaviour
     [Tooltip("Gap between the palm and the item surface while she holds it (m).")]
     [SerializeField] private float palmGap = 0.01f;
 
+    // Pick up steps.
     private enum Step { None, Approaching, Facing, Picking }
 
+    // Her agent and inventory, the step, the item, its height class and the reach used.
     private NavMeshAgent agent;
     private Inventory inventory;
     private Step step;
@@ -48,10 +54,12 @@ public class PartnerInteractor : MonoBehaviour
     public event Action<ItemDefinition, int, PickupResult> PickupAttempted;   // item, units taken, result
     public event Action PickupRequested;   // a pick up was accepted (she starts walking to the item)
 
+    // Read-only state for commands and combat.
     public Inventory Inventory => inventory;
     public bool IsBusy => step == Step.Facing || step == Step.Picking;
     public bool HasPickupTarget => target != null;
 
+    // Gets the agent and inventory; checks the animator.
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -63,6 +71,7 @@ public class PartnerInteractor : MonoBehaviour
         }
     }
 
+    // Listens to the pickup animation (grab frame / end).
     private void OnEnable()
     {
         if (partnerAnimator == null) return;
@@ -70,6 +79,7 @@ public class PartnerInteractor : MonoBehaviour
         partnerAnimator.PickupFinished += OnFinished;
     }
 
+    // Stops listening.
     private void OnDisable()
     {
         if (partnerAnimator == null) return;
@@ -87,6 +97,7 @@ public class PartnerInteractor : MonoBehaviour
         return true;
     }
 
+    // Walks to an item and takes it (false while busy / dead / scripted).
     public bool PickUp(Pickup pickup)
     {
         if (IsBusy || partnerAnimator.IsAttacking || partnerAnimator.IsScripted || partnerAnimator.IsDead || pickup == null || !pickup.gameObject.activeInHierarchy) return false;
@@ -135,6 +146,7 @@ public class PartnerInteractor : MonoBehaviour
         return found;
     }
 
+    // Distances around the item tried as standing spots (m).
     private static readonly float[] StandRings = { 0.45f, 0.65f, 0.85f };
 
     // how far from the item she can stand and still take it (her reach + what the IK covers)
@@ -145,14 +157,17 @@ public class PartnerInteractor : MonoBehaviour
         return r.magnitude + extraReach;
     }
 
+    // Reused path for the reachability test.
     private NavMeshPath pathBuffer;
 
+    // Can she walk all the way to this point?
     private bool Reachable(Vector3 point)
     {
         if (pathBuffer == null) pathBuffer = new NavMeshPath();
         return NavMesh.CalculatePath(transform.position, point, NavMesh.AllAreas, pathBuffer) && pathBuffer.status == NavMeshPathStatus.PathComplete;
     }
 
+    // Runs the current step.
     private void Update()
     {
         switch (step)
@@ -162,6 +177,7 @@ public class PartnerInteractor : MonoBehaviour
         }
     }
 
+    // Walking to the item: in reach -> face it; arrived but too far -> out of reach.
     private void UpdateApproach()
     {
         if (target == null || !target.gameObject.activeInHierarchy) { Cancel(); return; }
@@ -178,6 +194,7 @@ public class PartnerInteractor : MonoBehaviour
         else Fail(PickupResult.OutOfReach);
     }
 
+    // Stops and starts turning to the item.
     private void StartFacing()
     {
         agent.ResetPath();
@@ -186,6 +203,7 @@ public class PartnerInteractor : MonoBehaviour
         step = Step.Facing;
     }
 
+    // Turns until the item sits where her right palm goes, then plays the pickup.
     private void UpdateFacing()
     {
         if (target == null || !target.gameObject.activeInHierarchy) { Cancel(); return; }
@@ -205,6 +223,7 @@ public class PartnerInteractor : MonoBehaviour
         partnerAnimator.PlayPickup(height, target.GrabPosition);
     }
 
+    // Grab frame: item model to her hand, units to the inventory, result raised.
     private void OnGrabbed()
     {
         if (target == null || !target.gameObject.activeInHierarchy) return;
@@ -222,6 +241,7 @@ public class PartnerInteractor : MonoBehaviour
         PickupAttempted?.Invoke(item, taken, result);
     }
 
+    // Animation over: model back, ready again.
     private void OnFinished()
     {
         ReturnVisual();
@@ -230,6 +250,7 @@ public class PartnerInteractor : MonoBehaviour
         agent.updateRotation = true;
     }
 
+    // Gives up and reports why.
     private void Fail(PickupResult result)
     {
         ItemDefinition item = target != null ? target.Item : null;
@@ -237,6 +258,7 @@ public class PartnerInteractor : MonoBehaviour
         if (item != null) PickupAttempted?.Invoke(item, 0, result);
     }
 
+    // Clears the pickup and its path.
     private void Cancel()
     {
         agent.ResetPath();
@@ -245,6 +267,7 @@ public class PartnerInteractor : MonoBehaviour
         step = Step.None;
     }
 
+    // Moves the item model to her hand, resting against the palm.
     private void BorrowVisual(Transform visual)
     {
         Transform hand = partnerAnimator.RightHand;
@@ -278,6 +301,7 @@ public class PartnerInteractor : MonoBehaviour
         heldVisual = null;
     }
 
+    // World bounds of every renderer of the model.
     private static bool TryGetVisualBounds(Transform visual, out Bounds bounds)
     {
         bounds = default;
@@ -290,6 +314,7 @@ public class PartnerInteractor : MonoBehaviour
         return found;
     }
 
+    // Distance on the floor plane.
     private static float FlatDistance(Vector3 a, Vector3 b)
     {
         a.y = 0f;
