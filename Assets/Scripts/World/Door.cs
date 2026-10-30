@@ -24,6 +24,7 @@ public class Door : MonoBehaviour
     public const string RequiredKeyField = nameof(requiredKey);
     public const string OpenAngleField = nameof(openAngle);
     public const string NumberField = nameof(number);
+    public const string SaveIdField = nameof(saveId);
 
     // Name for the map / commands.
     [SerializeField] private string displayName = "Door";
@@ -43,6 +44,8 @@ public class Door : MonoBehaviour
     [SerializeField] private bool locked;
     [Tooltip("Key that unlocks it (her inventory), if any.")]
     [SerializeField] private KeyItem requiredKey;
+    [Tooltip("Unique in the scene: its entry in the save files (open / locked).")]
+    [SerializeField] private string saveId = "";
 
     [Header("Motion")]
     [Tooltip("Hinged: how far the leaf opens (deg). 80 = where her door clips leave it.")]
@@ -83,6 +86,7 @@ public class Door : MonoBehaviour
     public bool IsLocked => locked;
     public bool IsRemoteControlled => remoteControlled;
     public KeyItem RequiredKey => requiredKey;
+    public string SaveId => saveId;
     public bool IsHinged => kind == Kind.Hinged && movingPart != null;
     public bool IsManual => manual;
     public float OpenAngle => openAngle;
@@ -151,6 +155,24 @@ public class Door : MonoBehaviour
         if (!locked || key == null || key != requiredKey) return false;
         SetLocked(false);
         return true;
+    }
+
+    // ------------------------------------------------------------------ save
+    // Its state for the save file.
+    public SavedDoor Capture() => new SavedDoor { id = saveId, open = wantOpen, locked = locked };
+
+    // a save was loaded / she came back: open or closed, locked or not, at once (no motion)
+    public void Restore(SavedDoor saved)
+    {
+        if (saved == null) return;
+        manual = false;
+        locked = saved.locked;
+        wantOpen = saved.open && !locked;
+        amount = wantOpen ? 1f : 0f;
+        Apply();
+        UpdateObstacle();
+        UpdateLamp();
+        Changed?.Invoke(this);
     }
 
     // ------------------------------------------------------------------ driven by her hand (hinged only)

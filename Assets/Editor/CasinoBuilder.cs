@@ -7,12 +7,13 @@ using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-// Menu "Last Terminal/8 - Build Casino Scene": the casino (its own scene, reached by elevator). The model
-// (SM_Casino: room, bar, roulette, tables, 48 slot machines with separate reels), its materials, colliders and
-// NavMesh, lights, rooms + CCTV cameras, the elevator hall (4 elevators), the playable slot machines and a save point.
+// Menu "Last Terminal/8 - Build Casino Scene": the casino (its own scene, reached by elevator), wine and gold.
+// The hall (CasinoHallBuilder: floors, walls, columns, the bar, chandeliers), the elevator hall (4 elevators), 24 slot
+// machines (SM_CasinoSlotMachine, reels in the model), 2 blackjack + 2 Casino Hold'em tables (SM_Casino*Table on the
+// table prefab), the roulette (SM_CasinoRoulette, the old casino's table and European rotor), the prize lockers,
+// the cashier at the bar, a save point; colliders + NavMesh, rooms + CCTV cameras, lights.
 // Helena and her systems come from the shared rig (LocationRigBuilder.BuildLocation).
-// Plan (meters, x east, z north), sections: ELEVATOR HALL z[0,3.9] (elevators on the south wall) | CENTER z[3.9,10.3]
-//   (card tables) | BAR x[0,3.8] + ROULETTE z[10.3,15.3] | FRONT SLOTS z[15.3,18.8] | BACK SLOTS z[18.8,25.83]   (x[0,12.33])
+// Plan: see CasinoHallBuilder (sections keep their names: the lexicon and the save files use them).
 public static class CasinoBuilder
 {
     // Scene, NavMesh, art and material paths.
@@ -20,47 +21,56 @@ public static class CasinoBuilder
     private const string ScenePath = "Assets/Scenes/" + SceneName + ".unity";
     private const string NavMeshPath = "Assets/Scenes/" + SceneName + "_NavMesh.asset";
     private const string ArtFolder = "Assets/Art/Props/Casino";
-    private const string ModelPath = ArtFolder + "/SM_Casino.fbx";
     private const string MatFolder = ArtFolder + "/Materials";
-    private const int MaterialCount = 11;                         // M_Casino_00 .. 10 (T_Casino_00 .. 10)
-    private static readonly int[] GlowMaterials = { 1 };         // light halos: additive
-    private static readonly int[] ShadowMaterials = { 7 };       // the baked floor shadows: alpha blended
-    private const int SlotCount = 48;                             // Reel_<ii>_<0..2>; rows of 12 face south, north, south, north
-    // Room size (m), CCTV camera height (m).
-    private const float RoomWidth = 12.33f;
-    private const float RoomLength = 25.83f;
-    private const float CameraHeight = 3.4f;
-    private const float ElevatorDoorZ = 1.8f;                     // the facade of the elevator hall
-    // Elevator height (m); name of the roulette wheel's spinning part in the model.
-    private const float ElevatorHeight = 3.4f;
+    private const string SlotModelPath = ArtFolder + "/SM_CasinoSlotMachine.fbx";
+    private const string RouletteModelPath = ArtFolder + "/SM_CasinoRoulette.fbx";
+    // Room size and the CCTV cameras' height (m).
+    private const float RoomWidth = CasinoHallBuilder.Width;
+    private const float RoomLength = CasinoHallBuilder.Length;
+    private const float CameraHeight = 3.85f;
+    // Name of the roulette wheel's spinning part in its model.
     private const string RotorName = "RouletteRotor";
-    // card tables (measured on the model): felt height, x of the three tables of a row, the dealer's seat of each row
-    // (0.30 m behind the flat edge of the half-moon: north row faces north, south row faces south)
-    private const float FeltHeight = 0.736f;
-    private static readonly float[] TableX = { 2.27f, 6.17f, 10.06f };
-    private const float NorthSeatZ = 7.92f, SouthSeatZ = 6.15f;
-    // roulette (world, measured on the felt print): the wheel's axis, her finger on the rim, the layout cells
-    private static readonly Vector3 WheelAxis = new Vector3(5.285f, 0f, 12.552f);
+
+    // slot banks: 6 machines a row, two rows back to back (south row faces south, north row faces north), x of the
+    // first machine, pitch; the bank's middle line (z) of the front and back banks
+    private const int MachinesPerRow = 6;
+    private const float SlotX0 = 7.15f, SlotPitch = 1.3f;
+    private static readonly float[] BankZ = { 5.95f, 19.7f };
+    private const float SlotHalfDepth = 0.37f;                    // machine center to the bank's middle line
+    // measured on SM_CasinoSlotMachine (machine space, front toward +z): the SPIN button (her finger), the machine's
+    // stand point = the button's x moved 0.09 to her left so the button is at her right hand
+    private static readonly Vector3 SpinButton = new Vector3(0.168f, 0.851f, 0.305f);
+    private const float SpinToHerRight = 0.09f;
+
+    // card tables: x of the two tables of a row, the dealer's seat of each row (Hold'em faces south, blackjack north)
+    private static readonly float[] TableX = { 7.6f, 13.2f };
+    private const float HoldemSeatZ = 10.2f, BlackjackSeatZ = 11.8f;
+    // roulette: the wheel's axis here, and where it was in the old casino (the felt spots below were measured there)
+    private static readonly Vector3 WheelAxis = new Vector3(9.2f, 0f, 15.4f);
+    private static readonly Vector3 OldWheelAxis = new Vector3(5.285f, 0f, 12.552f);
     private const float RouletteFelt = 0.843f;
+    // prize lockers: on the west wall (back at x 0), facing east
+    private const float CaseWidth = 0.95f, CaseDepth = 0.7f, CaseHeight = 2.3f;
+    private static readonly float[] CaseZ = { 4.9f, 6.2f, 7.5f, 8.8f };
 
     // URP Lit property ids.
     private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-    private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
     // Menu 8: builds the whole casino scene.
     [MenuItem("Last Terminal/8 - Build Casino Scene")]
     public static void BuildCasinoScene()
     {
-        if (AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath) == null)
-        {
-            Debug.LogError($"[Casino] {ModelPath} not found: copy the casino art first.");
-            return;
-        }
+        foreach (string path in new[] { SlotModelPath, RouletteModelPath, BlackjackBuilder.CasinoBlackjackModelPath, BlackjackBuilder.CasinoPokerModelPath })
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(path) == null)
+            {
+                Debug.LogError($"[Casino] {path} not found: copy the casino art first.");
+                return;
+            }
         LocationRigBuilder.BuildLocation(ScenePath, NavMeshPath, BuildContent);
     }
 
-    // ------------------------------------------------------------------ content
+    // The scene's content (everything but Helena's rig): hall, games, rooms, cameras, elevators, lights.
     private static LocationRigBuilder.LocationContent BuildContent(Scene scene, Shader lit)
     {
         var content = new LocationRigBuilder.LocationContent { TestEnemies = false };
@@ -73,24 +83,30 @@ public static class CasinoBuilder
         level.ContentRoot = root.transform;
         var geometry = new GameObject("Geometry").transform;   // baked into the NavMesh (its colliders)
         geometry.SetParent(root.transform, false);
+        var decor = new GameObject("Decor").transform;          // no colliders: not in the NavMesh
+        decor.SetParent(root.transform, false);
 
-        // the model: materials, colliders on everything solid
         ImportArt(lit);
-        var model = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath), scene);
-        model.name = "Model";
-        model.transform.SetParent(geometry, false);
-        foreach (MeshRenderer r in model.GetComponentsInChildren<MeshRenderer>())
-        {
-            bool reel = r.name.StartsWith("Reel_") || r.name == RotorName;   // they move: not static, no collider
-            bool decal = IsTransparent(r.sharedMaterial);
-            if (!reel) GameObjectUtility.SetStaticEditorFlags(r.gameObject, StaticEditorFlags.BatchingStatic);
-            if (decal) { r.shadowCastingMode = ShadowCastingMode.Off; continue; }
-            if (reel) continue;
-            var mf = r.GetComponent<MeshFilter>();
-            if (mf != null && mf.sharedMesh != null) r.gameObject.AddComponent<MeshCollider>().sharedMesh = mf.sharedMesh;
-        }
+        CasinoHallBuilder.Build(geometry, decor, lit);
 
-        // NavMesh from the colliders (the elevators, save point... carve their own holes at runtime)
+        // the slot machines (their models are solid: in the NavMesh) and the roulette's table
+        var machines = new GameObject("SlotMachines").transform;
+        machines.SetParent(root.transform, false);
+        var slotModels = new GameObject("SlotModels").transform;
+        slotModels.SetParent(geometry, false);
+        for (int bank = 0; bank < BankZ.Length; bank++)
+            for (int side = 0; side < 2; side++)
+                for (int i = 0; i < MachinesPerRow; i++)
+                {
+                    int number = content.Slots.Count + 1;
+                    bool south = side == 0;
+                    var at = new Vector3(SlotX0 + i * SlotPitch, 0f, BankZ[bank] + (south ? -SlotHalfDepth : SlotHalfDepth));
+                    SlotMachine m = BuildSlot(machines, slotModels, number, at, south ? 180f : 0f);
+                    if (m != null) content.Slots.Add(m);
+                }
+        Transform rouletteModel = PlaceModel(RouletteModelPath, geometry, "RouletteTable", WheelAxis, 0f, RotorName);
+
+        // NavMesh from the colliders (the elevators, tables, save point... carve their own holes at runtime)
         FacilityBuilder.EnsureBakeRadius(FacilityBuilder.PartnerRadius);
         var surface = geometry.gameObject.AddComponent<NavMeshSurface>();
         surface.collectObjects = CollectObjects.Children;
@@ -98,8 +114,8 @@ public static class CasinoBuilder
         surface.BuildNavMesh();
         level.Surface = surface;
 
-        // sections: the casino is one hall cut in places easy to name, each with a clear spot to send her to
-        // (marked on the map). All joined without doors: from any of them she walks to any other.
+        // sections: one hall cut in places easy to name, each with a clear spot to send her to (marked on the map).
+        // All joined without doors: from any of them she walks to any other.
         var rooms = new GameObject("Rooms").transform;
         rooms.SetParent(root.transform, false);
         var sections = new List<Room>();
@@ -115,18 +131,18 @@ public static class CasinoBuilder
         Room gallery = sections[6];
         content.CenterRoom = center;   // "go to the center" anywhere in the casino
 
-        // cameras: two on the columns watching the elevators, one per section
+        // cameras: two in the corners watching the elevators, one per section
         var cams = new GameObject("SecurityCameras").transform;
         cams.SetParent(root.transform, false);
         level.StartCamera = 0;
-        SecurityCamera westHall = FacilityBuilder.AddCamera(level, cams, "CAM 01", hall, new Vector3(4f, CameraHeight, 6.8f), new Vector3(2.6f, 0f, 2.2f));
-        SecurityCamera eastHall = FacilityBuilder.AddCamera(level, cams, "CAM 02", hall, new Vector3(8f, CameraHeight, 6.8f), new Vector3(9.6f, 0f, 2.2f));
-        FacilityBuilder.AddCamera(level, cams, "CAM 03", center, new Vector3(RoomWidth - 0.4f, CameraHeight, 10f), new Vector3(5f, 0f, 6.5f));
-        FacilityBuilder.AddCamera(level, cams, "CAM 04", bar, new Vector3(0.4f, CameraHeight, 10.6f), new Vector3(2.8f, 0f, 13.6f));
-        FacilityBuilder.AddCamera(level, cams, "CAM 05", roulette, new Vector3(RoomWidth - 0.4f, CameraHeight, 15f), new Vector3(5.5f, 0f, 12.2f));
-        FacilityBuilder.AddCamera(level, cams, "CAM 06", front, new Vector3(0.4f, CameraHeight, 15.6f), new Vector3(7f, 0f, 17.6f));
-        FacilityBuilder.AddCamera(level, cams, "CAM 07", back, new Vector3(RoomWidth - 0.4f, CameraHeight, RoomLength - 0.4f), new Vector3(5f, 0f, 21f));
-        FacilityBuilder.AddCamera(level, cams, "CAM 08", gallery, new Vector3(GalleryX + 0.15f, CameraHeight, 10.45f), new Vector3(12f, 0f, 13f));
+        SecurityCamera westHall = FacilityBuilder.AddCamera(level, cams, "CAM 01", hall, new Vector3(0.4f, CameraHeight, 4.4f), new Vector3(5f, 0f, 1.9f));
+        SecurityCamera eastHall = FacilityBuilder.AddCamera(level, cams, "CAM 02", hall, new Vector3(RoomWidth - 0.4f, CameraHeight, 4.4f), new Vector3(11f, 0f, 1.9f));
+        FacilityBuilder.AddCamera(level, cams, "CAM 03", center, new Vector3(RoomWidth - 0.4f, CameraHeight, 14f), new Vector3(9f, 0f, 10.5f));
+        FacilityBuilder.AddCamera(level, cams, "CAM 04", bar, new Vector3(4.4f, CameraHeight, RoomLength - 0.4f), new Vector3(1.8f, 0f, 14.5f));
+        FacilityBuilder.AddCamera(level, cams, "CAM 05", roulette, new Vector3(5.2f, CameraHeight, 17.2f), new Vector3(10f, 0f, 15.6f));
+        FacilityBuilder.AddCamera(level, cams, "CAM 06", front, new Vector3(RoomWidth - 0.4f, CameraHeight, 8.2f), new Vector3(9f, 0f, 5.6f));
+        FacilityBuilder.AddCamera(level, cams, "CAM 07", back, new Vector3(RoomWidth - 0.4f, CameraHeight, RoomLength - 0.4f), new Vector3(9f, 0f, 19.4f));
+        FacilityBuilder.AddCamera(level, cams, "CAM 08", gallery, new Vector3(4.4f, CameraHeight, 4.3f), new Vector3(0.8f, 0f, 7.2f));
 
         // the close camera of the standing games (slots, roulette): moved to the game she is at (GameCameraDirector)
         var gameCamGo = new GameObject("GameCam");
@@ -145,44 +161,39 @@ public static class CasinoBuilder
         var elevators = new GameObject("Elevators").transform;
         elevators.SetParent(root.transform, false);
         string[] destinations = { ElevatorBuilder.FacilityOfficeStop, ElevatorBuilder.LaboratoryStop, ElevatorBuilder.HospitalStop, ElevatorBuilder.RooftopStop };
-        float bay = RoomWidth / destinations.Length;
+        float bayWidth = RoomWidth / destinations.Length;
         for (int i = 0; i < destinations.Length; i++)
         {
             SecurityCamera watch = i < 2 ? westHall : eastHall;
             Elevator e = ElevatorBuilder.PlaceElevator(elevators, lit, ElevatorBuilder.CasinoStop, destinations[i], i + 1,
-                                                       new Vector3(bay * (i + 0.5f), 0f, ElevatorDoorZ), 0f, bay, ElevatorHeight, watch);
+                                                       new Vector3(bayWidth * (i + 0.5f), 0f, CasinoHallBuilder.ElevatorFacadeZ), 0f, bayWidth,
+                                                       CasinoHallBuilder.ElevatorHeight, watch);
             if (e != null) content.Elevators.Add(e);
         }
 
-        // the slot machines (their reels are in the model)
-        var machines = new GameObject("SlotMachines").transform;
-        machines.SetParent(root.transform, false);
-        Material button = ButtonMaterial(lit);
-        for (int i = 0; i < SlotCount; i++)
-        {
-            SlotMachine m = BuildSlot(machines, model.transform, i, button);
-            if (m != null) content.Slots.Add(m);
-        }
-
-        // card games on four of the six tables (the middle ones stay free: the center aisle is the walkway)
+        // card games: Hold'em in the south row (the dealer faces south), blackjack in the north row (faces north)
         var games = new GameObject("CardTables").transform;
         games.SetParent(root.transform, false);
-        foreach (int i in new[] { 0, 2 })
+        foreach (float x in TableX)
         {
-            BlackjackTable bj = BlackjackBuilder.PlaceCasinoTable(games, new Vector3(TableX[i], 0f, NorthSeatZ), 0f, FeltHeight, false);
-            if (bj == null) continue;
-            BlackjackBuilder.AddTableCamera(bj, center, level.Cameras);
-            content.Tables.Add(bj.GetComponent<BlackjackGame>());
-            BlackjackTable he = BlackjackBuilder.PlaceCasinoTable(games, new Vector3(TableX[i], 0f, SouthSeatZ), 180f, FeltHeight, true);
-            if (he == null) continue;
-            BlackjackBuilder.AddTableCamera(he, center, level.Cameras);
-            content.HoldemTables.Add(he.GetComponent<HoldemGame>());
+            BlackjackTable he = BlackjackBuilder.PlaceCasinoTable(games, new Vector3(x, 0f, HoldemSeatZ), 180f, true);
+            if (he != null)
+            {
+                BlackjackBuilder.AddTableCamera(he, center, level.Cameras);
+                content.HoldemTables.Add(he.GetComponent<HoldemGame>());
+            }
+            BlackjackTable bj = BlackjackBuilder.PlaceCasinoTable(games, new Vector3(x, 0f, BlackjackSeatZ), 0f, false);
+            if (bj != null)
+            {
+                BlackjackBuilder.AddTableCamera(bj, center, level.Cameras);
+                content.Tables.Add(bj.GetComponent<BlackjackGame>());
+            }
         }
 
         // the roulette: she stands west of the wheel as the croupier
-        content.Roulette = BuildRoulette(root.transform, model.transform, lit);
+        content.Roulette = BuildRoulette(root.transform, rouletteModel, lit);
 
-        // the prize lockers (the gallery, east wall, around the pilaster): one per prize, the outfit on a copy of her
+        // the prize lockers (the gallery, west wall): one per prize, the outfit on a copy of her
         content.PrizeCases.AddRange(BuildPrizeCases(root.transform, lit));
 
         // the cashier / prize counter at the bar (where "go to the bar" takes her)
@@ -193,13 +204,13 @@ public static class CasinoBuilder
         EditorSerialized.SetReference(counter, PrizeCounter.SpotField, bar.Spot);
         content.Counter = counter;
 
-        // a save point beside the bar (the casino is a safe zone)
+        // a save point at the west wall, between the gallery and the bar (the casino is a safe zone)
         var savePoints = new GameObject("SavePoints");
-        SaveStation station = SavePointBuilder.PlaceSavePoint(savePoints.transform, "SavePoint_Office", new Vector3(0.8f, 0f, 15.5f), 90f);
+        SaveStation station = SavePointBuilder.PlaceSavePoint(savePoints.transform, "SavePoint_Office", new Vector3(0.8f, 0f, 10.9f), 90f);
         if (station != null) content.Stations.Add(station);
 
         AddLights(root.transform);
-        level.PartnerStart = new Vector3(bay * 1.5f, 0f, 2.9f);   // in front of elevator 2 (playing this scene directly)
+        level.PartnerStart = new Vector3(bayWidth * 1.5f, 0f, 2.9f);   // in front of elevator 2 (playing this scene directly)
         level.PartnerStartYaw = 0f;
         content.Level = level;
         content.PlaceName = "CASINO";
@@ -211,13 +222,13 @@ public static class CasinoBuilder
     // the sections: English name (= lexicon key), Portuguese name, area (x, z, width, depth), where she goes
     private static readonly (string en, string pt, Rect area, Vector2 spot)[] Sections =
     {
-        ("Elevator Hall", "Hall dos Elevadores", new Rect(0f, 0f, RoomWidth, 3.9f), new Vector2(6.17f, 2.9f)),
-        ("Center", "Centro", new Rect(0f, 3.9f, RoomWidth, 6.4f), new Vector2(6.17f, 7.1f)),          // between the card tables
-        ("Bar", "Bar", new Rect(0f, 10.3f, 3.8f, 5f), new Vector2(3.2f, 12.9f)),
-        ("Roulette", "Roleta", new Rect(3.8f, 10.3f, GalleryX - 3.8f, 5f), new Vector2(6.2f, 11.15f)),
-        ("Front Slots", "Máquinas da Frente", new Rect(0f, 15.3f, RoomWidth, 3.5f), new Vector2(6.17f, 17.6f)),
-        ("Back Slots", "Máquinas de Trás", new Rect(0f, 18.8f, RoomWidth, RoomLength - 18.8f), new Vector2(6.17f, 22.8f)),
-        ("Prize Gallery", "Galeria de Prêmios", new Rect(GalleryX, 10.3f, RoomWidth - GalleryX, 5f), new Vector2(10.4f, 12.95f)),   // the lockers
+        ("Elevator Hall", "Hall dos Elevadores", new Rect(0f, 0f, RoomWidth, CasinoHallBuilder.HallDepth), new Vector2(8f, 2.9f)),
+        ("Center", "Centro", new Rect(CasinoHallBuilder.WingX, 8f, RoomWidth - CasinoHallBuilder.WingX, 6f), new Vector2(10.4f, 11f)),    // between the card tables
+        ("Bar", "Bar", new Rect(0f, 10.4f, CasinoHallBuilder.WingX, RoomLength - 10.4f), CasinoHallBuilder.CashierSpot),                   // at the cashier
+        ("Roulette", "Roleta", new Rect(CasinoHallBuilder.WingX, 14f, RoomWidth - CasinoHallBuilder.WingX, 3.4f), new Vector2(8.2f, 14.6f)),
+        ("Front Slots", "Máquinas da Frente", new Rect(CasinoHallBuilder.WingX, CasinoHallBuilder.HallDepth, RoomWidth - CasinoHallBuilder.WingX, 8f - CasinoHallBuilder.HallDepth), new Vector2(5.6f, 5.95f)),
+        ("Back Slots", "Máquinas de Trás", new Rect(CasinoHallBuilder.WingX, 17.4f, RoomWidth - CasinoHallBuilder.WingX, RoomLength - 17.4f), new Vector2(5.6f, 19.7f)),
+        ("Prize Gallery", "Galeria de Prêmios", new Rect(0f, CasinoHallBuilder.HallDepth, CasinoHallBuilder.WingX, 10.4f - CasinoHallBuilder.HallDepth), new Vector2(2.6f, 7f)),   // the lockers
     };
 
     // A named area with its map spot.
@@ -254,34 +265,42 @@ public static class CasinoBuilder
                (zOverlap && (Mathf.Abs(p.xMax - q.xMin) < e || Mathf.Abs(q.xMax - p.xMin) < e));
     }
 
-    // One machine: its root at the front of the cabinet, forward = where the player stands; the SPIN button below the
-    // reels on the player's right (her finger goes there); the three reels from the model.
-    private static SlotMachine BuildSlot(Transform parent, Transform model, int index, Material buttonMat)
+    // A model placed in the scene, every part solid (mesh colliders) except the named moving part (no collider).
+    private static Transform PlaceModel(string path, Transform parent, string objectName, Vector3 position, float yaw, string movingPart = null)
     {
+        var asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+        var go = (GameObject)PrefabUtility.InstantiatePrefab(asset, parent);
+        go.name = objectName;
+        go.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+        foreach (MeshFilter mf in go.GetComponentsInChildren<MeshFilter>())
+        {
+            bool moving = (movingPart != null && mf.name == movingPart) || mf.name.StartsWith("Reel_");
+            if (moving) continue;
+            GameObjectUtility.SetStaticEditorFlags(mf.gameObject, StaticEditorFlags.BatchingStatic);
+            mf.gameObject.AddComponent<MeshCollider>().sharedMesh = mf.sharedMesh;
+        }
+        return go.transform;
+    }
+
+    // One machine: the model (solid, under Geometry) and the playable machine: its root in front of the SPIN button,
+    // shifted so the button is at her right hand, forward = where she stands; the three reels of the model.
+    private static SlotMachine BuildSlot(Transform parent, Transform models, int number, Vector3 at, float yaw)
+    {
+        Transform model = PlaceModel(SlotModelPath, models, $"SlotModel_{number:00}", at, yaw);
         var reels = new List<Renderer>();
         for (int r = 0; r < 3; r++)
         {
-            Transform t = EditorScene.FindDeep(model, $"Reel_{index:00}_{r}");
-            if (t == null) { Debug.LogWarning($"[Casino] Reel_{index:00}_{r} not found in the model: machine {index + 1} skipped."); return null; }
+            Transform t = EditorScene.FindDeep(model, $"Reel_{r}");
+            if (t == null) { Debug.LogWarning($"[Casino] Reel_{r} not in {SlotModelPath}: machine {number} skipped."); return null; }
             reels.Add(t.GetComponent<Renderer>());
         }
-        float facing = (index / 12) % 2 == 0 ? -1f : 1f;   // rows of 12: south, north, south, north
-        Vector3 mid = reels[1].transform.position;
-        var go = new GameObject($"Slot_{index + 1:00}");
-        go.transform.SetParent(parent, false);
-        go.transform.SetPositionAndRotation(new Vector3(mid.x, 0f, mid.z + facing * 0.13f), Quaternion.LookRotation(new Vector3(0f, 0f, facing)));
-
         // her right side (she faces the machine) = the machine's local -x
+        var go = new GameObject($"Slot_{number:00}");
+        go.transform.SetParent(parent, false);
+        go.transform.SetPositionAndRotation(model.TransformPoint(new Vector3(SpinButton.x + SpinToHerRight, 0f, SpinButton.z)), model.rotation);
         var spin = new GameObject("SpinButton").transform;
         spin.SetParent(go.transform, false);
-        spin.localPosition = new Vector3(-0.09f, 0.86f, 0f);
-        var cap = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        cap.name = "Cap";
-        Object.DestroyImmediate(cap.GetComponent<Collider>());
-        cap.transform.SetParent(spin, false);
-        cap.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-        cap.transform.localScale = new Vector3(0.045f, 0.006f, 0.045f);
-        cap.GetComponent<Renderer>().sharedMaterial = buttonMat;
+        spin.localPosition = new Vector3(-SpinToHerRight, SpinButton.y, 0f);
 
         var audio = go.AddComponent<AudioSource>();
         audio.playOnAwake = false;
@@ -292,45 +311,46 @@ public static class CasinoBuilder
         EditorSerialized.SetReferenceArray(machine, SlotMachine.ReelsField, reels);
         EditorSerialized.SetReference(machine, SlotMachine.SpinButtonField, spin);
         EditorSerialized.SetReference(machine, SlotMachine.AudioSourceField, audio);
-        EditorSerialized.SetInt(machine, SlotMachine.NumberField, index + 1);
+        EditorSerialized.SetInt(machine, SlotMachine.NumberField, number);
         return machine;
     }
 
-    // Ceiling lights, glows and accent lights.
+    // Dim warm ambient (the chandeliers carry the light: CasinoHallBuilder), a weak sun for contact shadows, and a
+    // soft colored glow over each slot bank.
     private static void AddLights(Transform root)
     {
         RenderSettings.ambientMode = AmbientMode.Flat;
-        RenderSettings.ambientLight = new Color(0.2f, 0.17f, 0.14f);
+        RenderSettings.ambientLight = new Color(0.16f, 0.1f, 0.09f);
         RenderSettings.skybox = null;
         var lights = new GameObject("Lights").transform;
         lights.SetParent(root, false);
         var sun = new GameObject("Directional Light").AddComponent<Light>();   // weak, only for soft contact shadows
         sun.transform.SetParent(lights, false);
         sun.type = LightType.Directional;
-        sun.intensity = 0.25f;
-        sun.color = new Color(1f, 0.9f, 0.8f);
+        sun.intensity = 0.2f;
+        sun.color = new Color(1f, 0.85f, 0.75f);
         sun.shadows = LightShadows.Soft;
         sun.transform.rotation = Quaternion.Euler(70f, 20f, 0f);
-        float[] rows = { 2.9f, 7.1f, 12.5f, 18.7f, 23.4f };
-        foreach (float z in rows)
-            foreach (float x in new[] { 3.1f, 9.2f })
+        foreach (float z in BankZ)
+            foreach (float x in new[] { 8.4f, 12.4f })
             {
-                var l = new GameObject($"Lamp_{x:0.0}_{z:0.0}").AddComponent<Light>();
+                var l = new GameObject($"SlotGlow_{x:0.0}_{z:0.0}").AddComponent<Light>();
                 l.transform.SetParent(lights, false);
-                l.transform.position = new Vector3(x, 3.9f, z);
+                l.transform.position = new Vector3(x, 3.2f, z);
                 l.type = LightType.Point;
-                l.color = new Color(1f, 0.84f, 0.62f);
-                l.intensity = 3.2f;
-                l.range = 7.5f;
+                l.color = new Color(1f, 0.55f, 0.75f);
+                l.intensity = 2.2f;
+                l.range = 6f;
                 l.shadows = LightShadows.None;
             }
     }
 
     // ------------------------------------------------------------------ roulette
     // RouletteGame at the rim, facing her (she stands west of the wheel); the layout cells in its space; the ball.
+    // The felt spots were measured on the old casino's floor plan: W() moves them to where the table is now.
     private static RouletteGame BuildRoulette(Transform root, Transform model, Shader lit)
     {
-        Transform rotor = EditorScene.FindDeep(model, RotorName);
+        Transform rotor = model != null ? EditorScene.FindDeep(model, RotorName) : null;
         var chip = AssetDatabase.LoadAssetAtPath<GameObject>(BlackjackBuilder.ChipPrefabPath);
         if (rotor == null || chip == null)
         {
@@ -341,7 +361,8 @@ public static class CasinoBuilder
         go.transform.SetParent(root, false);
         go.transform.SetPositionAndRotation(WheelAxis + Vector3.left * 0.405f, Quaternion.LookRotation(Vector3.left));
         Transform t = go.transform;
-        Vector3 L(float x, float z, float y = RouletteFelt) => t.InverseTransformPoint(new Vector3(x, y, z));
+        Vector3 shift = WheelAxis - OldWheelAxis;
+        Vector3 L(float x, float z, float y = RouletteFelt) => t.InverseTransformPoint(new Vector3(x + shift.x, y, z + shift.z));
         Vector3 D(float x, float z) => t.InverseTransformDirection(new Vector3(x, 0f, z));
 
         var ballGo = GameObject.CreatePrimitive(PrimitiveType.Sphere);
@@ -388,42 +409,37 @@ public static class CasinoBuilder
     }
 
     // ------------------------------------------------------------------ art
-    // M_Casino_xx (T_Casino_xx) + M_SlotReels (T_SlotReels), remapped on the model. Halos and floor shadows are
-    // transparent and unlit, like in the original scene.
+    // The models' materials, remapped on import: the tables and the slot machine (one baked texture each, reels on
+    // T_SlotReels), the roulette (the old casino's T_Casino_05 / 06 / 10 and the rotor's T_RouletteRotor).
     private static void ImportArt(Shader lit)
     {
         EditorAssets.EnsureFolder(ArtFolder, "Materials");
-        Shader unlit = Shader.Find("Universal Render Pipeline/Unlit");   // editor only: picking the shader for the asset
-        if (!(AssetImporter.GetAtPath(ModelPath) is ModelImporter mi)) return;
-        for (int i = 0; i < MaterialCount; i++)
-        {
-            string name = $"M_Casino_{i:00}";
-            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/T_Casino_{i:00}.png");
-            bool glow = System.Array.IndexOf(GlowMaterials, i) >= 0, shadow = System.Array.IndexOf(ShadowMaterials, i) >= 0;
-            Material m = glow || shadow ? TransparentMaterial($"{MatFolder}/{name}.mat", tex, unlit != null ? unlit : lit, glow)
-                                        : EditorAssets.MakeMaterial($"{MatFolder}/{name}.mat", tex, 0.35f, false, lit);
-            mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), name), m);
-        }
         var reelTex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/T_SlotReels.png");
         if (AssetImporter.GetAtPath($"{ArtFolder}/T_SlotReels.png") is TextureImporter ti && ti.wrapMode != TextureWrapMode.Repeat)
         {
             ti.wrapMode = TextureWrapMode.Repeat;   // the reels scroll their texture
             ti.SaveAndReimport();
         }
+        Material Mat(string name, string tex, float smooth) =>
+            EditorAssets.MakeMaterial($"{MatFolder}/{name}.mat", AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/{tex}.png"), smooth, false, lit);
         Material reels = EditorAssets.MakeMaterial($"{MatFolder}/M_SlotReels.mat", reelTex, 0.5f, false, lit);
-        mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "M_SlotReels"), reels);
-        var rotorTex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/T_RouletteRotor.png");   // European order (casino_convert.py)
-        Material rotorMat = EditorAssets.MakeMaterial($"{MatFolder}/M_RouletteRotor.mat", rotorTex, 0.6f, false, lit);
-        mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), "M_RouletteRotor"), rotorMat);
+        Remap(SlotModelPath, ("M_CasinoSlotMachine", Mat("M_CasinoSlotMachine", "T_CasinoSlotMachine", 0.45f)), ("M_SlotReels", reels));
+        Remap(BlackjackBuilder.CasinoBlackjackModelPath, ("M_CasinoBlackjackTable", Mat("M_CasinoBlackjackTable", "T_CasinoBlackjackTable", 0.3f)));
+        Remap(BlackjackBuilder.CasinoPokerModelPath, ("M_CasinoPokerTable", Mat("M_CasinoPokerTable", "T_CasinoPokerTable", 0.3f)));
+        Remap(RouletteModelPath, ("M_Casino_05", Mat("M_Casino_05", "T_Casino_05", 0.35f)), ("M_Casino_06", Mat("M_Casino_06", "T_Casino_06", 0.35f)),
+              ("M_Casino_10", Mat("M_Casino_10", "T_Casino_10", 0.35f)), ("M_RouletteRotor", Mat("M_RouletteRotor", "T_RouletteRotor", 0.6f)));
+    }
+
+    // Points a model's materials (by name in the FBX) at project materials, and reimports it.
+    private static void Remap(string modelPath, params (string name, Material material)[] maps)
+    {
+        if (!(AssetImporter.GetAtPath(modelPath) is ModelImporter mi)) return;
+        foreach (var (name, material) in maps) mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), name), material);
         mi.SaveAndReimport();
     }
 
     // ------------------------------------------------------------------ prize lockers
-    private const float GalleryX = 8.6f;
-    private const float CaseWidth = 0.95f, CaseDepth = 0.7f, CaseHeight = 2.3f, CaseBackX = 12.3f;   // the wall at 12.32
-    private static readonly float[] CaseZ = { 11.95f, 14.1f, 10.9f, 15.15f };   // either side of the pilaster (12.7..13.35) first
-
-    // The prize cases at the counter (one per outfit).
+    // The prize lockers along the gallery's wall (one per outfit with a price, cheapest first).
     private static List<PrizeCase> BuildPrizeCases(Transform root, Shader lit)
     {
         var cases = new List<PrizeCase>();
@@ -452,7 +468,7 @@ public static class CasinoBuilder
         var parent = new GameObject("PrizeLockers").transform;
         parent.SetParent(root, false);
         for (int i = 0; i < prizes.Count && i < CaseZ.Length; i++)
-            cases.Add(BuildCase(parent, prizes[i], new Vector3(CaseBackX - CaseDepth * 0.5f, 0f, CaseZ[i]), lit, wood, velvet, brass, glass));
+            cases.Add(BuildCase(parent, prizes[i], new Vector3(CaseDepth * 0.5f + 0.06f, 0f, CaseZ[i]), lit, wood, velvet, brass, glass));
         return cases;
     }
 
@@ -463,7 +479,7 @@ public static class CasinoBuilder
     {
         var go = new GameObject("Locker_" + prize.Key);
         go.transform.SetParent(parent, false);
-        go.transform.SetPositionAndRotation(position, Quaternion.LookRotation(Vector3.left));
+        go.transform.SetPositionAndRotation(position, Quaternion.LookRotation(Vector3.right));   // out of the west wall
         Transform t = go.transform;
         float w = CaseWidth * 0.5f, d = CaseDepth * 0.5f, inner = CaseHeight - 0.3f;
         Part(t, "Base", new Vector3(0f, 0.09f, 0f), new Vector3(CaseWidth, 0.18f, CaseDepth), wood);
@@ -542,7 +558,7 @@ public static class CasinoBuilder
     }
 
     // A transparent (alpha / additive) material from a texture.
-    private static Material TransparentMaterial(string path, Texture2D tex, Shader shader, bool additive)
+    internal static Material TransparentMaterial(string path, Texture2D tex, Shader shader, bool additive)
     {
         var m = AssetDatabase.LoadAssetAtPath<Material>(path);
         if (m == null)
@@ -563,21 +579,6 @@ public static class CasinoBuilder
         m.SetOverrideTag("RenderType", "Transparent");
         m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
         m.renderQueue = (int)RenderQueue.Transparent;
-        EditorUtility.SetDirty(m);
-        return m;
-    }
-
-    // Does the material render in the transparent queue?
-    private static bool IsTransparent(Material m) => m != null && m.renderQueue >= (int)RenderQueue.Transparent;
-
-    // Lit button material of the slot machines.
-    private static Material ButtonMaterial(Shader lit)
-    {
-        Material m = EditorAssets.MakeMaterial($"{MatFolder}/M_SlotButton.mat", null, 0.7f, false, lit);
-        m.SetColor(BaseColorId, new Color(0.9f, 0.1f, 0.08f));
-        m.SetColor(EmissionColorId, new Color(0.9f, 0.1f, 0.08f) * 1.5f);
-        m.EnableKeyword("_EMISSION");
-        m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
         EditorUtility.SetDirty(m);
         return m;
     }

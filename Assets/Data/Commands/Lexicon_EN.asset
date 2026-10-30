@@ -1143,6 +1143,19 @@ MonoBehaviour:
   - key: x_stairs
     phrases:
     - steps
+  - key: outfit_school
+    phrases:
+    - school uniform
+    - school clothes
+    - school outfit
+    - schoolgirl outfit
+    - school girl uniform
+  - key: x_window
+    phrases:
+    - window
+    - windows
+    - bars
+    - glass
   modifiers:
   - modifier: 1
     phrases:

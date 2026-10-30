@@ -17,6 +17,12 @@ public class BlackjackTable : MonoBehaviour
     public const string TableCameraField = nameof(tableCamera);
     public const string ShoeField = nameof(shoe);
     public const string ChipTrayField = nameof(chipTray);
+    public const string DiscardField = nameof(discard);
+    public const string DealerCardsField = nameof(dealerCards);
+    public const string PlayerCardsField = nameof(playerCards);
+    public const string BetSpotField = nameof(betSpot);
+    public const string InsuranceSpotField = nameof(insuranceSpot);
+    public const string PlayerSideField = nameof(playerSide);
 
     // atlases (tools: T_Cards 1024x512, cells 72x100, rows S H D C, columns A..K, back in column 13;
     // T_Chips 512x512, cells 128x160, values below)

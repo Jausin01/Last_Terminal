@@ -73,10 +73,17 @@ public class Elevator : MonoBehaviour
         block = new MaterialPropertyBlock();
         if (leftDoor != null) leftClosed = leftDoor.localPosition;
         if (rightDoor != null) rightClosed = rightDoor.localPosition;
-        ding = Ding();
+        MakeSounds();
         Apply();
         SetLamp(false);
     }
+
+    // Clips made by code are lost when the sound output changes: they are made again then (GeneratedAudio).
+    private void OnEnable() => GeneratedAudio.Reset += MakeSounds;
+    private void OnDisable() => GeneratedAudio.Reset -= MakeSounds;
+
+    // The arrival ding.
+    private void MakeSounds() => ding = Ding();
 
     // Opens the doors (ding).
     public void Open()

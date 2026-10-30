@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 956da2428366c894396fef6bf7de9aaa, type: 3}
+  m_Name: Outfit_School
+  m_EditorClassIdentifier: Assembly-CSharp::OutfitDefinition
+  key: outfit_school
+  displayName: School Uniform
+  displayNamePt: Uniforme Escolar
+  price: 0
+  swaps: []
+  meshSwaps: []
+  hiddenParts:
+  - Plane.001
+  - retop.001
+  - retop.003
+  - retop.004
+  - retop.005
+  - billas.001
+  - pants.003
+  - Helena2_Body
+  extraParts:
+  - Helena2_SchoolBody
+  line: 73
+  tagLine: 122

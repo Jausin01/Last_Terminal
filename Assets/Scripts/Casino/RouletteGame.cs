@@ -160,6 +160,16 @@ public class RouletteGame : ButtonPanel
             return;
         }
         ball.gameObject.SetActive(false);
+        MakeSounds();
+    }
+
+    // Clips made by code are lost when the sound output changes: they are made again then (GeneratedAudio).
+    private void OnEnable() => GeneratedAudio.Reset += MakeSounds;
+    private void OnDisable() => GeneratedAudio.Reset -= MakeSounds;
+
+    // The ball's ticks on the frets and its clack in the pocket.
+    private void MakeSounds()
+    {
         tick = Tone(0.02f, 2400f);
         clack = Tone(0.06f, 900f);
     }

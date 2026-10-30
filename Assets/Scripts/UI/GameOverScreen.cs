@@ -115,8 +115,8 @@ public class GameOverScreen : MonoBehaviour
     // Reloads the scene from the start.
     private void Restart()
     {
-        int index = SceneManager.GetActiveScene().buildIndex;
-        if (index < 0) { Debug.LogError("[GameOver] The scene is not in the Build Settings (Last Terminal/4 adds it)."); return; }
-        SceneManager.LoadScene(index);
+        Scene here = SceneManager.GetActiveScene();
+        if (here.buildIndex < 0) { Debug.LogError("[GameOver] The scene is not in the Build Settings (Last Terminal/4 adds it)."); return; }
+        GameScenes.OpenLocation(saveSystem != null ? saveSystem.Session : null, here.name, true);   // his room again, this location over it
     }
 }

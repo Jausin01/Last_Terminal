@@ -161,6 +161,17 @@ public class SecurityCameraSystem : MonoBehaviour
     // Switch by camera.
     public void Switch(SecurityCamera cam) => Switch(Array.IndexOf(cameras, cam));
 
+    // A save loaded: the camera he was watching (by object name) and its pan. Before Start it replaces the start camera.
+    public void Restore(string cameraName, float yaw)
+    {
+        if (string.IsNullOrEmpty(cameraName) || yaws == null) return;
+        int index = Array.FindIndex(cameras, c => c != null && c.name == cameraName);
+        if (index < 0 || !Usable(index)) return;
+        yaws[index] = Mathf.Clamp(yaw, -cameras[index].YawRange, cameras[index].YawRange);
+        if (index == active) cameras[index].SetYaw(yaws[index]);
+        else Switch(index);
+    }
+
     // Camera assigned and its object active?
     private bool Usable(int index) => cameras[index] != null && cameras[index].gameObject.activeInHierarchy;
 

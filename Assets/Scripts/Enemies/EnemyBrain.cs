@@ -84,6 +84,8 @@ public class EnemyBrain : MonoBehaviour
     private int attackDamage;
     private bool attackHit;
     private bool deathBackward;
+    // a save / a return to the scene set it up before its Start (Restore): Start leaves it as it is
+    private bool restored;
     // Scratch list of the attacks usable right now.
     private readonly EnemyType.Attack[] usable = new EnemyType.Attack[8];
 
@@ -135,7 +137,7 @@ public class EnemyBrain : MonoBehaviour
     private void Start()
     {
         enemyAnimator.SetAttackSpeed(type.AttackSpeed);
-        EnterStart(true);
+        if (!restored) EnterStart(true);   // (restored first: a dead one stays dead)
     }
 
     // ------------------------------------------------------------------ states
@@ -456,6 +458,7 @@ public class EnemyBrain : MonoBehaviour
     // a save was loaded: back as saved (null = not in that save: as at the start of the scene)
     public void Restore(SavedEnemy saved)
     {
+        restored = true;
         if (saved != null && saved.dead)
         {
             deathBackward = saved.fellBackward;

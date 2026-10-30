@@ -1,7 +1,6 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 // The ride: the screen goes dark with the floor indicator, her state goes to the GameSession (SaveSystem) and the
 // destination scene loads in the background (a short load). In the new scene she starts in the car of the elevator
@@ -90,7 +89,7 @@ public class ElevatorTravel : MonoBehaviour
         yield return Fade(1f, fadeTime);
         saveSystem.PrepareTransfer(to.Id, from != null ? from.Id : null);
         float started = Time.unscaledTime;
-        AsyncOperation load = SceneManager.LoadSceneAsync(to.SceneName);
+        AsyncOperation load = GameScenes.OpenLocation(session, to.SceneName, true);   // his room again, the destination over it
         load.allowSceneActivation = false;
         while (load.progress < 0.9f || Time.unscaledTime - started < minimumRide) yield return null;
         load.allowSceneActivation = true;

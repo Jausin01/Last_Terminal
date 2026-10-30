@@ -30,6 +30,7 @@ internal static class OperatorRoomUiBuilder
         EditorUi.Stretch((RectTransform)go.transform);
         var group = go.AddComponent<CanvasGroup>();
         Texture2D wallTex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{OsArt}/T_OpOS_Wallpaper.png");
+        Texture2D wallPt = AssetDatabase.LoadAssetAtPath<Texture2D>($"{OsArt}/T_OpOS_Wallpaper_PT.png");   // (its words in Portuguese)
 
         // power off / BIOS / logo
         CanvasGroup off = Screen(go.transform, "Off", Color.black);
@@ -43,6 +44,7 @@ internal static class OperatorRoomUiBuilder
         logoArt.texture = wallTex;
         logoArt.color = wallTex != null ? Color.white : Color.black;
         logoArt.raycastTarget = false;
+        Localize(logoArt, wallTex, wallPt, settings);
 
         // login
         CanvasGroup loginScreen = Screen(go.transform, "Login", new Color(0.02f, 0.08f, 0.1f));
@@ -51,6 +53,7 @@ internal static class OperatorRoomUiBuilder
         loginWall.texture = wallTex;
         loginWall.color = new Color(0.45f, 0.45f, 0.45f);
         loginWall.raycastTarget = false;
+        Localize(loginWall, wallTex, wallPt, settings);
         var loginBox = EditorUi.CreateUiObject(loginScreen.transform, "Box");
         EditorUi.Place((RectTransform)loginBox.transform, Mid, Mid, Mid, new Vector2(0f, -40f), new Vector2(460f, 250f));
         loginBox.AddComponent<Image>().color = WinGray;
@@ -83,6 +86,7 @@ internal static class OperatorRoomUiBuilder
         EditorUi.Stretch(wall.rectTransform);
         wall.texture = wallTex;
         wall.color = wallTex != null ? Color.white : new Color(0.02f, 0.18f, 0.2f);
+        Localize(wall, wallTex, wallPt, settings);
         var background = wall.gameObject.AddComponent<Button>();
         background.transition = Selectable.Transition.None;
 
@@ -367,7 +371,7 @@ internal static class OperatorRoomUiBuilder
         Image shade = go.AddComponent<Image>();
         shade.color = new Color(0f, 0f, 0f, 0.45f);
         var win = EditorUi.CreateUiObject(go.transform, "Window");
-        EditorUi.Place((RectTransform)win.transform, Mid, Mid, Mid, Vector2.zero, new Vector2(660f, 580f));
+        EditorUi.Place((RectTransform)win.transform, Mid, Mid, Mid, Vector2.zero, new Vector2(660f, 770f));
         win.AddComponent<Image>().color = WinGray;
         Outline(win, 2f);
         Bar(win.transform, out TMP_Text title);
@@ -450,7 +454,39 @@ internal static class OperatorRoomUiBuilder
         Section("Sound", "Som");
         RowName("Volume", "Volume geral");
         refs.volume = Level("Volume");
-        y -= 46f;
+        y -= 38f;
+        // the microphone: its name cycles the devices (the label is set by the window, not translated here)
+        RowName("Microphone", "Microfone");
+        refs.microphone = UiButton(b, "Microphone", TopLeft, new Vector2(290f, y - 2f), new Vector2(338f, 28f), "", "", 15, false);
+        ((RectTransform)refs.microphone.transform).pivot = TopLeft;
+        y -= 38f;
+        RowName("Test microphone", "Testar microfone");
+        refs.micRecord = UiButton(b, "MicRecord", TopLeft, new Vector2(290f, y - 2f), new Vector2(210f, 28f), "", "", 15, false);
+        ((RectTransform)refs.micRecord.transform).pivot = TopLeft;
+        Image meterBack = EditorUi.CreateUiObject(b, "MicMeter").AddComponent<Image>();
+        meterBack.color = new Color(0.62f, 0.62f, 0.6f);
+        EditorUi.Place(meterBack.rectTransform, TopLeft, TopLeft, TopLeft, new Vector2(510f, y - 8f), new Vector2(118f, 16f));
+        meterBack.rectTransform.pivot = TopLeft;
+        Image meter = EditorUi.CreateUiObject(meterBack.transform, "Level").AddComponent<Image>();
+        meter.color = new Color(0.15f, 0.6f, 0.2f);
+        meter.type = Image.Type.Filled;
+        meter.fillMethod = Image.FillMethod.Horizontal;
+        meter.fillAmount = 0f;
+        meter.raycastTarget = false;
+        EditorUi.Stretch(meter.rectTransform);
+        refs.micLevel = meter;
+        y -= 34f;
+        refs.micHeard = EditorUi.CreateText(b, "MicHeard", 14, TextAlignmentOptions.Left, Ink);
+        EditorUi.Place(refs.micHeard.rectTransform, TopLeft, TopLeft, TopLeft, new Vector2(26f, y), new Vector2(602f, 24f));
+        refs.micHeard.fontStyle = FontStyles.Italic;
+        y -= 34f;
+        RowName("Sound output", "Saída de som");
+        refs.outputTest = Choice("OutputTest", 290f, 166f, "Test sound", "Testar som");
+        y -= 34f;
+        refs.outputNote = EditorUi.CreateText(b, "OutputNote", 13, TextAlignmentOptions.TopLeft, Ink);
+        EditorUi.Place(refs.outputNote.rectTransform, TopLeft, TopLeft, TopLeft, new Vector2(26f, y), new Vector2(602f, 36f));
+        refs.outputNote.textWrappingMode = TextWrappingModes.Normal;
+        y -= 54f;
         Section("Language", "Idioma");
         RowName("Language (voice and text)", "Idioma (voz e texto)");
         refs.language.a = Choice("LangPt", 290f, 166f, "Português", "Português");
@@ -488,6 +524,12 @@ internal static class OperatorRoomUiBuilder
         R("filterStrength.value", refs.filterStrength.value);
         R("volume.slider", refs.volume.slider);
         R("volume.value", refs.volume.value);
+        R(nameof(SettingsWindow.Refs.microphone), refs.microphone);
+        R(nameof(SettingsWindow.Refs.micLevel), refs.micLevel);
+        R(nameof(SettingsWindow.Refs.micRecord), refs.micRecord);
+        R(nameof(SettingsWindow.Refs.micHeard), refs.micHeard);
+        R(nameof(SettingsWindow.Refs.outputTest), refs.outputTest);
+        R(nameof(SettingsWindow.Refs.outputNote), refs.outputNote);
         R("language.a", refs.language.a);
         R("language.b", refs.language.b);
         R(nameof(SettingsWindow.Refs.subtitles), refs.subtitles);
@@ -577,6 +619,130 @@ internal static class OperatorRoomUiBuilder
     }
 
     // A full-screen panel with a CanvasGroup.
+    // A picture with words in it: its English / Portuguese version follows the language.
+    private static void Localize(RawImage image, Texture2D english, Texture2D portuguese, CameraSettings settings)
+    {
+        if (english == null) return;
+        var l = image.gameObject.AddComponent<LocalizedRawImage>();
+        EditorSerialized.SetReference(l, LocalizedRawImage.TargetField, image);
+        EditorSerialized.SetReference(l, LocalizedRawImage.EnglishField, english);
+        EditorSerialized.SetReference(l, LocalizedRawImage.PortugueseField, portuguese);
+        EditorSerialized.SetReference(l, LocalizedRawImage.SettingsField, settings);
+    }
+
+    // ================================================================== CCTV.EXE starting
+    // The startup splash (CctvBootSplash): its own canvas over everything (the camera program's UI too).
+    internal static CctvBootSplash BuildBootSplash(Transform canvas, CameraSettings settings)
+    {
+        Color teal = new Color(0.47f, 0.78f, 0.8f);
+        var go = EditorUi.CreateUiObject(canvas, "CctvBootSplash");
+        EditorUi.Stretch((RectTransform)go.transform);
+        var own = go.AddComponent<Canvas>();
+        own.overrideSorting = true;
+        own.sortingOrder = 200;
+        go.AddComponent<GraphicRaycaster>();
+        var group = go.AddComponent<CanvasGroup>();
+        var bg = go.AddComponent<Image>();
+        bg.color = new Color(0.01f, 0.03f, 0.04f);
+
+        Image glow = SplashImage(go.transform, "Glow", "T_Cctv_Glow", new Vector2(0f, 90f), new Vector2(700f, 700f), teal);
+        Image ring = SplashImage(go.transform, "Ring", "T_Cctv_Ring", new Vector2(0f, 90f), new Vector2(200f, 200f), teal);
+        ring.type = Image.Type.Filled;
+        ring.fillMethod = Image.FillMethod.Radial360;
+        ring.fillOrigin = (int)Image.Origin360.Top;
+        ring.fillClockwise = true;
+        Image eyeTop = SplashImage(go.transform, "EyeTop", "T_Cctv_EyeTop", new Vector2(0f, 90f), new Vector2(200f, 200f), teal);
+        Image eyeBottom = SplashImage(go.transform, "EyeBottom", "T_Cctv_EyeBottom", new Vector2(0f, 90f), new Vector2(200f, 200f), teal);
+        Image pupil = SplashImage(go.transform, "Pupil", "T_Cctv_Pupil", new Vector2(0f, 90f), new Vector2(40f, 40f), teal);
+
+        TMP_Text title = EditorUi.CreateText(go.transform, "Title", 46, TextAlignmentOptions.Center, new Color(0.6f, 0.86f, 0.88f));
+        EditorUi.Place(title.rectTransform, Mid, Mid, Mid, new Vector2(0f, -55f), new Vector2(900f, 70f));
+        title.text = "SENTINEL  CCTV";
+        title.fontStyle = FontStyles.Bold;
+        Image sweep = SplashImage(go.transform, "Sweep", "T_Cctv_Sweep", new Vector2(0f, -55f), new Vector2(160f, 80f), new Color(1f, 1f, 1f, 0.55f));
+        TMP_Text tagline = EditorUi.CreateText(go.transform, "Tagline", 17, TextAlignmentOptions.Center, new Color(0.38f, 0.6f, 0.64f));
+        EditorUi.Place(tagline.rectTransform, Mid, Mid, Mid, new Vector2(0f, -102f), new Vector2(900f, 30f));
+        tagline.characterSpacing = 8f;
+
+        var loaderGo = EditorUi.CreateUiObject(go.transform, "Loader");
+        EditorUi.Place((RectTransform)loaderGo.transform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 110f), new Vector2(520f, 60f));
+        var loader = loaderGo.AddComponent<CanvasGroup>();
+        var track = EditorUi.CreateUiObject(loaderGo.transform, "Track").AddComponent<Image>();
+        EditorUi.Place(track.rectTransform, Mid, Mid, Mid, new Vector2(0f, 14f), new Vector2(520f, 4f));
+        track.color = new Color(0.47f, 0.78f, 0.8f, 0.18f);
+        track.raycastTarget = false;
+        var fill = EditorUi.CreateUiObject(loaderGo.transform, "Fill").AddComponent<Image>();
+        EditorUi.Place(fill.rectTransform, Mid, Mid, Mid, new Vector2(0f, 14f), new Vector2(520f, 4f));
+        fill.color = teal;
+        fill.type = Image.Type.Filled;
+        fill.fillMethod = Image.FillMethod.Horizontal;
+        fill.fillOrigin = (int)Image.OriginHorizontal.Left;
+        fill.raycastTarget = false;
+        TMP_Text status = EditorUi.CreateText(loaderGo.transform, "Status", 14, TextAlignmentOptions.Center, new Color(0.45f, 0.65f, 0.68f));
+        EditorUi.Place(status.rectTransform, Mid, Mid, Mid, new Vector2(0f, -10f), new Vector2(520f, 24f));
+        TMP_Text footer = EditorUi.CreateText(go.transform, "Footer", 11, TextAlignmentOptions.Center, new Color(0.3f, 0.42f, 0.45f));
+        EditorUi.Place(footer.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 22f), new Vector2(1100f, 20f));
+
+        var scan = EditorUi.CreateUiObject(go.transform, "Scanlines").AddComponent<RawImage>();
+        EditorUi.Stretch(scan.rectTransform);
+        Texture2D scanTex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{OsArt}/T_Cctv_Scan.png");
+        scan.texture = scanTex;
+        scan.uvRect = new Rect(0f, 0f, 1280f / 4f, 720f / 4f);
+        scan.color = scanTex != null ? new Color(1f, 1f, 1f, 0.5f) : Color.clear;
+        scan.raycastTarget = false;
+        var flash = EditorUi.CreateUiObject(go.transform, "Flash").AddComponent<Image>();
+        EditorUi.Stretch(flash.rectTransform);
+        flash.color = new Color(0.85f, 0.97f, 1f, 0f);
+        flash.raycastTarget = false;
+
+        var audio = go.AddComponent<AudioSource>();
+        audio.playOnAwake = false;
+        audio.spatialBlend = 0f;
+        audio.volume = 0.8f;
+
+        var splash = go.AddComponent<CctvBootSplash>();
+        var so = new SerializedObject(splash);
+        SplashRef(so, "group", group); SplashRef(so, "glow", glow); SplashRef(so, "ring", ring);
+        SplashRef(so, "eyeTop", eyeTop.rectTransform); SplashRef(so, "eyeBottom", eyeBottom.rectTransform); SplashRef(so, "pupil", pupil.rectTransform);
+        SplashRef(so, "title", title); SplashRef(so, "sweep", sweep.rectTransform); SplashRef(so, "tagline", tagline);
+        SplashRef(so, "loader", loader); SplashRef(so, "barFill", fill); SplashRef(so, "status", status);
+        SplashRef(so, "footer", footer); SplashRef(so, "flash", flash);
+        so.FindProperty(CctvBootSplash.SettingsField).objectReferenceValue = settings;
+        so.FindProperty(CctvBootSplash.AudioField).objectReferenceValue = audio;
+        AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/OperatorRoom/A_Cctv_Boot.wav");
+        if (clip == null) Debug.LogWarning("[Operator] Assets/Audio/OperatorRoom/A_Cctv_Boot.wav missing: the splash plays silent.");
+        so.FindProperty(CctvBootSplash.ClipField).objectReferenceValue = clip;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        group.alpha = 0f;
+        group.blocksRaycasts = false;
+        return splash;
+    }
+
+    private static void SplashRef(SerializedObject so, string field, Object value) =>
+        so.FindProperty($"{CctvBootSplash.RefsField}.{field}").objectReferenceValue = value;
+
+    // A splash part: a white sprite (imported as a sprite, no mipmaps) tinted, centered.
+    private static Image SplashImage(Transform parent, string name, string art, Vector2 position, Vector2 size, Color color)
+    {
+        string path = $"{OsArt}/{art}.png";
+        if (AssetImporter.GetAtPath(path) is TextureImporter ti &&
+            (ti.textureType != TextureImporterType.Sprite || !ti.alphaIsTransparency || ti.mipmapEnabled))
+        {
+            ti.textureType = TextureImporterType.Sprite;
+            ti.spriteImportMode = SpriteImportMode.Single;
+            ti.alphaIsTransparency = true;
+            ti.mipmapEnabled = false;
+            ti.SaveAndReimport();
+        }
+        var img = EditorUi.CreateUiObject(parent, name).AddComponent<Image>();
+        img.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        if (img.sprite == null) Debug.LogWarning($"[Operator] {path} missing: the splash draws a plain shape there.");
+        img.color = color;
+        img.raycastTarget = false;
+        EditorUi.Place(img.rectTransform, Mid, Mid, Mid, position, size);
+        return img;
+    }
+
     private static CanvasGroup Screen(Transform parent, string name, Color color)
     {
         var go = EditorUi.CreateUiObject(parent, name);

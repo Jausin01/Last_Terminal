@@ -21,6 +21,9 @@ public class GameSession : ScriptableObject
     // The operator was at the camera program, and its play id.
     [NonSerialized] private bool operating;
     [NonSerialized] private int operatingStamp;
+    // The location his room loads next (GameScenes.OpenLocation), and its play id.
+    [NonSerialized] private string nextLocation;
+    [NonSerialized] private int nextLocationStamp;
 
     // valid only within this play session: every Play counts up (also with Enter Play Mode Options / no domain reload)
     private static int playId;
@@ -46,6 +49,9 @@ public class GameSession : ScriptableObject
         transferStamp = playId;
     }
 
+    // The waiting state, left in place (his room reads its story before the location takes it).
+    public SaveData PeekTransfer => HasTransfer ? transfer : null;
+
     // Takes (and clears) the waiting state.
     public bool TakeTransfer(out SaveData data, out string arrivalStopId, out string originStopId, out bool fromSave)
     {
@@ -69,6 +75,37 @@ public class GameSession : ScriptableObject
         operating = value;
         operatingStamp = playId;
     }
+
+    // the location scene his room loads over itself next (a save of it loaded, an elevator to it, a restart)
+    public void SetNextLocation(string scene)
+    {
+        nextLocation = scene;
+        nextLocationStamp = playId;
+    }
+
+    // Takes (and clears) the location his room should load.
+    public bool TakeNextLocation(out string scene)
+    {
+        scene = Fresh(nextLocationStamp) ? nextLocation : null;
+        nextLocation = null;
+        nextLocationStamp = 0;
+        return !string.IsNullOrEmpty(scene);
+    }
+
+    // ------------------------------------------------------------------ a flashback (a story scene in between)
+    // The location to go back to after it (its state waits in the transfer), and its play id.
+    [NonSerialized] private string returnLocation;
+    [NonSerialized] private int returnStamp;
+
+    // Remembers where to come back after the flashback.
+    public void SetReturnLocation(string scene)
+    {
+        returnLocation = scene;
+        returnStamp = playId;
+    }
+
+    // Where to go back (empty = none set in this play session).
+    public string ReturnLocation => Fresh(returnStamp) ? returnLocation : null;
 
     // ------------------------------------------------------------------ the scenes she left
     private Dictionary<string, SceneWorld> Worlds

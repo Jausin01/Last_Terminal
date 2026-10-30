@@ -35,6 +35,9 @@ public class SaveData
     public List<string> ownedOutfits;   // prizes bought at the casino (null = not saved: keep the current ones)
     public List<string> storyFlags;     // what the operator has seen happen (files on his PC); null = not saved: keep
     public List<SavedStack> storyCounters;   // counted things (coffees...); null = not saved: keep
+    // The security camera the operator was watching (its object name; empty = the scene's start camera) and its pan.
+    public string camera;
+    public float cameraYaw;
 }
 
 // how a scene was left: what is left of each pickup, the enemies (by save id)
@@ -46,6 +49,16 @@ public class SceneWorld
     // What is left of each pickup, and the enemies.
     public List<SavedStack> pickups = new List<SavedStack>();
     public List<SavedEnemy> enemies = new List<SavedEnemy>();
+    public List<SavedDoor> doors = new List<SavedDoor>();   // by save id; missing = as at the start of the scene
+}
+
+// One door by save id: open, locked.
+[Serializable]
+public class SavedDoor
+{
+    public string id;
+    public bool open;
+    public bool locked;
 }
 
 // One enemy by save id: dead, health, where it was and how it fell.

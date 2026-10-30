@@ -4,7 +4,9 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // The settings window of the operator's screen (Esc): pan control and speeds, camera filter and strength, language,
-// subtitles. One row per option, built in code; values come from CameraSettings and are refreshed when they change.
+// subtitles, the microphone (device, level meter + record test, recognition test line) and the sound output test.
+// One row per option, built in code; values come from CameraSettings and are refreshed when they change. The audio
+// part is MicrophoneTest (shared with the PC's Settings window).
 internal sealed class SettingsMenuView
 {
     // Row labels per language, their texts, and the close button label.
@@ -12,14 +14,21 @@ internal sealed class SettingsMenuView
     private readonly TMP_Text[] settingsLabels = new TMP_Text[SettingsRowCount];
     private TMP_Text closeLabel;
     // Number of rows; each row's value refresher and value text.
-    private const int SettingsRowCount = 7;
+    private const int SettingsRowCount = 10;
+    private const int MicRow = 8;           // the record test row: its value is the live meter
     private readonly Action[] settingsRefresh = new Action[SettingsRowCount];
     private TMP_Text[] settingsValues;
 
-    // The hud (settings, camera system, widgets, colors, language).
+    // The hud (settings, camera system, widgets, colors, language), the microphone part and its recognition line.
     private readonly SecurityCameraHud hud;
+    private readonly MicrophoneTest micTest;
+    private TMP_Text heardLine;
 
-    public SettingsMenuView(SecurityCameraHud hud) { this.hud = hud; }
+    public SettingsMenuView(SecurityCameraHud hud)
+    {
+        this.hud = hud;
+        micTest = new MicrophoneTest(hud.Settings, hud.Audio);
+    }
 
     // Builds the rows and the close button.
     internal void Build()
@@ -38,9 +47,16 @@ internal sealed class SettingsMenuView
         AddRow(5, "LANGUAGE / IDIOMA", "IDIOMA / LANGUAGE", () => hud.Settings.SetLanguage(hud.Settings.Language == GameLanguage.English ? GameLanguage.Portuguese : GameLanguage.English), null,
                () => hud.Settings.Language == GameLanguage.English ? "ENGLISH" : "PORTUGUÊS");
         AddRow(6, "SUBTITLES", "LEGENDAS", () => hud.Settings.SetSubtitles(!hud.Settings.SubtitlesEnabled), null, () => hud.Settings.SubtitlesEnabled ? hud.L("ON", "LIGADAS") : hud.L("OFF", "DESLIGADAS"));
+        AddRow(7, "MICROPHONE", "MICROFONE", micTest.NextDevice, null, () => micTest.DeviceLabel().ToUpperInvariant());
+        AddRow(MicRow, "MIC TEST (CLICK: REC 3 S)", "TESTE (CLIQUE: GRAVA 3 S)", micTest.RecordAndListen, null, MicValue);
+        AddRow(9, "SOUND OUTPUT", "SAÍDA DE SOM", micTest.PlayTestSound, null, () => hud.L("SYSTEM - CLICK TO TEST", "SISTEMA - CLIQUE P/ TESTAR"));
+        heardLine = HudUi.NewText(hud.SettingsRows, "", 14, hud.Phosphor);
+        heardLine.rectTransform.sizeDelta = new Vector2(600f, 40f);
+        heardLine.rectTransform.anchoredPosition = new Vector2(20f, -SettingsRowCount * 52f + 6f);
+        heardLine.textWrappingMode = TextWrappingModes.Normal;
         Button close = HudUi.NewButton(hud.SettingsRows, "CLOSE", 18, () => hud.CameraSystem.SetSettingsOpen(false), out Image closeImg, hud.Phosphor);
         closeLabel = close.GetComponentInChildren<TMP_Text>();
-        closeImg.rectTransform.anchoredPosition = new Vector2(0f, -SettingsRowCount * 52f - 20f);
+        closeImg.rectTransform.anchoredPosition = new Vector2(0f, -SettingsRowCount * 52f - 50f);
         closeImg.rectTransform.sizeDelta = new Vector2(160f, 36f);
     }
 
@@ -61,6 +77,9 @@ internal sealed class SettingsMenuView
         mainImg.rectTransform.anchoredPosition = new Vector2(70f, y);
         if (minus != null) main.transition = Selectable.Transition.None;   // just shows the value
         settingsValues[index] = main.GetComponentInChildren<TMP_Text>();
+        settingsValues[index].enableAutoSizing = true;                      // long device names shrink to fit
+        settingsValues[index].fontSizeMin = 10f;
+        settingsValues[index].fontSizeMax = 18f;
 
         if (minus != null)
         {
@@ -72,6 +91,24 @@ internal sealed class SettingsMenuView
             p.rectTransform.anchoredPosition = new Vector2(272f, y);
         }
         settingsRefresh[index] = () => settingsValues[index].text = value();
+    }
+
+    // The record test row's value: the live meter, or the test's progress.
+    private string MicValue() => micTest.Current == MicrophoneTest.Stage.Idle ? micTest.LevelBars() : micTest.RecordLabel().ToUpperInvariant();
+
+    // The menu opened / closed: the microphone records for the meter and the tests only while it is open.
+    internal void SetOpen(bool open)
+    {
+        if (open) { micTest.Open(); Refresh(); }
+        else micTest.Close();
+    }
+
+    // Each frame while open: the record test, the meter, the recognition line.
+    internal void Tick()
+    {
+        micTest.Tick(Time.unscaledDeltaTime);
+        settingsRefresh[MicRow]?.Invoke();
+        if (heardLine != null) heardLine.text = micTest.HeardLabel();
     }
 
     // Refreshes every settings value.

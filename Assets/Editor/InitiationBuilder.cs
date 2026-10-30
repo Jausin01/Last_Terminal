@@ -27,7 +27,6 @@ internal static class InitiationBuilder
     private const string OperatorArtFolder = "Assets/Art/Props/Operator";
     private const string DoorFolder = "Assets/Art/Props/Doors";
     private const string CastFolder = "Assets/Characters/Cast";
-    private const string CastMatFolder = CastFolder + "/Materials";
     private const string CastAnimFolder = CastFolder + "/Animations";
     private const string CastModelFolder = CastFolder + "/Models";
     private const string ArmsCutsceneControllerPath = DataFolder + "/CutsceneArms.controller";
@@ -38,9 +37,9 @@ internal static class InitiationBuilder
     private const string ControllerPath = CastFolder + "/Cast.controller";
     private const string ArmsModelPath = "Assets/Art/FirstPerson/SM_FPArms.fbx";
     private const string SceneFolder = "Assets/Scenes";
-    private const string ScenePath = SceneFolder + "/Cutscene01_Iniciacao.unity";
+    internal const string ScenePath = SceneFolder + "/Cutscene01_Iniciacao.unity";
     // where the cutscene ends: his room (Operator.unity, made by hand; Last Terminal/16 sets it up)
-    internal const string OperatorSceneName = "Operator";
+    internal const string OperatorSceneName = GameScenes.Operator;
     private const float ArmsEye = 1.7432f;
 
     // Where each set is built (far apart, never in view of each other): house, car, office, night street, van.
@@ -269,17 +268,7 @@ internal static class InitiationBuilder
                 AssetDatabase.DeleteAsset($"{CastFolder}/{name}.fbx");
                 Debug.Log($"[Initiation] Old {CastFolder}/{name}.fbx removed (the Mixamo file in Models/ replaces it).");
             }
-            string path = $"{CastModelFolder}/{name}.fbx";
-            var mi = AssetImporter.GetAtPath(path) as ModelImporter;
-            if (mi == null) { if (!name.EndsWith("2")) missing.Add(path); continue; }
-            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{CastFolder}/T_{name}.png");
-            Material m = EditorAssets.MakeMaterial($"{CastMatFolder}/M_{name}.mat", tex, 0.12f, false, lit);
-            // whatever the file calls its material: ours
-            var names = new HashSet<string>();
-            foreach (Object o in AssetDatabase.LoadAllAssetsAtPath(path)) if (o is Material) names.Add(o.name);
-            foreach (var kv in mi.GetExternalObjectMap()) if (kv.Key.type == typeof(Material)) names.Add(kv.Key.name);
-            foreach (string n in names) mi.AddRemap(new AssetImporter.SourceAssetIdentifier(typeof(Material), n), m);
-            mi.SaveAndReimport();
+            if (!CastMaterials.Apply(name, lit) && !name.EndsWith("2")) missing.Add($"{CastModelFolder}/{name}.fbx");
         }
         Avatar helena = AssetDatabase.LoadAllAssetsAtPath($"{HelenaAnimFolder}/HelenaIdle.fbx").OfType<Avatar>().FirstOrDefault();
         if (helena == null)

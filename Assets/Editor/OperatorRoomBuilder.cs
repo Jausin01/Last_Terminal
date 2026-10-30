@@ -227,6 +227,7 @@ internal static class OperatorRoomBuilder
         so.FindProperty(OperatorLocation.EncounterField).objectReferenceValue = rig.Encounter;
         so.FindProperty(OperatorLocation.VoiceField).objectReferenceValue = rig.Voice;
         so.FindProperty(OperatorLocation.EventSystemField).objectReferenceValue = CutsceneBuilder.First<EventSystem>(scene);
+        so.FindProperty(OperatorLocation.StoryField).objectReferenceValue = rig.Story;
         SerializedProperty list = so.FindProperty(OperatorLocation.OperatorBehavioursField);
         List<Behaviour> behaviours = rig.OperatorBehaviours.Where(b => b != null).ToList();
         list.arraySize = behaviours.Count;
@@ -422,6 +423,7 @@ internal static class OperatorRoomBuilder
         so.FindProperty(OperatorStation.EncounterField).objectReferenceValue = rig.Encounter;
         so.FindProperty(OperatorStation.VoiceField).objectReferenceValue = rig.Voice;
         so.FindProperty(OperatorStation.SessionField).objectReferenceValue = rig.Session;
+        so.FindProperty(OperatorStation.StoryField).objectReferenceValue = rig.Story;
         so.FindProperty(OperatorStation.SettingsField).objectReferenceValue = rig.Settings;
         so.FindProperty(OperatorStation.DialogField).objectReferenceValue = dialog.Group;
         so.FindProperty(OperatorStation.DialogTitleField).objectReferenceValue = dialog.Title;

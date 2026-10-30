@@ -66,11 +66,12 @@ internal sealed class OsFileBrowser
         {
             if (os.ViewerUi.picture != null)
             {
-                os.ViewerUi.picture.texture = f.Image;
-                os.ViewerUi.picture.color = f.Image != null ? Color.white : Color.black;
+                os.ViewerUi.picture.texture = f.ImageIn(os.Language);
+                os.ViewerUi.picture.color = f.ImageIn(os.Language) != null ? Color.white : Color.black;
             }
-            if (os.ViewerUi.pictureFitter != null && f.Image != null)
-                os.ViewerUi.pictureFitter.aspectRatio = f.Image.width / (float)Mathf.Max(1, f.Image.height);
+            Texture2D pic = f.ImageIn(os.Language);
+            if (os.ViewerUi.pictureFitter != null && pic != null)
+                os.ViewerUi.pictureFitter.aspectRatio = pic.width / (float)Mathf.Max(1, pic.height);
             if (os.ViewerUi.caption != null) os.ViewerUi.caption.text = f.Body(os.Language);
             os.ViewerUi.image.Open(f.FileName(os.Language));
         }

@@ -70,6 +70,15 @@ internal static class OperatorRoomContent
             file.EditorSetPlace(f.picture != null ? OperatorFile.Kind.Image : OperatorFile.Kind.Text, pic, f.folderEn, f.folderPt, f.recycled);
             AssetDatabase.CreateAsset(file, path);
         }
+        // the pictures in each language (the art has words in it): set on every file, new or not
+        foreach (FileDef f in FileDefs)
+        {
+            if (f.picture == null) continue;
+            var file = AssetDatabase.LoadAssetAtPath<OperatorFile>($"{FilesFolder}/{f.id}.asset");
+            if (file == null) continue;
+            file.EditorSetPictures(AssetDatabase.LoadAssetAtPath<Texture2D>($"{PicFolder}/{f.picture}.png"),
+                                   AssetDatabase.LoadAssetAtPath<Texture2D>($"{PicFolder}/{f.picture}_PT.png"));
+        }
         return AssetDatabase.FindAssets("t:OperatorFile", new[] { FilesFolder })
             .Select(g => AssetDatabase.LoadAssetAtPath<OperatorFile>(AssetDatabase.GUIDToAssetPath(g)))
             .Where(f => f != null).OrderBy(f => f.Order).ToList();

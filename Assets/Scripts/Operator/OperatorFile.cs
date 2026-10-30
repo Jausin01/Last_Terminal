@@ -28,6 +28,8 @@ public class OperatorFile : ScriptableObject
     [SerializeField] private Kind kind = Kind.Text;
     [Tooltip("A picture file: the image (the body is its caption).")]
     [SerializeField] private Texture2D image;
+    [Tooltip("The picture with its words in Portuguese (empty = the same one).")]
+    [SerializeField] private Texture2D imagePt;
     [Tooltip("The folder it is in (files with the same folder name are together).")]
     [SerializeField] private string folderEn = "Documents";
     // The folder in Portuguese.
@@ -41,6 +43,8 @@ public class OperatorFile : ScriptableObject
     public string Id => name;
     public Kind FileKind => kind;
     public Texture2D Image => image;
+    // The picture in a language (the English one when there is no Portuguese).
+    public Texture2D ImageIn(GameLanguage l) => l == GameLanguage.Portuguese && imagePt != null ? imagePt : image;
     public bool InRecycleBin => inRecycleBin;
 
     // The folder / file name / title / body in a language (English when the Portuguese one is empty).
@@ -64,6 +68,14 @@ public class OperatorFile : ScriptableObject
     public void EditorSetPlace(Kind fileKind, Texture2D picture, string folderEnglish, string folderPortuguese, bool recycled)
     {
         kind = fileKind; image = picture; folderEn = folderEnglish; folderPt = folderPortuguese; inRecycleBin = recycled;
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
+
+    // Editor: the pictures in each language (also on files that already exist: the art has words in it).
+    public void EditorSetPictures(Texture2D english, Texture2D portuguese)
+    {
+        if (english != null) image = english;
+        imagePt = portuguese;
         UnityEditor.EditorUtility.SetDirty(this);
     }
 #endif

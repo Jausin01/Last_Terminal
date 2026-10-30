@@ -110,6 +110,15 @@ public static class OutfitBuilder
             hidden = Gear,
             helena2Texture = "T_Helena2_Pajama", helena2Smooth = 0.2f,
         },
+        // her school uniform (the flashbacks; free: always hers): Helena 2 only, a body of its own
+        new Outfit
+        {
+            key = "outfit_school", asset = "Outfit_School", en = "School Uniform", pt = "Uniforme Escolar", price = 0, line = PartnerLine.OutfitChanged,
+            swaps = new (string, string, float)[0],
+            hidden = Gear,
+            helena2Smooth = 0.3f,
+            helena2Body = "SM_Helena2_SchoolBody",
+        },
         // the top prize of the casino
         new Outfit
         {
@@ -163,9 +172,9 @@ public static class OutfitBuilder
             if (!ok) swaps.Clear();   // the old model's set is all or nothing
             (Material original, Material replacement)? h2 = Helena2Swap(o, lit);
             if (h2.HasValue) swaps.Add(h2.Value);
-            else if (helena2) Debug.LogWarning($"[Outfits] {o.asset}: Helena 2's version missing ({TextureFolder}/{o.helena2Texture}.png or {HelenaCompareBuilder.BodyMaterialPath}: menu 18).");
+            else if (helena2 && !string.IsNullOrEmpty(o.helena2Texture)) Debug.LogWarning($"[Outfits] {o.asset}: Helena 2's version missing ({TextureFolder}/{o.helena2Texture}.png or {HelenaCompareBuilder.BodyMaterialPath}: menu 18).");
             bool ownBody = helena2 && Helena2BodyModel(o) != null;
-            if (!ok && !h2.HasValue && !ownBody) continue;
+            if ((!ok || swaps.Count == 0) && !h2.HasValue && !ownBody) continue;   // nothing this model can wear
 
             string path = $"{DataFolder}/{o.asset}.asset";
             var outfit = AssetDatabase.LoadAssetAtPath<OutfitDefinition>(path);

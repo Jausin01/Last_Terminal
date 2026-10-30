@@ -74,6 +74,38 @@ public class HandTargetStep : CutsceneStep
     }
 }
 
+[Serializable, CutsceneStepInfo("Animation/Look at (head IK)", 14)]
+public class LookStep : CutsceneStep
+{
+    // Who looks.
+    public CutsceneActor actor;
+    [Tooltip("What it looks at (an empty object, a person's head...). Empty = back to the animation.")]
+    public Transform target;
+    // IK weight at full blend.
+    [Range(0f, 1f)] public float weight = 0.9f;
+    [Tooltip("Seconds to turn the head.")]
+    public float blend = 0.6f;
+
+    // Step list description.
+    public override string Summary => target == null ? $"{N(actor)} stops looking" : $"{N(actor)} looks at {N(target)}";
+
+    // Turns the head (blending; the step does not wait).
+    public override IEnumerator Run(CutsceneDirector d)
+    {
+        if (actor == null) yield break;
+        d.Use(actor);
+        actor.SetLookTarget(target, weight, blend);
+    }
+
+    // Skipped: looking there at once.
+    public override void Finish(CutsceneDirector d)
+    {
+        if (actor == null) return;
+        d.Use(actor);
+        actor.SetLookTarget(target, weight, 0f);
+    }
+}
+
 // ====================================================================== camera (cinema mode)
 [Serializable, CutsceneStepInfo("Camera/Camera move (cinema)", 33)]
 public class CameraMoveStep : CutsceneStep

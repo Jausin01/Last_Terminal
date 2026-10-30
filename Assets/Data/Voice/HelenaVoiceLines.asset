@@ -466,9 +466,9 @@ MonoBehaviour:
     portugueseClips: []
   - line: 75
     context: "Vestiu a roupa de coelhinha (o pr\xEAmio mais caro do cassino). Sem
-      gra\xE7a, mas entrando na brincadeira."
-    english: ...Seriously? You're lucky I like you.
-    portuguese: "...S\xE9rio? Sorte sua que eu gosto de voc\xEA."
+      gra\xE7a, meio irritada com o operador (os dois ainda n\xE3o se acertaram)."
+    english: ...Seriously? You're enjoying this way too much.
+    portuguese: "...S\xE9rio? Voc\xEA t\xE1 gostando disso demais."
     englishClips: []
     portugueseClips: []
   - line: 76

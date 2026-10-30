@@ -11,6 +11,12 @@ using UnityEngine;
 // The seat / camera / deck routine, the animation steps and dealing are shared with blackjack (CardTableGame).
 public class HoldemGame : CardTableGame
 {
+    // Names of the layout fields below (the casino builder sets them for its table model).
+    public const string BoardField = nameof(board);
+    public const string PlayerHandField = nameof(playerHand);
+    public const string AnteSpotField = nameof(anteSpot);
+    public const string CallSpotField = nameof(callSpot);
+
     // The game's flow: seating, opening, betting, dealing (events playing), deciding, round end, leaving.
     public enum State { Off, Joining, Opening, Betting, Dealing, Deciding, RoundEnd, AskAgain, Leaving }
 

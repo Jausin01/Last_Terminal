@@ -22,6 +22,7 @@ MonoBehaviour:
   order: 60
   kind: 1
   image: {fileID: 2800000, guid: 6efc7140783ed83448248fee568c76d7, type: 3}
+  imagePt: {fileID: 2800000, guid: 790f9a31598d6fe4d91272d0aeabf930, type: 3}
   folderEn: Pictures
   folderPt: Imagens
   inRecycleBin: 0

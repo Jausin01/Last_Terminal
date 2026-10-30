@@ -81,7 +81,7 @@ Português em `Assets/Audio/Voice/Helena/PT/`, inglês em `Assets/Audio/Voice/He
 | `NoWayOut_01` | Quer fugir/se proteger mas não tem pra onde ir. Medo. | Não tem pra onde ir! | There's nowhere to go! |
 | `OutfitChanged_01` | Trocou de roupa na frente da câmera. Brincalhona, um pouco envergonhada. | Não espia! ...Pronto. | Don't peek! ...Okay, done. |
 | `OutfitSame_01` | Pediram a roupa que ela já está usando. | Eu já tô com ela. | I'm already wearing it. |
-| `OutfitBunny_01` | Vestiu a roupa de coelhinha (o prêmio mais caro do cassino). Sem graça, mas entrando na brincadeira. | ...Sério? Sorte sua que eu gosto de você. | ...Seriously? You're lucky I like you. |
+| `OutfitBunny_01` | Vestiu a roupa de coelhinha (o prêmio mais caro do cassino). Sem graça, meio irritada com o operador (os dois ainda não se acertaram). | ...Sério? Você tá gostando disso demais. | ...Seriously? You're enjoying this way too much. |
 | `TooFar_01` | Mandaram ela pra um lugar longe (não é a sala do lado). Pede pra guiar por partes. | É longe demais. Me guia uma sala de cada vez. | That's too far. Guide me one room at a time. |
 | `LookWhat_01` | Parou na frente da câmera e olhou pra ela, esperando. Meio desconfiada. | Que foi? | What? |
 | `LookWaiting_01` | Ficou um tempão olhando pra câmera e nada aconteceu. | ...Vai ficar só me olhando? | ...Are you just going to stare? |

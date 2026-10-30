@@ -1,0 +1,6 @@
+SM_Bar_Barranco.fbx (+ T_Bar_Atlas / AtlasGlow / Glass / Plant):
+  "Barranco Bar | PS1 Environment (Optimized/Mobile)" by McPato
+  https://sketchfab.com/3d-models/barranco-bar-ps1-environmentoptimizedmobile-3bbbad82e80e4af7985269292b41f52b
+  License: CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/) - converted to FBX, materials renamed,
+  five plants on the dance floor removed.
+SM_Bar_Jukebox, T_Bar_DanceFloor, audio (Audio/Bar): made for Last Terminal.

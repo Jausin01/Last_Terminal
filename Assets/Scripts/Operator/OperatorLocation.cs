@@ -21,6 +21,7 @@ public class OperatorLocation : MonoBehaviour
     public const string EncounterField = nameof(encounter);
     public const string VoiceField = nameof(voice);
     public const string EventSystemField = nameof(eventSystem);
+    public const string StoryField = nameof(story);
 
     // The link asset, and what the station turns on / off: view camera, audio listener, the operator UI canvas.
     [SerializeField] private OperatorLink link;
@@ -38,6 +39,8 @@ public class OperatorLocation : MonoBehaviour
     [SerializeField] private PartnerVoice voice;
     [Tooltip("This scene's EventSystem: off when the room's is there.")]
     [SerializeField] private EventSystem eventSystem;
+    [Tooltip("This scene's story flags: joined to the room's (one story for both).")]
+    [SerializeField] private StoryProgress story;
 
     // Read by the station.
     public Camera ViewCamera => viewCamera;
@@ -50,6 +53,7 @@ public class OperatorLocation : MonoBehaviour
     public CommandTargets Targets => targets;
     public CombatEncounter Encounter => encounter;
     public PartnerVoice Voice => voice;
+    public StoryProgress Story => story;
     // loaded over his room (else: played on its own)
     public bool Linked { get; private set; }
 

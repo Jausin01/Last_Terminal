@@ -61,10 +61,20 @@ public class Keypad : ButtonPanel
             enabled = false;
             return;
         }
+        MakeSounds();
+        Refresh();
+    }
+
+    // Clips made by code are lost when the sound output changes: they are made again then (GeneratedAudio).
+    private void OnEnable() => GeneratedAudio.Reset += MakeSounds;
+    private void OnDisable() => GeneratedAudio.Reset -= MakeSounds;
+
+    // The key beep, the wrong-code buzz and the open chime.
+    private void MakeSounds()
+    {
         beep = Tone("Beep", 0.07f, 1350f, 0f, false);
         buzz = Tone("Buzz", 0.45f, 180f, 0f, true);
         chime = Tone("Chime", 0.35f, 880f, 1320f, false);
-        Refresh();
     }
 
     // where her fingertip goes for that key (world)

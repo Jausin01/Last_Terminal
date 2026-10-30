@@ -18,6 +18,15 @@ public static class OperatorSounds
     private const int Rate = 22050;
     private static readonly Dictionary<Kind, AudioClip> Cache = new Dictionary<Kind, AudioClip>();
 
+    // Every play starts with no clips; they are made again after the sound output changed (GeneratedAudio).
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void Init()
+    {
+        Cache.Clear();
+        GeneratedAudio.Reset -= Cache.Clear;
+        GeneratedAudio.Reset += Cache.Clear;
+    }
+
     // The clip of a kind (made on first use).
     public static AudioClip Get(Kind kind)
     {

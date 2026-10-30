@@ -1219,6 +1219,21 @@ MonoBehaviour:
     phrases:
     - degraus
     - degrau
+  - key: outfit_school
+    phrases:
+    - uniforme escolar
+    - uniforme da escola
+    - roupa da escola
+    - roupa de escola
+    - roupa de colegial
+    - uniforme de colegial
+  - key: x_window
+    phrases:
+    - janela
+    - janelas
+    - grade
+    - grades
+    - vidro
   modifiers:
   - modifier: 1
     phrases:

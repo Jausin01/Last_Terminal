@@ -3,11 +3,10 @@ using System.Globalization;
 using System.IO;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.SceneManagement;
 
 // Save slots as JSON files in Application.persistentDataPath (save_1.json, save_2.json...).
 // Saves the partner (position, health, inventory, magazines, weapon), chips / coins, her outfit, the play time and
-// the world: what is left of each pickup and the enemies, of this scene and of the scenes she left (GameSession).
+// the world: what is left of each pickup, the enemies and the doors, of this scene and of the scenes she left (GameSession).
 // Between scenes (an elevator ride, a save of another scene loaded) her state goes through the GameSession:
 // Start picks it up (TransferArrived tells the elevators where she arrives).
 // Every reference is assigned in the scene (the Last Terminal menus build it); nothing is searched at runtime.
@@ -25,8 +24,10 @@ public class SaveSystem : MonoBehaviour
     public const string ChipBankField = nameof(chipBank);
     public const string OutfitField = nameof(outfit);
     public const string EnemiesField = nameof(enemies);
+    public const string DoorsField = nameof(doors);
     public const string SessionField = nameof(session);
     public const string StoryField = nameof(story);
+    public const string CameraSystemField = nameof(cameraSystem);
 
     // Her components saved / restored: agent (position), health, inventory, combat (weapon drawn), shooter (magazines), weapon holder.
     [Header("Partner")]
@@ -47,10 +48,16 @@ public class SaveSystem : MonoBehaviour
     [SerializeField] private PartnerOutfit outfit;
     [Tooltip("Enemies of the scene: who is dead, health and position.")]
     [SerializeField] private EnemyBrain[] enemies = new EnemyBrain[0];
+    [Tooltip("Doors of the scene: open, locked (unlocked by a key, a keypad, a cutscene...).")]
+    [SerializeField] private Door[] doors = new Door[0];
     [Tooltip("Shared by every scene: her state between scenes, the scenes she left.")]
     [SerializeField] private GameSession session;
     [Tooltip("Optional: the story flags (the operator's files).")]
     [SerializeField] private StoryProgress story;
+    [Tooltip("Optional: the camera program (the camera he was watching is saved).")]
+    [SerializeField] private SecurityCameraSystem cameraSystem;
+    [Tooltip("Cameras not saved (the cutscene shot camera): the save keeps the start camera instead.")]
+    [SerializeField] private string unsavedCamera = "CutsceneCam";
 
     // Number of slots and the file name prefix.
     [SerializeField, Min(1)] private int slotCount = 3;
@@ -64,16 +71,20 @@ public class SaveSystem : MonoBehaviour
     public event Action<int> Loaded;
     public event Action<string, string> TransferArrived;   // she came from another scene: arrival stop id, the stop she left (null = a save loaded)
 
+    // The session shared by the scenes (a restart reopens the scene through it).
+    public GameSession Session => session;
+
     // Slots, total play time, and the active scene.
     public int SlotCount => slotCount;
     public float PlayTime => playTimeOffset + Time.timeSinceLevelLoad;
-    private static string SceneName => SceneManager.GetActiveScene().name;
+    // (this component's scene: a location loaded over his room is not the active scene)
+    private string SceneName => gameObject.scene.name;
 
-    // File path of a slot.
-    private string PathFor(int slot) => Path.Combine(Application.persistentDataPath, $"{filePrefix}{slot + 1}.json");
+    // File path of a slot (the files themselves: SaveFiles, shared with the title screen).
+    private string PathFor(int slot) => SaveFiles.PathFor(filePrefix, slot);
 
     // Does the slot have a file?
-    public bool HasSave(int slot) => File.Exists(PathFor(slot));
+    public bool HasSave(int slot) => SaveFiles.Exists(filePrefix, slot);
 
     // Takes the state carried from another scene (elevator / save), if any.
     private void Start()
@@ -85,35 +96,10 @@ public class SaveSystem : MonoBehaviour
     }
 
     // the slot saved last (-1 = no save yet)
-    public int LatestSlot()
-    {
-        int best = -1;
-        string bestTime = null;
-        for (int i = 0; i < slotCount; i++)
-        {
-            if (!TryRead(i, out SaveData d)) continue;
-            if (best < 0 || string.CompareOrdinal(d.savedAt, bestTime) > 0) { best = i; bestTime = d.savedAt; }
-        }
-        return best;
-    }
+    public int LatestSlot() => SaveFiles.Latest(filePrefix, slotCount);
 
     // Reads a slot's file (false if missing or broken).
-    public bool TryRead(int slot, out SaveData data)
-    {
-        data = null;
-        string path = PathFor(slot);
-        if (!File.Exists(path)) return false;
-        try
-        {
-            data = JsonUtility.FromJson<SaveData>(File.ReadAllText(path));
-        }
-        catch (Exception e)
-        {
-            Debug.LogWarning($"[Save] Could not read {path}: {e.Message}");
-            data = null;
-        }
-        return data != null;
-    }
+    public bool TryRead(int slot, out SaveData data) => SaveFiles.TryRead(filePrefix, slot, out data);
 
     // position / yaw: where she resumes when this save is loaded (a save station passes the spot beside it).
     public bool Save(int slot, string location, Vector3 position, float yaw)
@@ -158,6 +144,8 @@ public class SaveSystem : MonoBehaviour
             ownedOutfits = outfit != null ? new System.Collections.Generic.List<string>(outfit.OwnedKeys) : null,
         };
         if (story != null) story.CaptureInto(data);
+        SecurityCamera watched = cameraSystem != null ? cameraSystem.Active : null;
+        if (watched != null && watched.name != unsavedCamera) { data.camera = watched.name; data.cameraYaw = watched.Yaw; }
         foreach (ItemStack s in inventory.Slots) data.inventory.Add(new SavedStack(s.Item.Id, s.Amount));
         for (int i = 0; i < weaponHolder.LoadoutCount; i++) data.magazines.Add(shooter.GetRounds(i));
 
@@ -179,6 +167,8 @@ public class SaveSystem : MonoBehaviour
             if (p != null) world.pickups.Add(new SavedStack(p.SaveId, p.Remaining));
         foreach (EnemyBrain e in enemies)
             if (e != null) world.enemies.Add(e.Capture());
+        foreach (Door d in doors)
+            if (d != null && !string.IsNullOrEmpty(d.SaveId)) world.doors.Add(d.Capture());
         return world;
     }
 
@@ -202,7 +192,7 @@ public class SaveSystem : MonoBehaviour
                 session.SetTransfer(data, null, null, true);
                 Debug.Log($"[Save] Slot {slot + 1} is in scene '{data.scene}': loading it.");
                 Loaded?.Invoke(slot);
-                SceneManager.LoadScene(data.scene);
+                GameScenes.OpenLocation(session, data.scene, false);
                 return true;
             }
             Debug.LogWarning($"[Save] Slot {slot + 1} is from scene '{data.scene}' (not in the Build Settings): loading it here.");
@@ -253,6 +243,7 @@ public class SaveSystem : MonoBehaviour
         if (outfit != null && data.ownedOutfits != null) outfit.SetOwned(data.ownedOutfits);
         if (outfit != null && !string.IsNullOrEmpty(data.outfit)) outfit.WearKey(data.outfit);
         if (story != null) story.Restore(data);
+        if (cameraSystem != null && placeAtSave) cameraSystem.Restore(data.camera, data.cameraYaw);   // (an elevator picks its own)
 
         playTimeOffset = data.playTime - Time.timeSinceLevelLoad;
     }
@@ -269,6 +260,9 @@ public class SaveSystem : MonoBehaviour
         }
         foreach (EnemyBrain e in enemies)
             if (e != null) e.Restore(world.enemies.Find(x => x.id == e.SaveId));
+        if (world.doors != null)   // (older saves have none: the doors stay as built)
+            foreach (Door d in doors)
+                if (d != null && !string.IsNullOrEmpty(d.SaveId)) d.Restore(world.doors.Find(x => x.id == d.SaveId));
     }
 
     // Play time as h:mm:ss.

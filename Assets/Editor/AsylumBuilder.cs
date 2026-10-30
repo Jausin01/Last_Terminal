@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 
 // Last Terminal/17: the first map of the game, the isolation wing of the asylum. Blockout: walls and floors from
@@ -21,6 +22,8 @@ using UnityEngine.SceneManagement;
 //   CELL 4 | CELL 5 | CELL 6                    z [-11, -7]   (she starts in cell 5)
 //   SERVICE HALL x [22, 25] z [-23, -9]: LINEN (west), BATHROOM (west), THERAPY (east)
 //   ARMORY | GUARD POST x [19, 26] z [-28, -23] -> SERVICE CORRIDOR x [26, 48] -> STAIRWELL x [48, 52]
+// Architecture: barred windows of frosted wired glass on the outside walls (the moon through some of them), the barred
+// window of the observation room over the cell block, pilasters, baseboards, pipes, radiators, lamp housings.
 internal static class AsylumBuilder
 {
     // Scene, NavMesh and art paths; the cast clips and Helena's idle model.
@@ -84,7 +87,7 @@ internal static class AsylumBuilder
         new RoomDef("Guard Post", "Guarita", 19f, -28f, 26f, -23f, Concrete, Warm, 1.8f),
         new RoomDef("Armory", "Arsenal", 16f, -28f, 19f, -24f, Concrete, Warm, 1.2f),
         new RoomDef("Service Corridor", "Corredor de Serviço", 26f, -27f, 48f, -24f, Concrete, Red, 1.3f),
-        new RoomDef("Stairwell", "Escada", 48f, -28f, 52f, -23f, Concrete, Sick, 1.2f),
+        new RoomDef("Stairwell", "Escada", 48f, -29.5f, 53f, -22f, Concrete, Sick, 1.2f),   // double height (StairwellShaft)
     };
 
     // One door of the wing.
@@ -112,7 +115,7 @@ internal static class AsylumBuilder
         new DoorDef("Cell 4", D1, -7f, 0f, true, locked: true),
         new DoorDef("Cell 5", D2, -7f, 0f, true, locked: true),                    // hers: the keypad
         new DoorDef("Cell 6", D3, -7f, 0f, true, locked: true),
-        new DoorDef("Observation", 16f, -4f, 0f, false),
+        new DoorDef("Observation", 17.25f, -4f, 0f, false),                         // (its barred window to the west)
         new DoorDef("Nurses Station", 18f, -5.5f, 90f, false),
         new DoorDef("Service Hall", 23.5f, -9f, 0f, false),
         new DoorDef("Linen Room", 22f, -13f, 90f, false),
@@ -122,6 +125,44 @@ internal static class AsylumBuilder
         new DoorDef("Armory", 19f, -26f, 90f, false, locked: true),               // the keycard (therapy room)
         new DoorDef("Service Corridor", 26f, -25.5f, 90f, false, locked: true),   // unlocked when she gets the pistol
         new DoorDef("Stairwell", 48f, -25.5f, 90f, true, locked: true),           // opens after the first kill
+    };
+
+    // One window: in a wall along x (z = Pos.y) or along z (x = Pos.x); its opening (width, sill, height); the side of
+    // the room it faces; the moon shining through it.
+    private struct WindowDef
+    {
+        public string Model;
+        public Vector2 Pos;          // x, z of its center on the wall line
+        public bool AlongX;
+        public float Width, Sill, Height;
+        public Vector3 Inward;       // toward the room
+        public bool Moon;
+        public float Line => AlongX ? Pos.y : Pos.x;
+        public float At => AlongX ? Pos.x : Pos.y;
+        public WindowDef(string model, float x, float z, bool alongX, float width, float sill, float height, Vector3 inward, bool moon)
+        {
+            Model = model; Pos = new Vector2(x, z); AlongX = alongX; Width = width; Sill = sill; Height = height; Inward = inward; Moon = moon;
+        }
+    }
+
+    private const string High = "SM_Asy_WindowHigh", Tall = "SM_Asy_WindowTall";
+
+    // Every window: high slits in the cells (hers lets the moon in), tall ones in the nurses station, the therapy room and
+    // the service corridor, and the barred window of the observation room over the cell block.
+    private static readonly WindowDef[] Windows =
+    {
+        new WindowDef(High, D1, 0f, true, 0.7f, 2.05f, 0.45f, Vector3.back, false),
+        new WindowDef(High, D2, 0f, true, 0.7f, 2.05f, 0.45f, Vector3.back, false),
+        new WindowDef(High, D3, 0f, true, 0.7f, 2.05f, 0.45f, Vector3.back, false),
+        new WindowDef(High, D1, -11f, true, 0.7f, 2.05f, 0.45f, Vector3.forward, false),
+        new WindowDef(High, D2, -11f, true, 0.7f, 2.05f, 0.45f, Vector3.forward, true),       // her cell
+        new WindowDef(High, D3, -11f, true, 0.7f, 2.05f, 0.45f, Vector3.forward, false),
+        new WindowDef(Tall, 21.5f, -2f, true, 1.0f, 1.0f, 1.35f, Vector3.back, true),         // nurses station
+        new WindowDef(Tall, 31f, -13.4f, false, 1.0f, 1.0f, 1.35f, Vector3.left, true),       // therapy room
+        new WindowDef(Tall, 30.5f, -27f, true, 1.0f, 1.0f, 1.35f, Vector3.forward, true),     // service corridor
+        new WindowDef(Tall, 35.5f, -27f, true, 1.0f, 1.0f, 1.35f, Vector3.forward, true),
+        new WindowDef(Tall, 40.5f, -27f, true, 1.0f, 1.0f, 1.35f, Vector3.forward, true),
+        new WindowDef("SM_Asy_ObsWindow", 15.3f, -4f, true, 1.8f, 0.95f, 1.2f, Vector3.forward, false),
     };
 
     // ================================================================== menu
@@ -225,6 +266,7 @@ internal static class AsylumBuilder
         walls.SetParent(geometry, false);
         BuildWalls(walls, wall);
         foreach (RoomDef r in Rooms) if (r.Padded) PadCell(walls, padded, r.Area);
+        Pilasters(walls, wall);   // (in the NavMesh geometry: she walks around them)
 
         // NavMesh from the geometry only (doors and props carve their own holes at runtime)
         FacilityBuilder.EnsureBakeRadius(FacilityBuilder.PartnerRadius);
@@ -283,6 +325,8 @@ internal static class AsylumBuilder
         BuildServiceRooms(props, looks, pickups, lit, content);
         BuildGuardPost(props, looks, pickups, lit, content);
         BuildCorridor(props, looks, lit, content);
+        BuildArchitecture(props, looks, lit, content);
+        StairwellShaft(props, wall, lit);
 
         // the first enemy: feeding on a body at the end of the service corridor, its back to her
         content.Enemies.Add(new LocationRigBuilder.EnemySpec
@@ -330,12 +374,33 @@ internal static class AsylumBuilder
                     if (Mathf.Abs(onLine - coord) > 0.01f || along <= span.x || along >= span.y) continue;
                     gaps.Add((along, d.Security ? FacilityBuilder.SecurityDoorWidth : FacilityBuilder.WoodDoorWidth));
                 }
+                // the windows: a gap too, the wall closed again under the sill and over the top
+                foreach (WindowDef w in Windows)
+                {
+                    if (w.AlongX != alongX || Mathf.Abs(w.Line - coord) > 0.01f || w.At <= span.x || w.At >= span.y) continue;
+                    gaps.Add((w.At, w.Width));
+                    WindowFill(parent, m, w, FacilityBuilder.WallThickness, coord, "Wall");
+                }
                 gaps.Sort((g1, g2) => g1.center.CompareTo(g2.center));
                 if (alongX) FacilityBuilder.WallX(parent, m, coord, span.x, span.y, gaps.ToArray());
                 else FacilityBuilder.WallZ(parent, m, coord, span.x, span.y, gaps.ToArray());
             }
         }
     }
+
+    // the wall (or the padding) under a window's sill and over its top: depth = its thickness, at = its center line
+    private static void WindowFill(Transform parent, Material m, WindowDef w, float depth, float at, string name)
+    {
+        float top = w.Sill + w.Height, h = FacilityBuilder.WallHeight;
+        FacilityBuilder.Block(parent, name + "_Sill", FillCenter(w, at, w.Sill * 0.5f), FillSize(w, depth, w.Sill), m, 2f, true);
+        if (h - top > 0.01f)
+            FacilityBuilder.Block(parent, name + "_Lintel", FillCenter(w, at, (top + h) * 0.5f), FillSize(w, depth, h - top), m, 2f, true);
+    }
+
+    // A window fill piece: its center (at its height) and its size.
+    private static Vector3 FillCenter(WindowDef w, float at, float y) => w.AlongX ? new Vector3(w.At, y, at) : new Vector3(at, y, w.At);
+    private static Vector3 FillSize(WindowDef w, float depth, float tall) =>
+        w.AlongX ? new Vector3(w.Width, tall, depth) : new Vector3(depth, tall, w.Width);
 
     // Adds a wall edge span to the outline lines.
     private static void AddEdge(Dictionary<(bool, int), (float, List<Vector2>)> lines, bool alongX, float coord, float from, float to)
@@ -376,7 +441,18 @@ internal static class AsylumBuilder
         {
             float z = north ? a.yMax - w - t * 0.5f : a.yMin + w + t * 0.5f;
             bool hasDoor = north != doorSouth;
-            var gaps = hasDoor ? new[] { (doorX, FacilityBuilder.SecurityDoorWidth) } : new (float, float)[0];
+            var gapList = new List<(float, float)>();
+            if (hasDoor) gapList.Add((doorX, FacilityBuilder.SecurityDoorWidth));
+            float wallLine = north ? a.yMax : a.yMin;
+            foreach (WindowDef win in Windows)
+            {
+                if (!win.AlongX || Mathf.Abs(win.Line - wallLine) > 0.01f || win.At <= a.xMin || win.At >= a.xMax) continue;
+                gapList.Add((win.At, win.Width));
+                WindowDef lining = win;
+                lining.Width += FacilityBuilder.WallThickness;   // (the lining stops a little before its gaps)
+                WindowFill(parent, padded, lining, t, z, "Padding");
+            }
+            var gaps = gapList.ToArray();
             foreach (var (s0, s1) in FacilityBuilder.Segments(a.xMin + w, a.xMax - w, gaps))
                 FacilityBuilder.Block(parent, "Padding", new Vector3((s0 + s1) * 0.5f, h * 0.5f, z), new Vector3(s1 - s0, h, t), padded, 2f, true);
         }
@@ -411,17 +487,18 @@ internal static class AsylumBuilder
         Cam("Isolation Wing", new Vector3(0.3f, H, -4.3f), new Vector3(9f, 0f, -5.6f));
         Cam("Isolation Wing", new Vector3(17.7f, H, -6.7f), new Vector3(7f, 0f, -5.4f));
         Cam("Observation", new Vector3(14.3f, H, -0.3f), new Vector3(16.2f, 0f, -2.6f));
-        Cam("Nurses Station", new Vector3(25.7f, H, -8.7f), new Vector3(21.5f, 0f, -4.5f));
+        // (from the far corner: the gurney with the knife and the cart with the medkit in sight, not under the lens)
+        Cam("Nurses Station", new Vector3(18.3f, H, -2.3f), new Vector3(23.8f, 0.4f, -6.8f));
         Cam("Service Hall", new Vector3(24.7f, H, -9.3f), new Vector3(23.5f, 0f, -16f));
         Cam("Service Hall", new Vector3(22.3f, H, -22.7f), new Vector3(23.5f, 0f, -14f));
         Cam("Linen Room", new Vector3(17.3f, H, -11.3f), new Vector3(19.8f, 0f, -13.6f));
         Cam("Bathroom", new Vector3(21.7f, H, -16.3f), new Vector3(18.4f, 0f, -19.2f));
         Cam("Therapy Room", new Vector3(30.7f, H, -11.3f), new Vector3(27.4f, 0f, -14.6f));
         Cam("Guard Post", new Vector3(25.7f, H, -23.3f), new Vector3(21.8f, 0f, -26.2f));
-        Cam("Armory", new Vector3(18.7f, H, -24.3f), new Vector3(17.2f, 0f, -26.6f));
+        Cam("Armory", new Vector3(18.7f, H, -27.7f), new Vector3(17.0f, 0.6f, -24.6f));   // facing the table with the pistol
         Cam("Service Corridor", new Vector3(26.3f, H, -24.3f), new Vector3(40f, 0f, -25.5f));
         Cam("Service Corridor", new Vector3(47.7f, H, -26.7f), new Vector3(36f, 0f, -25.5f));
-        Cam("Stairwell", new Vector3(48.3f, H, -23.3f), new Vector3(50.6f, 0f, -26.2f));
+        Cam("Stairwell", new Vector3(48.3f, H, -29.2f), new Vector3(51.3f, 1.4f, -24.2f));   // the stairs climbing away, the landing above
     }
 
     // ------------------------------------------------------------------ props
@@ -551,6 +628,8 @@ internal static class AsylumBuilder
             float at = alongX ? d.Position.x : d.Position.z;
             if (Mathf.Abs(onLine - line) < 0.05f && Mathf.Abs(at - along) < 1.4f) return true;
         }
+        foreach (WindowDef w in Windows)
+            if (w.AlongX == alongX && Mathf.Abs(w.Line - line) < 0.05f && Mathf.Abs(w.At - along) < w.Width * 0.5f + 0.9f) return true;
         return false;
     }
 
@@ -722,8 +801,8 @@ internal static class AsylumBuilder
             new[] { "A cama onde eu acordei. Parafusada no chão, pra ninguém usar de arma.",
                     "Três noites nisso. Minhas costas vão me cobrar." });
         Look(looks, content, "x_toilet", new Vector3(C2 - inner - 0.35f, 0.45f, -10.5f), null,
-            new[] { "Steel toilet. No lid, no privacy. And you watching.", "No. Don't even think about it." },
-            new[] { "Privada de aço. Sem tampa, sem privacidade. E você aí olhando.", "Não. Nem pensa." });
+            new[] { "Steel toilet. No lid, no privacy. And of all people, you watching.", "No. Don't even think about it." },
+            new[] { "Privada de aço. Sem tampa, sem privacidade. E logo você aí olhando.", "Não. Nem pensa." });
 
         // the dead in the locked cells (seen through the doors, from the wing)
         (string room, float x, float z, float yaw, bool back, string[] en, string[] pt)[] bodies =
@@ -758,15 +837,15 @@ internal static class AsylumBuilder
         // the wing: a bench, a wheelchair, an IV stand, posters, the blood trail toward the nurses station
         Transform wing = Group(props, "Wing");
         Prop(wing, "SM_Asy_Bench", new Vector3(4.67f, 0f, -4.3f), 180f);
-        Prop(wing, "SM_Asy_Wheelchair", new Vector3(9.3f, 0f, -6.45f), 25f);
-        Prop(wing, "SM_Asy_IVStand", new Vector3(13.6f, 0f, -6.6f), 0f);
+        Prop(wing, "SM_Asy_Wheelchair", new Vector3(8.5f, 0f, -6.45f), 25f);
+        Prop(wing, "SM_Asy_IVStand", new Vector3(13.25f, 0f, -6.6f), 0f);
         Prop(wing, "SM_Asy_TrashBin", new Vector3(0.4f, 0f, -4.4f), 0f);
         Prop(wing, "SM_Asy_Papers", new Vector3(5.2f, 0f, -5.8f), 80f);
-        WallDecal(wing, "Isolation Wing", 'N', 9.3f, 1.5f, new Vector2(0.55f, 0.75f), "T_Asy_PosterSilence", lit);
+        WallDecal(wing, "Isolation Wing", 'N', 8.5f, 1.5f, new Vector2(0.55f, 0.75f), "T_Asy_PosterSilence", lit);
         WallDecal(wing, "Isolation Wing", 'S', 14.8f, 1.5f, new Vector2(0.55f, 0.75f), "T_Asy_PosterRules", lit);
         WallDecal(wing, "Isolation Wing", 'W', -5.5f, 2.1f, new Vector2(0.9f, 0.23f), "T_Asy_SignIsolation", lit);
         WallDecal(wing, "Isolation Wing", 'E', -4.55f, 2.1f, new Vector2(0.9f, 0.23f), "T_Asy_SignNurses", lit);
-        WallDecal(wing, "Isolation Wing", 'N', 14.7f, 2.1f, new Vector2(0.9f, 0.23f), "T_Asy_SignObservation", lit);
+        WallDecal(wing, "Isolation Wing", 'N', 17.25f, 2.45f, new Vector2(0.9f, 0.23f), "T_Asy_SignObservation", lit);
         Weather(wing, "Isolation Wing", 3, lit, 4, 3);
         FloorDecal(wing, "T_Asy_StainBlood", 15.6f, -5.6f, 1.4f, lit, 10f);
         FloorDecal(wing, "T_Asy_StainBlood", 13.1f, -5.3f, 0.8f, lit, 70f);
@@ -790,6 +869,14 @@ internal static class AsylumBuilder
         Look(looks, content, "x_chair", new Vector3(15.2f, 0.3f, -1.8f), null,
             new[] { "Knocked over. Whoever sat here left in a hurry." },
             new[] { "Derrubada. Quem sentava aqui saiu com pressa." });
+        // the hook: what is being built under the asylum (the reason she is here)
+        Look(looks, content, "x_cabinet", new Vector3(17.6f, 1.0f, -1.4f), null,
+            new[] { "Construction invoices. Cement, steel beams, cooling units... \"Sublevel B\".",
+                    "Cooling units in a mental asylum. Whatever's down there runs hot.",
+                    "Signed and stamped by the last administration. Michael was right." },
+            new[] { "Notas de obra. Cimento, viga de aço, unidades de resfriamento... \"Subnível B\".",
+                    "Resfriamento num hospício. Seja lá o que tem lá embaixo, esquenta.",
+                    "Assinado e carimbado pelo governo anterior. O Michael tinha razão." });
     }
 
     // ------------------------------------------------------------------ the nurses station
@@ -962,10 +1049,10 @@ internal static class AsylumBuilder
         EnemyBuilder.PlaceCorpse(corridor, "Body_Corridor", new Vector3(46.3f, 0f, -25.6f), 300f, true);
         FloorDecal(corridor, "T_Asy_StainBlood", 46.0f, -25.5f, 2.2f, lit, 0f);
         FloorDecal(corridor, "T_Asy_StainBlood", 38.0f, -25.0f, 1.0f, lit, 90f);
-        Prop(corridor, "SM_Asy_Boxes", new Vector3(33.0f, 0f, -26.5f), 0f);
+        Prop(corridor, "SM_Asy_Boxes", new Vector3(34.1f, 0f, -26.5f), 0f);
         Prop(corridor, "SM_Asy_Boxes", new Vector3(29.5f, 0f, -24.5f), 180f);
         Prop(corridor, "SM_Asy_TrashBin", new Vector3(37.5f, 0f, -24.4f), 0f);
-        Prop(corridor, "SM_Asy_MopBucket", new Vector3(28.0f, 0f, -26.6f), 30f);
+        Prop(corridor, "SM_Asy_MopBucket", new Vector3(27.2f, 0f, -26.6f), 30f);
         Prop(corridor, "SM_Asy_Wheelchair", new Vector3(41.0f, 0f, -24.55f), 100f);
         Prop(corridor, "SM_Asy_Papers", new Vector3(35.5f, 0f, -25.4f), 300f);
         WallDecal(corridor, "Service Corridor", 'E', -24.45f, 2.0f, new Vector2(0.7f, 0.18f), "T_Asy_SignStairs", lit);
@@ -976,11 +1063,238 @@ internal static class AsylumBuilder
 
         // stairwell: the stairs up, the way to the rest of the asylum
         Transform stairs = Group(props, "Stairwell");
-        Prop(stairs, "SM_Asy_Stairs", new Vector3(50.9f, 0f, -27.6f), 180f);
+        Prop(stairs, "SM_Asy_Stairwell", new Vector3(50f, 0f, -25.5f), 0f);   // up the east wall, a landing, up into the dark
         Weather(stairs, "Stairwell", 37, lit, 2, 2);
-        Look(looks, content, "x_stairs", new Vector3(50.9f, 0.8f, -26.2f), new Vector3(49.6f, 0f, -26.0f),
+        Look(looks, content, "x_stairs", new Vector3(51.0f, 1.0f, -25.4f), new Vector3(49.6f, 0f, -25.4f),
             new[] { "The stairs. The rest of the asylum is up there." },
             new[] { "A escada. O resto do hospício é lá em cima." });
+    }
+
+    // ------------------------------------------------------------------ architecture
+    // Pilasters on the long walls (part of the NavMesh geometry): (room, side N/S/E/W, along).
+    private static readonly (string room, char side, float along)[] PilasterSpots =
+    {
+        ("Service Corridor", 'N', 28f), ("Service Corridor", 'N', 33f), ("Service Corridor", 'N', 38f), ("Service Corridor", 'N', 43f),
+        ("Service Corridor", 'S', 28f), ("Service Corridor", 'S', 33f), ("Service Corridor", 'S', 38f), ("Service Corridor", 'S', 43f),
+        ("Isolation Wing", 'N', C2), ("Isolation Wing", 'N', 14f), ("Isolation Wing", 'S', C1), ("Isolation Wing", 'S', C2), ("Isolation Wing", 'S', 14f),
+        ("Service Hall", 'W', -15f), ("Service Hall", 'E', -11.5f), ("Service Hall", 'E', -19.5f),
+    };
+    private const float PilasterWidth = 0.32f, PilasterDepth = 0.12f;
+
+    // The pilasters: wall-textured columns standing out of the wall.
+    private static void Pilasters(Transform parent, Material wall)
+    {
+        foreach (var (room, side, along) in PilasterSpots)
+        {
+            Rect a = Rooms.First(r => r.En == room).Area;
+            float face = FacilityBuilder.WallThickness * 0.5f + PilasterDepth * 0.5f;
+            Vector3 c; Vector3 size;
+            switch (side)
+            {
+                case 'N': c = new Vector3(along, 0f, a.yMax - face); size = new Vector3(PilasterWidth, 0f, PilasterDepth); break;
+                case 'S': c = new Vector3(along, 0f, a.yMin + face); size = new Vector3(PilasterWidth, 0f, PilasterDepth); break;
+                case 'E': c = new Vector3(a.xMax - face, 0f, along); size = new Vector3(PilasterDepth, 0f, PilasterWidth); break;
+                default: c = new Vector3(a.xMin + face, 0f, along); size = new Vector3(PilasterDepth, 0f, PilasterWidth); break;
+            }
+            float h = FacilityBuilder.WallHeight;
+            FacilityBuilder.Block(parent, "Pilaster", new Vector3(c.x, h * 0.5f, c.z), new Vector3(size.x, h, size.z), wall, 2f, true);
+        }
+    }
+
+    // Windows (the frosted glass glowing with the night, the moon through some), radiators under them, baseboards,
+    // pipes and vents on the ceilings, things on the walls.
+    private static void BuildArchitecture(Transform props, Transform looks, Shader lit, LocationRigBuilder.LocationContent content)
+    {
+        Transform arch = Group(props, "Architecture");
+        var frostTex = AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/T_Asy_Frosted.png");
+        var frost = AssetDatabase.LoadAssetAtPath<Material>($"{ArtFolder}/Materials/M_Asy_Frosted.mat");
+        if (frost != null) OperatorRoomBuilder.Glow(frost, frostTex, new Color(0.42f, 0.5f, 0.68f));
+
+        // windows
+        Transform windows = Group(arch, "Windows");
+        foreach (WindowDef w in Windows)
+        {
+            float yaw = Mathf.Atan2(w.Inward.x, w.Inward.z) * Mathf.Rad2Deg;
+            Vector3 onWall = w.AlongX ? new Vector3(w.At, 0f, w.Line) : new Vector3(w.Line, 0f, w.At);
+            GameObject go = Prop(windows, w.Model, onWall + Vector3.up * w.Sill, yaw, false);
+            if (go != null)
+                foreach (MeshRenderer r in go.GetComponentsInChildren<MeshRenderer>())
+                    if (r.name.StartsWith("Glass")) { r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false; }
+            if (w.Moon) Moonlight(windows, onWall + Vector3.up * (w.Sill + w.Height * 0.5f), w.Inward);
+            // a radiator under the tall ones
+            if (w.Model == Tall)
+                Prop(windows, "SM_Asy_Radiator", onWall + w.Inward * (FacilityBuilder.WallThickness * 0.5f + 0.09f), yaw);
+        }
+
+        Baseboards(arch, lit);
+
+        // pipes under the ceiling of the service rooms (2 m runs), a valve here and there
+        Transform pipes = Group(arch, "Pipes");
+        float top = FacilityBuilder.WallHeight;
+        for (float z = -21.9f; z <= -10f; z += 2f) Prop(pipes, "SM_Asy_Pipes", new Vector3(24.62f, top, z), 90f, false);
+        for (float x = 27.1f; x <= 47f; x += 2f) Prop(pipes, "SM_Asy_Pipes", new Vector3(x, top, -24.37f), 0f, false);
+        Prop(pipes, "SM_Asy_PipeValve", new Vector3(24.62f, top, -16.2f), 90f, false);
+        Prop(pipes, "SM_Asy_PipeValve", new Vector3(36.1f, top, -24.37f), 0f, false);
+
+        // vents
+        foreach (Vector3 v in new[] { new Vector3(12f, top, -5.5f), new Vector3(24.6f, top, -6.4f), new Vector3(24.6f, top, -26.6f),
+                                      new Vector3(29.6f, top, -15.8f), new Vector3(20.6f, top, -17.0f), new Vector3(8.2f, top, -10.2f) })
+            Prop(arch, "SM_Asy_Vent", v, 0f, false);
+
+        // on the walls: first aid, notices, PA speakers (the voice that used to call the patients)
+        WallProp(arch, "SM_Asy_FirstAidBox", "Nurses Station", 'S', 22.2f, 1.15f, 0.12f);
+        WallProp(arch, "SM_Asy_NoticeBoard", "Nurses Station", 'E', -2.95f, 1.0f, 0.03f);
+        WallProp(arch, "SM_Asy_Speaker", "Isolation Wing", 'N', 4.67f, 2.3f, 0.17f);
+        WallProp(arch, "SM_Asy_Speaker", "Service Corridor", 'N', 35.5f, 2.3f, 0.17f);
+        WallProp(arch, "SM_Asy_Speaker", "Guard Post", 'S', 25.2f, 2.3f, 0.17f);
+        WallProp(arch, "SM_Asy_FirstAidBox", "Guard Post", 'W', -23.7f, 1.15f, 0.12f);
+
+        // her window, the corridor's
+        Look(looks, content, "x_window", new Vector3(D2, 2.27f, -10.85f), new Vector3(7.7f, 0f, -9.55f),
+            new[] { "Bars, wired glass... and trees. Nothing but trees for miles.", "Nobody out there would hear me scream. That's the point, I guess." },
+            new[] { "Grade, vidro aramado... e árvore. Só árvore por quilômetros.", "Ninguém lá fora ia me ouvir gritar. Deve ser essa a ideia." });
+        Look(looks, content, "x_window", new Vector3(35.5f, 1.65f, -26.85f), new Vector3(35.5f, 0f, -25.9f),
+            new[] { "Rain. Mountains. Whoever built this place didn't want visitors... or anyone leaving." },
+            new[] { "Chuva. Montanha. Quem construiu isso aqui não queria visita... nem ninguém saindo." });
+    }
+
+    // The stairwell is double height: its walls go on up to 6 m, the ceiling up there, a lamp under it and a bulkhead
+    // light over her side (AtmosphereBuilder leaves this room to us: Look.OwnCeilingRooms).
+    private static void StairwellShaft(Transform props, Material wall, Shader lit)
+    {
+        Transform shaft = Group(props, "StairwellShaft");
+        Rect a = Rooms.First(r => r.En == "Stairwell").Area;
+        const float top = 6f;
+        float h0 = FacilityBuilder.WallHeight, t = FacilityBuilder.WallThickness, hh = top - h0;
+        // the walls above 3 m (not NavMesh geometry: nothing walks up there)
+        FacilityBuilder.Block(shaft, "WallUp_N", new Vector3(a.center.x, h0 + hh * 0.5f, a.yMax), new Vector3(a.width + t, hh, t), wall, 2f, true);
+        FacilityBuilder.Block(shaft, "WallUp_S", new Vector3(a.center.x, h0 + hh * 0.5f, a.yMin), new Vector3(a.width + t, hh, t), wall, 2f, true);
+        FacilityBuilder.Block(shaft, "WallUp_E", new Vector3(a.xMax, h0 + hh * 0.5f, a.center.y), new Vector3(t, hh, a.height + t), wall, 2f, true);
+        FacilityBuilder.Block(shaft, "WallUp_W", new Vector3(a.xMin, h0 + hh * 0.5f, a.center.y), new Vector3(t, hh, a.height + t), wall, 2f, true);
+        FacilityBuilder.Block(shaft, "Ceiling_Stairwell", new Vector3(a.center.x, top + 0.05f, a.center.y), new Vector3(a.width + t, 0.1f, a.height + t),
+                              Env("T_AsyCeiling", 0.05f), 2f);
+        Color sick = new Color(0.85f, 1f, 0.8f);
+        // the lamp under the high ceiling, over the stairs
+        Light high = ShaftLamp(shaft, lit, new Vector3(50.6f, top, -26.2f), sick, 9f, 12f);
+        if (high != null) high.spotAngle = 120f;
+        // a bulkhead over her side, by the corridor door
+        ShaftLamp(shaft, lit, new Vector3(49.0f, h0 - 0.2f, -28.6f), sick, 4f, 6f);
+    }
+
+    // A lamp hanging from a ceiling at `at` (the asylum's lamp housing and its glowing panel), its spot down.
+    private static Light ShaftLamp(Transform parent, Shader lit, Vector3 at, Color color, float intensity, float range)
+    {
+        var go = new GameObject("Lamp");
+        go.transform.SetParent(parent, false);
+        go.transform.SetPositionAndRotation(at - Vector3.up * 0.12f, Quaternion.Euler(90f, 0f, 0f));
+        var lamp = go.AddComponent<Light>();
+        lamp.type = LightType.Spot;
+        lamp.color = color;
+        lamp.intensity = intensity;
+        lamp.range = range;
+        lamp.spotAngle = 140f;
+        lamp.innerSpotAngle = 55f;
+        lamp.shadows = LightShadows.Soft;
+        lamp.shadowStrength = 0.9f;
+        lamp.shadowBias = 0.03f;
+        lamp.shadowNormalBias = 0.3f;
+        Prop(go.transform, "SM_Asy_FluoLamp", at, 0f, false);
+        GameObject panel = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        Object.DestroyImmediate(panel.GetComponent<Collider>());
+        panel.name = "Fixture";
+        panel.transform.SetParent(go.transform, false);
+        panel.transform.SetPositionAndRotation(at - Vector3.up * 0.07f, Quaternion.identity);
+        panel.transform.localScale = new Vector3(1.2f, 0.02f, 0.28f);
+        var r = panel.GetComponent<MeshRenderer>();
+        r.sharedMaterial = AtmosphereBuilder.FixtureMaterial(lit, color);
+        r.shadowCastingMode = ShadowCastingMode.Off;
+        return lamp;
+    }
+
+    // The moon through a window: a cold spot outside it, aimed down into the room (the bars cast their shadows).
+    private static void Moonlight(Transform parent, Vector3 windowCenter, Vector3 inward)
+    {
+        var go = new GameObject("Moonlight");
+        go.transform.SetParent(parent, false);
+        Vector3 from = windowCenter - inward * 1.3f + Vector3.up * 0.9f;
+        Vector3 to = windowCenter + inward * 2.6f;
+        to.y = 0f;
+        go.transform.SetPositionAndRotation(from, Quaternion.LookRotation(to - from));
+        var moon = go.AddComponent<Light>();
+        moon.type = LightType.Spot;
+        moon.color = new Color(0.55f, 0.66f, 0.95f);
+        moon.intensity = 3.2f;
+        moon.range = 9f;
+        moon.spotAngle = 62f;
+        moon.innerSpotAngle = 25f;
+        moon.shadows = LightShadows.Soft;
+        moon.shadowStrength = 0.9f;
+        moon.shadowBias = 0.03f;
+        moon.shadowNormalBias = 0.3f;
+        var tier = new SerializedObject(moon.GetUniversalAdditionalLightData());   // low shadow resolution tier (as the lamps)
+        SerializedProperty tierProp = tier.FindProperty("m_AdditionalLightsShadowResolutionTier");
+        if (tierProp != null) { tierProp.intValue = 0; tier.ApplyModifiedPropertiesWithoutUndo(); }
+    }
+
+    // A dark rubber baseboard along the walls of every room but the padded cells (the door openings left free).
+    private static void Baseboards(Transform parent, Shader lit)
+    {
+        EditorAssets.EnsureFolder(ArtFolder, "Materials");
+        Material m = EditorAssets.MakeMaterial($"{ArtFolder}/Materials/M_Asy_Baseboard.mat",
+                                               AssetDatabase.LoadAssetAtPath<Texture2D>($"{ArtFolder}/{Concrete}.png"), 0.25f, false, lit);
+        m.SetColor("_BaseColor", new Color(0.24f, 0.28f, 0.26f));
+        EditorUtility.SetDirty(m);
+        Transform root = Group(parent, "Baseboards");
+        const float h = 0.12f, d = 0.025f;
+        float inner = FacilityBuilder.WallThickness * 0.5f;
+        foreach (RoomDef r in Rooms)
+        {
+            if (r.Padded) continue;
+            Rect a = r.Area;
+            foreach (char side in new[] { 'N', 'S', 'E', 'W' })
+            {
+                bool alongX = side == 'N' || side == 'S';
+                float line = side == 'N' ? a.yMax : side == 'S' ? a.yMin : side == 'E' ? a.xMax : a.xMin;
+                float from = (alongX ? a.xMin : a.yMin) + inner, to = (alongX ? a.xMax : a.yMax) - inner;
+                var gaps = new List<(float, float)>();
+                foreach (DoorDef door in Doors)
+                {
+                    if (Mathf.Approximately(door.Yaw, 0f) != alongX) continue;
+                    float onLine = alongX ? door.Position.z : door.Position.x, at = alongX ? door.Position.x : door.Position.z;
+                    if (Mathf.Abs(onLine - line) < 0.05f && at > from && at < to)
+                        gaps.Add((at, door.Security ? FacilityBuilder.SecurityDoorWidth : FacilityBuilder.WoodDoorWidth));
+                }
+                gaps.Sort((g1, g2) => g1.Item1.CompareTo(g2.Item1));
+                float off = inner + d * 0.5f;
+                foreach (var (s0, s1) in FacilityBuilder.Segments(from, to, gaps.ToArray()))
+                {
+                    float mid = (s0 + s1) * 0.5f, len = s1 - s0;
+                    if (len < 0.05f) continue;
+                    Vector3 c = side == 'N' ? new Vector3(mid, h * 0.5f, line - off) : side == 'S' ? new Vector3(mid, h * 0.5f, line + off)
+                              : side == 'E' ? new Vector3(line - off, h * 0.5f, mid) : new Vector3(line + off, h * 0.5f, mid);
+                    Vector3 size = alongX ? new Vector3(len, h, d) : new Vector3(d, h, len);
+                    GameObject b = FacilityBuilder.Block(root, "Baseboard", c, size, m, 1f);
+                    Object.DestroyImmediate(b.GetComponent<BoxCollider>());
+                }
+            }
+        }
+    }
+
+    // A model hung on a room's wall: side N / S / E / W, along = world x (N, S) or z (E, W), y = its bottom,
+    // depth = how far its body stands out of the wall (its origin is at its front).
+    private static GameObject WallProp(Transform parent, string model, string room, char side, float along, float y, float depth)
+    {
+        Rect a = Rooms.First(r => r.En == room).Area;
+        float inner = FacilityBuilder.WallThickness * 0.5f + depth;
+        Vector3 pos; float yaw;
+        switch (side)
+        {
+            case 'N': pos = new Vector3(along, y, a.yMax - inner); yaw = 180f; break;
+            case 'S': pos = new Vector3(along, y, a.yMin + inner); yaw = 0f; break;
+            case 'E': pos = new Vector3(a.xMax - inner, y, along); yaw = 270f; break;
+            default: pos = new Vector3(a.xMin + inner, y, along); yaw = 90f; break;
+        }
+        return Prop(parent, model, pos, yaw, false);
     }
 
     // ================================================================== cutscenes (once the rig exists)
@@ -1009,25 +1323,38 @@ internal static class AsylumBuilder
             if (lying != null) Add(steps, new ClipStep { actor = h, clip = lying, blend = 0f, waitEnd = false, backToNormal = false });
             Add(steps, new WaitStep { seconds = 1.2f });
             Add(steps, new FadeStep { toBlack = false, duration = 3f });
-            Add(steps, new WaitStep { seconds = 1.5f });
-            Add(steps, new OperatorLineStep { textPt = "Helena, tá me ouvindo?", textEn = "Helena, can you hear me?" });
-            Add(steps, new WaitStep { seconds = 0.8f });
+            // she doesn't know who the operator is: Michael only promised her "someone to be her eyes"
+            Add(steps, new WaitStep { seconds = 1.0f });
             if (sitUp != null) Add(steps, new ClipStep { actor = h, clip = sitUp, blend = 0.4f, waitEnd = true, backToNormal = false });
             if (sitting != null) Add(steps, new ClipStep { actor = h, clip = sitting, blend = 0.3f, waitEnd = false, backToNormal = false });
-            Add(steps, Line(h, "...Você demorou.", "...You took your time."));
-            Add(steps, Line(h, "Três dias fingindo que eu sou louca. Remédio, camisa de força, gente gritando a noite inteira.",
-                               "Three days pretending I'm crazy. Pills, straitjackets, people screaming all night."));
-            Add(steps, Line(h, "Me tiraram tudo. Arma, rádio, roupa... só sobrou o ponto no ouvido. E você.",
-                               "They took everything. Gun, radio, clothes... all I've got left is the earpiece. And you."));
+            Add(steps, Line(h, "...Três dias. Ou quatro. Já perdi a conta.", "...Three days. Maybe four. I've lost count."));
+            Add(steps, Line(h, "A luzinha da câmera acendeu.", "The camera light just came on."));
+            Add(steps, Line(h, "O Michael disse que ia mandar alguém pra ser os meus olhos. Tá atrasado.",
+                               "Michael said he'd send someone to be my eyes. You're late."));
+            Add(steps, Line(h, "E aí? Vai falar alguma coisa ou só ficar olhando?", "Well? Are you going to say something, or just watch?"));
+            Add(steps, new OperatorLineStep { textPt = "Helena, tá me ouvindo?", textEn = "Helena, can you hear me?" });
+            Add(steps, new WaitStep { seconds = 0.8f });
+            // the voice: she knows it
+            Add(steps, Line(h, "...Espera. Essa voz.", "...Wait. That voice."));
+            Add(steps, new StateStep { actor = h, state = PartnerAnimator.StandUpState, blend = 0.5f, wait = 2.2f });
+            Add(steps, new StopAnimationStep { actor = h, blend = 0.4f });
+            if (Cam("Cell 5") != null) Add(steps, new FaceStep { actor = h, lookAt = Cam("Cell 5").transform, turnSpeed = 160f });
+            Add(steps, Line(h, "Não. Não pode ser. Logo VOCÊ?", "No. No way. YOU?"));
+            // she isn't angry about what she lost: she's angry he shut her out after it (and keeps blaming himself);
+            // she is terrible at saying it, so it comes out wrong and he never quite gets it
+            Add(steps, Line(h, "Dois anos. Dois anos sem atender uma ligação minha.", "Two years. Two years without picking up a single one of my calls."));
+            Add(steps, new ThoughtStep { textPt = "Ela tinha dezoito anos naquela noite.", textEn = "She was eighteen that night." });
+            Add(steps, new WaitStep { seconds = 1.5f });   // he says nothing
+            Add(steps, Line(h, "Nada? Vai ficar quieto? Típico.", "Nothing? You're just going to stay quiet? Typical."));
+            Add(steps, Line(h, "Eu não tô brava porque... ah, esquece. Não é hora.", "I'm not mad because... ugh, forget it. Not now."));
+            Add(steps, Line(h, "...Tá. Você é tudo que eu tenho aqui dentro.", "...Fine. You're all I've got in here."));
             Add(steps, Line(h, "Ontem à noite as luzes apagaram. Teve gritaria... e depois, silêncio. Silêncio demais.",
                                "Last night the lights went out. There was screaming... and then silence. Too much silence."));
             Add(steps, new OperatorLineStep { textPt = "Vamos te tirar daí.", textEn = "Let's get you out of there.", acceptAnything = true });
-            Add(steps, Line(h, "É o que eu mais quero ouvir.", "Best thing I've heard all week."));
-            Add(steps, new StateStep { actor = h, state = PartnerAnimator.StandUpState, blend = 0.5f, wait = 2.2f });
-            Add(steps, new StopAnimationStep { actor = h, blend = 0.4f });
-            Add(steps, new WaitStep { seconds = 0.4f });
+            Add(steps, Line(h, "Então começa me ajudando com isso.", "Then start by helping me with this."));
+            Add(steps, new WaitStep { seconds = 0.3f });
             Add(steps, new FaceStep { actor = h, lookAt = refs.WritingMark, turnSpeed = 160f });
-            Add(steps, Line(h, "...E alguém escreveu na parede. Com sangue.", "...And someone wrote on the wall. In blood."));
+            Add(steps, Line(h, "Alguém escreveu na parede. Com sangue.", "Someone wrote on the wall. In blood."));
             Add(steps, Line(h, "\"A senha está na soma.\" Soma do quê?", "\"The code is in the sum.\" The sum of what?"));
             Add(steps, Line(h, "A porta tem um teclado. Me diz o que digitar.", "The door has a keypad. Tell me what to type."));
             Add(steps, new ThoughtStep { textPt = "Ela pode olhar as coisas: \"olha a parede\", \"olha a cama\". E se olhar pra câmera, eu vejo ela de frente: \"olha pra mim\".",
@@ -1054,8 +1381,10 @@ internal static class AsylumBuilder
         {
             var steps = New(root, d, "Cutscene_CellOpen", "asy_cell_open", CutsceneTrigger.When.FlagSet, null, StoryProgress.KeypadSolved, 0.6f, out Cutscene c,
                             letterbox: false);
-            Add(steps, Line(h, "Abriu! ...A soma. Claro. Eu nunca fui boa de conta.", "It's open! ...The sum. Of course. I was never good at math."));
-            Add(steps, Line(h, "Tá. Fica comigo.", "Okay. Stay with me."));
+            Add(steps, Line(h, "Abriu! ...A soma. Claro.", "It's open! ...The sum. Of course."));
+            Add(steps, Line(h, "Você sempre foi o bom de conta. Eu era a que chutava a porta.", "You were always the one good with numbers. I was the one who kicked the doors in."));
+            Add(steps, Line(h, "...Era bom quando a gente fazia isso junto.", "...It was good, when we did this together."));
+            Add(steps, Line(h, "Tá, foca. Fica de olho.", "Okay, focus. Keep watching."));
             Commit(c);
         }
 
@@ -1073,12 +1402,15 @@ internal static class AsylumBuilder
             var steps = New(root, d, "Cutscene_Nurses", "asy_nurses", CutsceneTrigger.When.HelenaEntersRoom, refs.Rooms["Nurses Station"], "", 0.5f, out Cutscene c);
             Add(steps, new CameraCutStep { camera = Cam("Nurses Station") });
             Add(steps, Line(h, "Enfermaria. Vazia.", "Nurses station. Empty."));
-            Add(steps, Line(h, "Agora me explica uma coisa. \"Três dias. Entra como paciente, acha o arquivo, sai.\" Lembra? Foi o que você me disse.",
-                               "Now explain something to me. \"Three days. Go in as a patient, find the file, get out.\" Remember? Your words."));
-            Add(steps, Line(h, "Três dias viraram isso. Cadê o resgate? Cadê o plano B?", "Three days turned into this. Where's the extraction? Where's plan B?"));
-            Add(steps, new OperatorLineStep { textPt = "Eu não sabia que isso ia acontecer.", textEn = "I didn't know this would happen.", acceptAnything = true });
-            Add(steps, Line(h, "Você nunca sabe. Esse é o problema.", "You never know. That's the problem."));
-            Add(steps, new WaitStep { seconds = 1.2f });
+            Add(steps, Line(h, "O plano do Michael: \"Três dias. Entra como paciente, descobre o que estão construindo lá embaixo, sai.\"",
+                               "Michael's plan: \"Three days. Go in as a patient, find out what they're building down there, get out.\""));
+            Add(steps, Line(h, "Três dias viraram isso. E o reforço que ele me manda é você.", "Three days turned into this. And the backup he sends me is you."));
+            Add(steps, new OperatorLineStep { textPt = "Eu tô aqui agora.", textEn = "I'm here now.", acceptAnything = true });
+            Add(steps, Line(h, "Agora. Depois de dois anos sumido.", "Now. After two years of disappearing."));
+            Add(steps, new OperatorLineStep { textPt = "Eu sei que a culpa é minha.", textEn = "I know it's my fault.", acceptAnything = true });
+            Add(steps, Line(h, "Não é isso que eu... Você não entende nada mesmo.", "That's not what I... You really don't get it."));
+            Add(steps, new ThoughtStep { textPt = "Do que mais ela poderia estar falando?", textEn = "What else could she be talking about?" });
+            Add(steps, new WaitStep { seconds = 1.0f });
             Add(steps, Line(h, "...Tá. Brigar não vai me tirar daqui.", "...Fine. Fighting won't get me out of here."));
             Add(steps, Line(h, "O mapa na parede: a saída é pela escada, depois da guarita. E do lado da guarita tem o arsenal.",
                                "The map on the wall: the way out is the stairwell, past the guard post. And the armory is right next to it."));
@@ -1103,7 +1435,8 @@ internal static class AsylumBuilder
         {
             var steps = New(root, d, "Cutscene_GuardPost", "asy_guard", CutsceneTrigger.When.HelenaEntersRoom, refs.Rooms["Guard Post"], "", 0.3f, out Cutscene c);
             Add(steps, new CameraCutStep { camera = Cam("Guard Post") });
-            Add(steps, Line(h, "A guarita. Esse terminal ainda liga... dá pra mandar um relatório.", "The guard post. This terminal still works... I can send a report."));
+            Add(steps, Line(h, "A guarita. Esse terminal ainda liga... dá pra mandar um relatório pro Michael.", "The guard post. This terminal still works... I can send Michael a report."));
+            Add(steps, Line(h, "Não que ele vá ler.", "Not that he'll read it."));
             Add(steps, new ThoughtStep { textPt = "Terminal: \"salva\". Aqui ela tá segura.", textEn = "Terminal: \"save\". She's safe in here." });
             Add(steps, Line(h, "E aquela porta é o arsenal. Trancada com cartão.", "And that door's the armory. Keycard lock."));
             Commit(c);
@@ -1157,10 +1490,18 @@ internal static class AsylumBuilder
             var steps = New(root, d, "Cutscene_Stairwell", "asy_stairwell", CutsceneTrigger.When.HelenaEntersRoom, refs.Rooms["Stairwell"], "", 0.5f, out Cutscene c);
             Add(steps, new CameraCutStep { camera = Cam("Stairwell") });
             Add(steps, Line(h, "A escada. O resto do hospício é lá em cima.", "The stairs. The rest of the asylum is up there."));
-            Add(steps, Line(h, "Não some, operador.", "Don't disappear on me, operator."));
-            Add(steps, new FadeStep { toBlack = true, duration = 2f });
-            Add(steps, new ThoughtStep { textPt = "Fim da Ala de Isolamento.", textEn = "End of the Isolation Wing." });
-            Add(steps, new FadeStep { toBlack = false, duration = 1.5f });
+            Add(steps, Line(h, "...E dessa vez, não some.", "...And this time, don't disappear."));
+            // the signal drops: the bar (Cutscene 02, a memory), then back here (LocationFlashback captures her state)
+            Add(steps, new SetFlagStep { flag = CutsceneDirector.PlayedPrefix + "asy_stairwell" });   // set before leaving (the end never comes)
+            var flashback = root.gameObject.AddComponent<LocationFlashback>();
+            EditorSerialized.SetReference(flashback, LocationFlashback.SaveSystemField, rig.SaveSystem);
+            EditorSerialized.SetReference(flashback, LocationFlashback.SessionField, rig.Session);
+            EditorSerialized.SetReference(flashback, LocationFlashback.PartnerField, rig.Helena != null ? rig.Helena.transform : null);
+            EditorSerialized.SetReference(flashback, LocationFlashback.SettingsField, rig.Settings);
+            EditorSerialized.SetReference(flashback, LocationFlashback.LoaderField, BarCutsceneBuilder.EnsureSignalLoader());
+            var leave = new EventStep();
+            UnityEditor.Events.UnityEventTools.AddVoidPersistentListener(leave.onRun, flashback.Go);
+            Add(steps, leave);
             Commit(c);
         }
         Debug.Log("[Asylum] 12 cutscenes built under 'Cutscenes' (edit their steps freely).");
@@ -1242,11 +1583,13 @@ internal static class AsylumBuilder
         yield return ("x_chair", new[] { "chair" }, new[] { "cadeira" });
         yield return ("x_desk", new[] { "desk", "files", "records", "logbook", "papers", "clipboard" }, new[] { "mesa", "prontuarios", "prontuario", "fichas", "registro", "papeis" });
         yield return ("x_map", new[] { "map", "poster", "floor plan" }, new[] { "mapa", "cartaz", "planta" });
-        yield return ("x_cabinet", new[] { "cabinet", "medicine cabinet", "locker", "closet" }, new[] { "armario", "armario de remedios" });
+        yield return ("x_cabinet", new[] { "cabinet", "medicine cabinet", "locker", "closet", "filing cabinet", "drawers", "invoices" },
+                                   new[] { "armario", "armario de remedios", "arquivo", "gaveta", "gavetas", "notas" });
         yield return ("x_gurney", new[] { "gurney", "stretcher", "trolley" }, new[] { "maca", "carrinho" });
         yield return ("x_shelf", new[] { "shelf", "shelves", "rack", "racks", "sheets" }, new[] { "prateleira", "prateleiras", "estante", "lencois" });
         yield return ("x_sink", new[] { "sink", "faucet", "tap" }, new[] { "pia", "torneira" });
         yield return ("x_tape", new[] { "tape recorder", "recorder", "tape", "cassette" }, new[] { "gravador", "fita", "fita cassete" });
         yield return ("x_stairs", new[] { "steps" }, new[] { "degraus", "degrau" });
+        yield return ("x_window", new[] { "window", "windows", "bars", "glass" }, new[] { "janela", "janelas", "grade", "grades", "vidro" });
     }
 }

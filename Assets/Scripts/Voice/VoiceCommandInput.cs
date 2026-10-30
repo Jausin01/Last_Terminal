@@ -11,7 +11,8 @@ using UnityEngine.InputSystem;
 // StreamingAssets/Vosk/en and StreamingAssets/Vosk/pt; it only listens for the words of the command lexicon, so
 // new phrases in the lexicon are heard without touching this. The language follows the settings.
 // Off while the command line is open, in the settings, the save screen or a dialog over the cameras (and outside the
-// camera program: OperatorStation turns it off).
+// camera program: OperatorStation turns it off). The microphone is the one chosen in the settings (MicrophoneInput);
+// while the settings' microphone test is open, what is heard goes to the test, not to Helena.
 public class VoiceCommandInput : MonoBehaviour
 {
     // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
@@ -84,9 +85,9 @@ public class VoiceCommandInput : MonoBehaviour
     private GameLanguage loadedLanguage;
     private bool languageLoaded;
     private string failReason = "";
-    private string device;
     private int rate = 16000;
     private AudioClip clip;
+    private bool micAcquired;
     private int readPos;
     private bool capturing;
     private bool awaitingFinish;          // push to talk: the end of the utterance was asked for
@@ -130,6 +131,7 @@ public class VoiceCommandInput : MonoBehaviour
     {
         talk.Enable();
         if (settings != null) settings.Changed += OnSettingsChanged;
+        MicrophoneInput.Restarted += OnMicrophoneRestarted;
         StartMicrophone();          // first: the recognizer works at the microphone's rate
         LoadLanguageIfNeeded();
     }
@@ -139,12 +141,33 @@ public class VoiceCommandInput : MonoBehaviour
     {
         talk.Disable();
         if (settings != null) settings.Changed -= OnSettingsChanged;
+        MicrophoneInput.Restarted -= OnMicrophoneRestarted;
         StopCapture(false);
         StopMicrophone();
     }
 
-    // Language changed: load the other model.
-    private void OnSettingsChanged() => LoadLanguageIfNeeded();
+    // Language changed: load the other model; another microphone chosen: record from it.
+    private void OnSettingsChanged()
+    {
+        MicrophoneInput.Use(settings.MicrophoneDevice);
+        LoadLanguageIfNeeded();
+    }
+
+    // The recording restarted (another device): read from the new clip; a new rate needs the model loaded again.
+    private void OnMicrophoneRestarted()
+    {
+        StopCapture(false);
+        awaitingFinish = false;
+        clip = MicrophoneInput.Clip;
+        readPos = MicrophoneInput.Position;
+        if (clip == null) return;
+        if (MicrophoneInput.Rate != rate)
+        {
+            rate = MicrophoneInput.Rate;
+            languageLoaded = false;
+            LoadLanguageIfNeeded();
+        }
+    }
 
     // ------------------------------------------------------------------ model
     private void LoadLanguageIfNeeded()
@@ -198,25 +221,28 @@ public class VoiceCommandInput : MonoBehaviour
     }
 
     // ------------------------------------------------------------------ microphone
+    // Records from the microphone chosen in the settings (shared with the other scenes: MicrophoneInput).
     private void StartMicrophone()
     {
-        if (Microphone.devices.Length == 0) { noMicrophone = true; Fail("no microphone"); return; }
-        device = null;   // the system's default microphone
-        Microphone.GetDeviceCaps(device, out int min, out int max);
-        rate = min == 0 && max == 0 ? 16000 : Mathf.Clamp(16000, min, max);
-        clip = Microphone.Start(device, true, 4, rate);
-        readPos = 0;
+        if (!MicrophoneInput.HasDevice) { noMicrophone = true; Fail("no microphone"); return; }
+        MicrophoneInput.Acquire(settings != null ? settings.MicrophoneDevice : "");
+        micAcquired = true;
+        clip = MicrophoneInput.Clip;
+        rate = MicrophoneInput.Rate;
+        readPos = MicrophoneInput.Position;
     }
 
-    // Stops the microphone.
+    // Stops using the microphone.
     private void StopMicrophone()
     {
-        if (clip != null && Microphone.IsRecording(device)) Microphone.End(device);
+        if (micAcquired) MicrophoneInput.Release();
+        micAcquired = false;
         clip = null;
     }
 
-    // Mic off while typing, in the settings / save screen / a dialog.
-    private bool Blocked => (cameraSystem != null && (cameraSystem.IsTyping || cameraSystem.IsSettingsOpen || cameraSystem.IsOverlayOpen
+    // Mic off while typing, in the settings / save screen / a dialog (the settings' microphone test: only typing).
+    private bool Blocked => MicrophoneInput.TestOpen ? console != null && console.IsOpen
+                          : (cameraSystem != null && (cameraSystem.IsTyping || cameraSystem.IsSettingsOpen || cameraSystem.IsOverlayOpen
                                                       || (cameraSystem.IsLocked && overrideHandler == null)))
                             || (saveScreen != null && saveScreen.IsOpen)
                             || (commands == null && overrideHandler == null)
@@ -230,7 +256,7 @@ public class VoiceCommandInput : MonoBehaviour
         tailLeft = -1f;
         heard = "";
         segments.Clear();
-        int pos = Microphone.GetPosition(device);
+        int pos = MicrophoneInput.Position;
         int pre = Mathf.Min((int)(preRoll * rate), clip.samples - 1);
         readPos = ((pos - pre) % clip.samples + clip.samples) % clip.samples;
         worker.Reset();
@@ -265,7 +291,7 @@ public class VoiceCommandInput : MonoBehaviour
             if (capturing && blocked) StopCapture(false);
         }
 
-        int pos = Microphone.GetPosition(device);
+        int pos = MicrophoneInput.Position;
         if (capturing) Pump(pos);
         else readPos = pos;
 
@@ -354,10 +380,16 @@ public class VoiceCommandInput : MonoBehaviour
     // "[unk]" = something not in the commands
     private static string Clean(string s) => string.IsNullOrEmpty(s) ? "" : s.Replace("[unk]", " ").Trim().Replace("  ", " ");
 
-    // A final sentence: to the override handler or to Helena as a command.
+    // A final sentence: to the settings' test, the override handler or Helena as a command.
     private void Heard(string sentence)
     {
         resultTimer = resultTime;
+        if (MicrophoneInput.TestOpen && overrideHandler == null)
+        {
+            heard = sentence.Length > 0 ? "> " + sentence : (Pt ? "(não entendi)" : "(didn't catch that)");
+            MicrophoneInput.ReportTest(sentence);
+            return;
+        }
         if (sentence.Length == 0)
         {
             heard = Pt ? "(não entendi)" : "(didn't catch that)";

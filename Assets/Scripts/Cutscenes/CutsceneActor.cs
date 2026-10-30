@@ -56,6 +56,9 @@ public class CutsceneActor : MonoBehaviour
     private Transform ikLeft, ikRight;
     private float ikWeight, ikGoal, ikSpeed = 4f;
     private bool ikOrient;
+    // Head IK: where it looks, current / wanted weight and blend speed.
+    private Transform lookTarget;
+    private float lookWeight, lookGoal, lookSpeed = 3f;
 
     // State and subtitle data read by the director.
     public bool IsResting => rest != null && rest.IsResting;
@@ -165,10 +168,25 @@ public class CutsceneActor : MonoBehaviour
         if (blend <= 0f) ikWeight = ikGoal;
     }
 
-    // Unity IK pass: hand positions on their targets.
+    // where the head (and a little of the body) looks: null = back to the animation; weight 0..1; blend in seconds
+    public void SetLookTarget(Transform target, float weight, float blend)
+    {
+        if (target != null) lookTarget = target;
+        lookGoal = target != null ? Mathf.Clamp01(weight) : 0f;
+        lookSpeed = blend > 0f ? 1f / blend : 1000f;
+        if (blend <= 0f) lookWeight = lookGoal;
+    }
+
+    // Unity IK pass: the head toward its target, the hands on theirs.
     private void OnAnimatorIK(int layerIndex)
     {
-        if (animator == null || ikWeight <= 0f) return;
+        if (animator == null) return;
+        if (lookWeight > 0f && lookTarget != null)
+        {
+            animator.SetLookAtWeight(lookWeight, 0.15f, 0.9f, 0f, 0.6f);
+            animator.SetLookAtPosition(lookTarget.position);
+        }
+        if (ikWeight <= 0f) return;
         Hand(AvatarIKGoal.LeftHand, ikLeft);
         Hand(AvatarIKGoal.RightHand, ikRight);
     }
@@ -208,6 +226,11 @@ public class CutsceneActor : MonoBehaviour
     // Blends the hand IK weight; moves the glide.
     private void Update()
     {
+        if (lookWeight != lookGoal)
+        {
+            lookWeight = Mathf.MoveTowards(lookWeight, lookGoal, lookSpeed * Time.deltaTime);
+            if (lookWeight <= 0f) lookTarget = null;
+        }
         if (ikWeight != ikGoal)
         {
             ikWeight = Mathf.MoveTowards(ikWeight, ikGoal, ikSpeed * Time.deltaTime);

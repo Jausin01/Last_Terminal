@@ -109,6 +109,7 @@ internal static class OperatorSceneSetup
         OperatorOS os = OperatorRoomUiBuilder.BuildOS(canvas, settings, story, voice, power, files, mails, settingsWindow);
         settingsWindow.transform.SetAsLastSibling();   // over the desktop
         OperatorRoomBuilder.DialogRefs dialog = OperatorRoomBuilder.BuildDialog(canvas);   // Esc in the camera program
+        CctvBootSplash bootSplash = OperatorRoomUiBuilder.BuildBootSplash(canvas, settings);   // CCTV.EXE starting
         ThoughtView thoughts = ThoughtViewBuilder.Build(canvas, settings);
         EditorSerialized.SetReference(hud, OperatorRoomHud.ThoughtsField, thoughts);
         EnsureEventSystem(sys);
@@ -148,6 +149,11 @@ internal static class OperatorSceneSetup
         so.FindProperty(OperatorStation.SettingsField).objectReferenceValue = settings;
         so.FindProperty(OperatorStation.SettingsWindowField).objectReferenceValue = settingsWindow;
         so.FindProperty(OperatorStation.LinkField).objectReferenceValue = OperatorRoomBuilder.EnsureLink();
+        so.FindProperty(OperatorStation.StoryField).objectReferenceValue = story;
+        // the play session: the save on its way from the title / an elevator / a restart (also keeps the asset loaded
+        // while this room is the only scene open: unreferenced, it is unloaded and what it carries is lost)
+        so.FindProperty(OperatorStation.SessionField).objectReferenceValue = ElevatorBuilder.EnsureSession();
+        so.FindProperty(OperatorStation.BootSplashField).objectReferenceValue = bootSplash;
         so.FindProperty(OperatorStation.LocationSceneField).stringValue = LocationInBuild();
         so.FindProperty(OperatorStation.DialogField).objectReferenceValue = dialog.Group;
         so.FindProperty(OperatorStation.DialogTitleField).objectReferenceValue = dialog.Title;

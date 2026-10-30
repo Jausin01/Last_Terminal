@@ -211,36 +211,78 @@ internal static class BlackjackBuilder
     }
 
     // ------------------------------------------------------------------ casino tables (menu 8)
-    // The table prefab on one of the casino's own tables: its model and stools go (the casino's table is there),
-    // the felt height moves the whole thing (the prefab's felt is at 0.751). Blackjack keeps its BlackjackGame;
-    // Casino Hold'em swaps it for a HoldemGame. Returns the BlackjackTable (its game is on the same object).
-    internal static BlackjackTable PlaceCasinoTable(Transform parent, Vector3 seat, float yaw, float feltHeight, bool holdem)
+    // The casino's own table models (Meshy, cleaned: tools casino2): pivot = the dealer's seat, the table toward +z,
+    // the dealer edge of the rail at z 0.30, the felt at 0.7505 (the prefab's spots are at 0.751).
+    internal const string CasinoBlackjackModelPath = "Assets/Art/Props/Casino/SM_CasinoBlackjackTable.fbx";
+    internal const string CasinoPokerModelPath = "Assets/Art/Props/Casino/SM_CasinoPokerTable.fbx";
+
+    // The table prefab with a casino table model: the prefab's own model (and, for Hold'em, its stools) go, the
+    // casino model comes in, and the spots (shoe, tray, cards, bets, deck) are moved to that model's felt print.
+    // Blackjack keeps its BlackjackGame; Casino Hold'em swaps it for a HoldemGame. Returns the BlackjackTable.
+    internal static BlackjackTable PlaceCasinoTable(Transform parent, Vector3 seat, float yaw, bool holdem)
     {
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(TablePrefabPath);
         if (prefab == null) { Debug.LogWarning("[Blackjack] No table prefab: run menu 3."); return null; }
+        var model = AssetDatabase.LoadAssetAtPath<GameObject>(holdem ? CasinoPokerModelPath : CasinoBlackjackModelPath);
+        if (model == null) { Debug.LogWarning($"[Blackjack] {(holdem ? CasinoPokerModelPath : CasinoBlackjackModelPath)} missing: copy the casino art."); return null; }
         var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
         PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
         go.name = holdem ? "HoldemTable" : "BlackjackTable";
-        go.transform.SetPositionAndRotation(seat + Vector3.up * (feltHeight - 0.751f), Quaternion.Euler(0f, yaw, 0f));
+        go.transform.SetPositionAndRotation(seat, Quaternion.Euler(0f, yaw, 0f));
         var strip = new List<GameObject>();
         foreach (Transform child in go.transform)
-            if (child.name == "Model" || child.name == "Stool") strip.Add(child.gameObject);
+            if (child.name == "Model" || (holdem && child.name == "Stool")) strip.Add(child.gameObject);
         foreach (GameObject g in strip) Object.DestroyImmediate(g);
+        var m = (GameObject)PrefabUtility.InstantiatePrefab(model, go.transform);
+        m.name = "Model";
+        foreach (MeshFilter mf in m.GetComponentsInChildren<MeshFilter>())
+            mf.gameObject.AddComponent<MeshCollider>().sharedMesh = mf.sharedMesh;
 
         var table = go.GetComponent<BlackjackTable>();
+        var so = new SerializedObject(table);
+        void Spot(string field, Vector3 v) => so.FindProperty(field).vector3Value = v;
+        if (!holdem)
+        {
+            // measured on SM_CasinoBlackjackTable: shoe on her left, tray in the middle of her edge, discard on her right
+            Spot(BlackjackTable.ShoeField, new Vector3(-0.47f, 0.80f, 0.385f));
+            Spot(BlackjackTable.DiscardField, new Vector3(0.37f, 0.80f, 0.365f));
+            Spot(BlackjackTable.ChipTrayField, new Vector3(0.02f, 0.775f, 0.415f));
+            Spot(BlackjackTable.DealerCardsField, new Vector3(-0.04f, 0.751f, 0.62f));
+            Spot(BlackjackTable.PlayerCardsField, new Vector3(0f, 0.751f, 0.76f));
+            Spot(BlackjackTable.BetSpotField, new Vector3(0f, 0.751f, 0.86f));
+            Spot(BlackjackTable.InsuranceSpotField, new Vector3(0.20f, 0.751f, 0.67f));
+            Spot(BlackjackTable.PlayerSideField, new Vector3(0f, 0.85f, 1.25f));
+        }
+        else
+        {
+            // SM_CasinoPokerTable: the chip rack in the middle of her side, the oval felt up to z ~1.3
+            Spot(BlackjackTable.ShoeField, new Vector3(0.30f, 0.77f, 0.62f));
+            Spot(BlackjackTable.DiscardField, new Vector3(-0.40f, 0.77f, 0.62f));
+            Spot(BlackjackTable.ChipTrayField, new Vector3(0f, 0.775f, 0.415f));
+            Spot(BlackjackTable.DealerCardsField, new Vector3(-0.06f, 0.751f, 0.60f));
+            Spot(BlackjackTable.PlayerSideField, new Vector3(0f, 0.85f, 1.55f));
+        }
+        so.ApplyModifiedPropertiesWithoutUndo();
+        // the deck waits on flat felt beside the tray (her pick-up clip reaches there)
+        Transform deck = go.transform.Find("Deck");
+        if (deck != null) deck.localPosition = holdem ? new Vector3(0.30f, 0.7505f, 0.70f) : new Vector3(0.32f, 0.7505f, 0.55f);
+        Transform cam = go.transform.Find("TableCam");
+        if (cam != null && holdem) cam.localPosition = new Vector3(0f, 1.40f, 1.80f);   // past the oval's far rail
+
         if (holdem)
         {
             var bj = go.GetComponent<BlackjackGame>();
             if (bj != null) Object.DestroyImmediate(bj);
             var game = go.AddComponent<HoldemGame>();
             EditorSerialized.SetReference(game, HoldemGame.TableField, table);
+            var gso = new SerializedObject(game);
+            gso.FindProperty(HoldemGame.BoardField).vector3Value = new Vector3(0f, 0.751f, 0.82f);
+            gso.FindProperty(HoldemGame.PlayerHandField).vector3Value = new Vector3(0f, 0.751f, 1.04f);
+            gso.FindProperty(HoldemGame.AnteSpotField).vector3Value = new Vector3(-0.06f, 0.751f, 1.16f);
+            gso.FindProperty(HoldemGame.CallSpotField).vector3Value = new Vector3(0.06f, 0.751f, 1.16f);
+            gso.ApplyModifiedPropertiesWithoutUndo();
             EditorSerialized.SetString(go.GetComponent<SaveStation>(), SaveStation.LocationNameField, "Hold'em");
         }
-        // no shoe / chip tray on the casino's felt: they lie on it
-        var so = new SerializedObject(table);
-        so.FindProperty(BlackjackTable.ShoeField).vector3Value = new Vector3(0.40f, 0.76f, 0.50f);
-        so.FindProperty(BlackjackTable.ChipTrayField).vector3Value = new Vector3(-0.23f, 0.751f, 0.38f);
-        so.ApplyModifiedPropertiesWithoutUndo();
         go.GetComponent<SaveStation>().FitToModels();
         return table;
     }

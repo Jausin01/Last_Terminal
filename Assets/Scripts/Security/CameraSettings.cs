@@ -3,6 +3,8 @@ using UnityEngine;
 
 // Operator options (settings menu), saved in PlayerPrefs (per machine, not in the save slots).
 // Language: commands are understood and Helena speaks (voice + subtitles) in this language only.
+// Microphone: the device the voice commands are heard from (empty = the system default). The sound output is always
+// the system's (Unity can't pick one): Windows can route just the game elsewhere (Volume mixer).
 // Several scenes open at once (his room + a location) each have one: a change in one reaches the others.
 public class CameraSettings : MonoBehaviour
 {
@@ -18,6 +20,7 @@ public class CameraSettings : MonoBehaviour
     private const string LanguageKey = "game_language";
     private const string SubtitlesKey = "subtitles";
     private const string VolumeKey = "master_volume";
+    private const string MicrophoneKey = "microphone";
 
     // the values "Restore defaults" puts back (the language stays)
     public const PanControl DefaultPan = PanControl.Mouse;
@@ -35,6 +38,8 @@ public class CameraSettings : MonoBehaviour
     [SerializeField] private bool subtitles = true;
     [Tooltip("Every sound of the game (AudioListener.volume).")]
     [SerializeField, Range(0f, 1f)] private float masterVolume = 1f;
+    [Tooltip("Microphone device name (empty = the system default).")]
+    [SerializeField] private string microphone = "";
 
     // Raised when a value changes (this or another scene's settings).
     public event Action Changed;
@@ -50,6 +55,7 @@ public class CameraSettings : MonoBehaviour
     public GameLanguage Language => language;
     public bool SubtitlesEnabled => subtitles;
     public float MasterVolume => masterVolume;
+    public string MicrophoneDevice => microphone;
 
     // Reads the saved values.
     private void Awake() => Load();
@@ -78,6 +84,7 @@ public class CameraSettings : MonoBehaviour
         language = (GameLanguage)PlayerPrefs.GetInt(LanguageKey, (int)language);
         subtitles = PlayerPrefs.GetInt(SubtitlesKey, subtitles ? 1 : 0) == 1;
         masterVolume = PlayerPrefs.GetFloat(VolumeKey, masterVolume);
+        microphone = PlayerPrefs.GetString(MicrophoneKey, microphone);
         AudioListener.volume = masterVolume;
     }
 
@@ -90,8 +97,9 @@ public class CameraSettings : MonoBehaviour
     public void SetLanguage(GameLanguage value) { language = value; Save(); }
     public void SetSubtitles(bool value) { subtitles = value; Save(); }
     public void SetMasterVolume(float value) { masterVolume = Mathf.Clamp01(value); Save(); }
+    public void SetMicrophoneDevice(string device) { microphone = device ?? ""; Save(); }
 
-    // Back to the defaults.
+    // Back to the defaults (the language and the microphone stay: they belong to the player / the machine).
     public void RestoreDefaults()
     {
         panControl = DefaultPan;
@@ -115,6 +123,7 @@ public class CameraSettings : MonoBehaviour
         PlayerPrefs.SetInt(LanguageKey, (int)language);
         PlayerPrefs.SetInt(SubtitlesKey, subtitles ? 1 : 0);
         PlayerPrefs.SetFloat(VolumeKey, masterVolume);
+        PlayerPrefs.SetString(MicrophoneKey, microphone);
         PlayerPrefs.Save();
         AudioListener.volume = masterVolume;
         Changed?.Invoke();

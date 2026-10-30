@@ -173,6 +173,12 @@ public class VoiceLineBank : ScriptableObject
         public AudioClip[] Clips(GameLanguage language) => language == GameLanguage.Portuguese ? portugueseClips : englishClips;
 
 #if UNITY_EDITOR
+        // A rewritten default text (the takes are kept).
+        public void EditorSetText(string newContext, string newEnglish, string newPortuguese)
+        {
+            context = newContext; english = newEnglish; portuguese = newPortuguese;
+        }
+
         // Assigns the takes (the editor menu that imports the audio).
         public void EditorSetClips(GameLanguage language, AudioClip[] clips)
         {
@@ -213,6 +219,16 @@ public class VoiceLineBank : ScriptableObject
         foreach (Entry d in defaults)
             if (!entries.Exists(e => e.Line == d.Line)) entries.Add(d);
         entries.Sort((a, b) => a.Line.CompareTo(b.Line));
+        lookup = null;
+    }
+
+    // Editor setup: a default line rewritten (the story changed): replaced only while its English text is still the old
+    // default (a text edited by hand is kept).
+    public void EditorRewrite(Entry newer, string oldEnglish)
+    {
+        Entry e = entries.Find(x => x != null && x.Line == newer.Line);
+        if (e == null || e.Text(GameLanguage.English) != oldEnglish) return;
+        e.EditorSetText(newer.Context, newer.Text(GameLanguage.English), newer.Text(GameLanguage.Portuguese));
         lookup = null;
     }
 #endif

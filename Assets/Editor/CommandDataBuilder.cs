@@ -346,6 +346,8 @@ public static class CommandDataBuilder
                           new[] { "roupa de prisao", "uniforme de prisao", "roupa de presidiaria", "uniforme listrado", "roupa listrada", "listrada" }),
         (CommandTargets.CenterKey, new[] { "center", "centre", "middle", "center of the room", "middle of the room", "room center" },
                                    new[] { "centro", "meio", "centro da sala", "meio da sala" }),
+        ("outfit_school", new[] { "school uniform", "school clothes", "school outfit", "schoolgirl outfit", "school girl uniform" },
+                          new[] { "uniforme escolar", "uniforme da escola", "roupa da escola", "roupa de escola", "roupa de colegial", "uniforme de colegial" }),
         ("outfit_bunny", new[] { "bunny suit", "bunny outfit", "bunny girl", "bunny costume", "bunny", "bunny ears" },
                          new[] { "coelhinha", "roupa de coelhinha", "fantasia de coelhinha", "bunny", "coelho", "orelhinhas" }),
         (PartnerOutfit.DefaultKey, new[] { "your clothes", "clothes", "normal clothes", "usual clothes", "regular clothes", "your jacket", "your outfit", "normal outfit" },
@@ -387,9 +389,20 @@ public static class CommandDataBuilder
             AssetDatabase.CreateAsset(bank, VoiceBankPath);
         }
         bank.EditorMerge(Lines.Select(l => new VoiceLineBank.Entry(l.line, l.context, l.en, l.pt)));
+        foreach (var (line, oldEn) in Rewritten)
+        {
+            var l = Lines.First(x => x.line == line);
+            bank.EditorRewrite(new VoiceLineBank.Entry(l.line, l.context, l.en, l.pt), oldEn);
+        }
         EditorUtility.SetDirty(bank);
         return bank;
     }
+
+    // Lines whose default text changed: the old English default (an asset still holding it gets the new text).
+    private static readonly (PartnerLine line, string oldEn)[] Rewritten =
+    {
+        (PartnerLine.OutfitBunny, "...Seriously? You're lucky I like you."),
+    };
 
     // Every line Helena says: id, context for the actress, English, Portuguese.
     private static readonly (PartnerLine line, string context, string en, string pt)[] Lines =
@@ -518,7 +531,7 @@ public static class CommandDataBuilder
         (PartnerLine.TagPrison, "Perguntaram o que tá escrito na plaquinha (uniforme de prisão). Ela lê o número dígito por dígito (zero-nine-one-seven / zero, nove, um, sete), meio incomodada.",
             "0917. That's all it says.", "0917. Só isso."),
         (PartnerLine.NoTag, "Perguntaram o número da plaquinha, mas a roupa dela não tem nenhuma.", "I'm not wearing a tag.", "Eu não tô com plaquinha nenhuma."),
-        (PartnerLine.OutfitBunny, "Vestiu a roupa de coelhinha (o prêmio mais caro do cassino). Sem graça, mas entrando na brincadeira.", "...Seriously? You're lucky I like you.", "...Sério? Sorte sua que eu gosto de você."),
+        (PartnerLine.OutfitBunny, "Vestiu a roupa de coelhinha (o prêmio mais caro do cassino). Sem graça, meio irritada com o operador (os dois ainda não se acertaram).", "...Seriously? You're enjoying this way too much.", "...Sério? Você tá gostando disso demais."),
     };
 
     // Menu 5: assigns the recorded takes (file name = line id) to the voice bank.

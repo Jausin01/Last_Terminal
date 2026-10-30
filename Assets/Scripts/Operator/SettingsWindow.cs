@@ -5,8 +5,10 @@ using UnityEngine.UI;
 
 // The game's settings as a window of his PC: the gear on the desktop (and Start > Settings), and over the cameras from
 // the "close the program?" dialog (Esc). Sections: cameras (pan control, pan speeds), picture (camera filter and its
-// strength), sound (volume), language (language, subtitles). Every change applies at once (CameraSettings saves it);
-// Restore defaults keeps the language. Esc / OK / X close it. Built by Last Terminal/16.
+// strength), sound (volume, the microphone with its level meter and tests, the sound output), language (language,
+// subtitles). Every change applies at once (CameraSettings saves it); Restore defaults keeps the language and the
+// microphone. Esc / OK / X close it. The microphone part is MicrophoneTest (shared with the cameras' Esc menu).
+// Built by Last Terminal/16.
 public class SettingsWindow : MonoBehaviour
 {
     // Names of the serialized fields below: the editor builders set them by name (SerializedObject).
@@ -62,6 +64,14 @@ public class SettingsWindow : MonoBehaviour
         public Level filterStrength = new Level();
         // Sound: master volume.
         public Level volume = new Level();
+        // The microphone (cycles the devices), its level meter (a filled Image), "record 3 s and listen",
+        // the recognition test line, the "test sound" button and the note about the output.
+        public Button microphone;
+        public Image micLevel;
+        public Button micRecord;
+        public TMP_Text micHeard;
+        public Button outputTest;
+        public TMP_Text outputNote;
         // Language: Portuguese / English, and the subtitles toggle.
         public Choice language = new Choice();
         public Button subtitles;
@@ -83,9 +93,11 @@ public class SettingsWindow : MonoBehaviour
     [SerializeField] private Color normal = new Color(0.86f, 0.86f, 0.84f);
     [SerializeField] private Color normalText = new Color(0.08f, 0.08f, 0.1f);
 
-    // Shown now; a refresh is setting the controls (their callbacks are ignored then).
+    // Shown now; a refresh is setting the controls (their callbacks are ignored then); the microphone part.
     private bool open;
     private bool refreshing;
+    private MicrophoneTest micTest;
+    private TMP_Text recordLabel;
 
     // Shown now, and raised when it closes (the station / dialog continue).
     public bool IsOpen => open;
@@ -117,6 +129,11 @@ public class SettingsWindow : MonoBehaviour
         Slide(refs.keyboardSpeed, 10f, 150f, v => settings.SetKeyboardPanSpeed(v));
         Slide(refs.filterStrength, 0f, 1f, v => settings.SetFilterStrength(v));
         Slide(refs.volume, 0f, 1f, v => settings.SetMasterVolume(v));
+        micTest = new MicrophoneTest(settings, audioSource);
+        Wire(refs.microphone, micTest.NextDevice);
+        Wire(refs.micRecord, micTest.RecordAndListen);
+        Wire(refs.outputTest, micTest.PlayTestSound);
+        if (refs.micRecord != null) recordLabel = refs.micRecord.GetComponentInChildren<TMP_Text>();
         Show(false);
     }
 
@@ -126,10 +143,21 @@ public class SettingsWindow : MonoBehaviour
         if (settings != null) settings.Changed += Refresh;
     }
 
-    // Stops listening.
+    // Stops listening (and the microphone test, if the scene goes while it is open).
     private void OnDisable()
     {
         if (settings != null) settings.Changed -= Refresh;
+        micTest?.Close();
+    }
+
+    // While open: the microphone meter, the record test and the recognition test line.
+    private void Update()
+    {
+        if (!open || micTest == null) return;
+        micTest.Tick(Time.unscaledDeltaTime);
+        if (refs.micLevel != null) refs.micLevel.fillAmount = micTest.Level;
+        if (recordLabel != null) recordLabel.text = micTest.RecordLabel();
+        if (refs.micHeard != null) refs.micHeard.text = micTest.HeardLabel();
     }
 
     // Opens on top, showing the current values.
@@ -138,6 +166,7 @@ public class SettingsWindow : MonoBehaviour
         if (open) return;
         transform.SetAsLastSibling();
         Show(true);
+        micTest?.Open();
         Refresh();
     }
 
@@ -146,6 +175,7 @@ public class SettingsWindow : MonoBehaviour
     {
         if (!open) return;
         Show(false);
+        micTest?.Close();
         Closed?.Invoke();
     }
 
@@ -195,6 +225,11 @@ public class SettingsWindow : MonoBehaviour
         Set(refs.volume, settings.MasterVolume, Mathf.RoundToInt(settings.MasterVolume * 100f) + "%");
         Pick(refs.language, settings.Language == GameLanguage.Portuguese);
         Toggle(refs.subtitles, settings.SubtitlesEnabled, T("On", "Ligadas"), T("Off", "Desligadas"));
+        if (micTest != null)
+        {
+            SetText(refs.microphone, micTest.DeviceLabel());
+            if (refs.outputNote != null) refs.outputNote.text = micTest.OutputLabel();
+        }
         refreshing = false;
     }
 
@@ -221,6 +256,14 @@ public class SettingsWindow : MonoBehaviour
         if (b.targetGraphic != null) b.targetGraphic.color = on ? chosen : normal;
         TMP_Text t = b.GetComponentInChildren<TMP_Text>();
         if (t != null) t.color = on ? chosenText : normalText;
+    }
+
+    // A button's label.
+    private static void SetText(Button b, string text)
+    {
+        if (b == null) return;
+        TMP_Text t = b.GetComponentInChildren<TMP_Text>();
+        if (t != null) t.text = text;
     }
 
     // Sets a slider without raising its callback, and its value text.

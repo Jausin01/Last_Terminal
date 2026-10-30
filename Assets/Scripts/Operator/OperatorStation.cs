@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 // Where the operator is: walking around his room (first person), at the PC's desktop (his files), in the camera
 // program (operator mode: the CCTV cameras, the map, the commands to Helena) or playing the pinball.
-// - Room: clicking the PC sits him down and opens the camera program directly.
+// - Room: clicking the PC sits him down at its desktop; CCTV.EXE opens the camera program.
 // - Operator: Esc asks "close the program?" (Close / Settings / Cancel). Closing only works with Helena in a safe
 //   zone (Room.SafeZone), out of a fight and free; she sits on the floor and waits (PartnerRest). Then: the desktop.
 // - Desktop: CCTV.EXE goes back to the cameras (she gets up), Stand up (or Esc) goes back to the room.
@@ -66,6 +66,8 @@ public class OperatorStation : MonoBehaviour
     public const string CloseLabelField = nameof(closeLabel);
     public const string SettingsLabelField = nameof(settingsLabel);
     public const string CancelLabelField = nameof(cancelLabel);
+    public const string StoryField = nameof(story);
+    public const string BootSplashField = nameof(bootSplash);
 
     // Where the operator is (see the top of the file).
     public enum Mode { Room, Desktop, Operator, Pinball, Focus }
@@ -151,6 +153,11 @@ public class OperatorStation : MonoBehaviour
     [Tooltip("A click gives the cursor back to the game (the editor frees it with Esc).")]
     [SerializeField] private InputAction relock = new InputAction("Relock", InputActionType.Button, "<Mouse>/leftButton");
 
+    [Tooltip("His room's story flags: joined to the location's when it loads; a save being loaded is read into it first.")]
+    [SerializeField] private StoryProgress story;
+    [Tooltip("Optional: the camera program's startup splash (CCTV.EXE from the desktop); without it the view cuts.")]
+    [SerializeField] private CctvBootSplash bootSplash;
+
     // Current mode, a view transition running, the dialog open, the thing looked at up close.
     private Mode mode = Mode.Room;
     private bool transitioning;
@@ -159,6 +166,8 @@ public class OperatorStation : MonoBehaviour
     // The location scene: being loaded, and the scene once loaded.
     private bool loadingLocation;
     private Scene locationSceneLoaded;
+    // How far the location's load is (0..1, for the splash's bar).
+    private float locationProgress;
 
     // Current mode (read by cutscenes and the session).
     public Mode Current => mode;
@@ -203,14 +212,30 @@ public class OperatorStation : MonoBehaviour
         if (desktop != null) { desktop.ProgramRequested -= EnterOperator; desktop.StandRequested -= StandUp; desktop.ShutdownRequested -= OnShutdown; }
     }
 
-    // Starts at the PC (came from another scene while operating) or in the room (Helena waits; the wake-up cutscene the first time).
+    // Starts at the PC (came from another scene while operating: a save loaded, an elevator, a restart) or in the room
+    // (Helena waits; the wake-up cutscene the first time). Opened through GameScenes, the location to bring up is the
+    // one asked for (else this room's own); it is loaded at once and the cameras open.
     private void Start()
     {
-        bool atPc = HasOperator && session != null && session.WasOperating;
+        if (session == null) Debug.LogWarning($"{name}: OperatorStation has no GameSession: a save loaded from the title is lost (run Last Terminal/16 on this scene).", this);
+        if (session != null && session.TakeNextLocation(out string next))
+        {
+            if (Application.CanStreamedLevelBeLoaded(next)) locationScene = next;
+            else Debug.LogWarning($"{name}: location '{next}' is not in the Build Settings: {locationScene} instead.", this);
+        }
+        // a save on its way to the location: its story now (the wake-up already seen isn't played again)
+        SaveData pending = session != null ? session.PeekTransfer : null;
+        if (pending != null && story != null) story.Restore(pending);
+        bool atPc = session != null && session.WasOperating && (HasOperator || CanLoadLocation);
         if (atPc)
         {
             if (screenView != null) player.SnapViewTo(screenView.position, screenView.rotation);
-            Apply(Mode.Operator);
+            if (HasOperator) Apply(Mode.Operator);
+            else
+            {
+                Apply(Mode.Desktop);
+                EnterOperator();                     // the startup splash while the location loads, then the cameras
+            }
         }
         else
         {
@@ -258,23 +283,30 @@ public class OperatorStation : MonoBehaviour
     private bool CanLoadLocation => !HasOperator && !string.IsNullOrEmpty(locationScene) && Application.CanStreamedLevelBeLoaded(locationScene);
 
     // ------------------------------------------------------------------ the location over the room
-    private IEnumerator LoadLocation()
+    // quiet: under the startup splash (it shows the progress and opens the cameras itself)
+    private IEnumerator LoadLocation(bool quiet = false)
     {
         loadingLocation = true;
-        transitioning = true;
-        desktop.SetStatus(Pt ? "CCTV.EXE: conectando às câmeras..." : "CCTV.EXE: connecting to the cameras...", 30f);
+        locationProgress = 0f;
+        if (!quiet)
+        {
+            transitioning = true;
+            desktop.SetStatus(Pt ? "CCTV.EXE: conectando às câmeras..." : "CCTV.EXE: connecting to the cameras...", 30f);
+        }
         AsyncOperation load = SceneManager.LoadSceneAsync(locationScene, LoadSceneMode.Additive);
-        while (load != null && !load.isDone) yield return null;
+        while (load != null && !load.isDone) { locationProgress = load.progress / 0.9f; yield return null; }
+        locationProgress = 1f;
         float waited = 0f;
         while (!HasOperator && waited < 3f) { waited += Time.unscaledDeltaTime; yield return null; }
         loadingLocation = false;
-        transitioning = false;
+        if (!quiet) transitioning = false;
         if (!HasOperator)
         {
             desktop.SetStatus(Pt ? "CCTV.EXE: o local não respondeu." : "CCTV.EXE: the location didn't answer.", 6f);
             Debug.LogWarning($"{name}: {locationScene} loaded but has no OperatorLocation (rebuild it with its Last Terminal menu).", this);
             yield break;
         }
+        if (quiet) yield break;
         desktop.SetStatus("", 0.01f);
         if (mode == Mode.Desktop) EnterOperator();
     }
@@ -295,6 +327,7 @@ public class OperatorStation : MonoBehaviour
         encounter = location.Encounter;
         voice = location.Voice;
         locationSceneLoaded = location.gameObject.scene;
+        if (story != null) story.Join(location.Story);
         if (cameraSystem != null) cameraSystem.EscapeRequested += OnOperatorEscape;
         desktop.SetProgramAvailable(true);
     }
@@ -317,19 +350,43 @@ public class OperatorStation : MonoBehaviour
             player.BlendViewTo(screenView.position, screenView.rotation, 0.45f, () =>
             {
                 transitioning = false;
-                if (HasOperator) EnterOperator();
-                else Apply(Mode.Desktop);
+                Apply(Mode.Desktop);      // the desktop: CCTV.EXE opens the cameras
             }));
     }
 
-    // The camera program: loads the location first if needed; Helena gets up (unless the intro cutscene will).
+    // The camera program: from the desktop with its startup splash (the location loads under it); without the splash
+    // the location loads first if needed. Helena gets up (unless the intro cutscene will).
     private void EnterOperator()
     {
+        if (bootSplash != null && bootSplash.enabled && mode == Mode.Desktop)
+        {
+            if (!bootSplash.IsPlaying && (HasOperator || CanLoadLocation)) StartCoroutine(Boot());
+            return;
+        }
         if (!HasOperator)
         {
             if (CanLoadLocation && !loadingLocation) StartCoroutine(LoadLocation());
             return;
         }
+        OpenCameras();
+    }
+
+    // CCTV.EXE starting: the splash plays while the location loads, then the cameras appear under it as it fades.
+    private IEnumerator Boot()
+    {
+        transitioning = true;
+        if (!HasOperator && !loadingLocation) StartCoroutine(LoadLocation(true));
+        else if (HasOperator) locationProgress = 1f;
+        yield return bootSplash.Play(() => HasOperator || !loadingLocation, () => locationProgress);
+        transitioning = false;
+        if (!HasOperator) { bootSplash.Hide(); yield break; }   // the load failed: the desktop says so
+        OpenCameras();
+        yield return bootSplash.Reveal();
+    }
+
+    // The cameras on; Helena gets up (unless the intro cutscene will).
+    private void OpenCameras()
+    {
         Apply(Mode.Operator);
         bool intro = introCutscene != null && !introCutscene.HasPlayed;
         if (partnerRest != null && partnerRest.IsResting && !intro)

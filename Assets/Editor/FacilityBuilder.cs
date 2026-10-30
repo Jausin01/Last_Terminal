@@ -477,7 +477,7 @@ internal static class FacilityBuilder
         var go = new GameObject(objectName);
         go.transform.SetParent(parent, false);
         go.transform.position = center;
-        var mesh = BoxMesh(size, tile, wallUv);
+        var mesh = BoxMesh(size, tile, wallUv, wallUv ? (center.y - size.y * 0.5f) / WallHeight : 0f);
         mesh.name = objectName + "_Mesh";
         go.AddComponent<MeshFilter>().sharedMesh = mesh;
         go.AddComponent<MeshRenderer>().sharedMaterial = m;
@@ -486,8 +486,9 @@ internal static class FacilityBuilder
         return go;
     }
 
-    // A box mesh with tiled UVs.
-    private static Mesh BoxMesh(Vector3 s, float tile, bool wallUv)
+    // A box mesh with tiled UVs. v0: where the sides start in the wall texture (a piece above a window: its height / 3 m),
+    // so pieces of one wall line up.
+    private static Mesh BoxMesh(Vector3 s, float tile, bool wallUv, float v0)
     {
         Vector3 h = s * 0.5f;
         var v = new List<Vector3>(); var n = new List<Vector3>(); var uv = new List<Vector2>(); var tri = new List<int>();
@@ -499,7 +500,8 @@ internal static class FacilityBuilder
             v.Add(c - hu - hw); v.Add(c + hu - hw); v.Add(c + hu + hw); v.Add(c - hu + hw);
             for (int k = 0; k < 4; k++) n.Add(normal);
             float su = du / tile, sw = wallUv ? dw / WallHeight : dw / tile;
-            uv.Add(new Vector2(0f, 0f)); uv.Add(new Vector2(su, 0f)); uv.Add(new Vector2(su, sw)); uv.Add(new Vector2(0f, sw));
+            float o = Mathf.Abs(normal.y) < 0.5f ? v0 : 0f;
+            uv.Add(new Vector2(0f, o)); uv.Add(new Vector2(su, o)); uv.Add(new Vector2(su, sw + o)); uv.Add(new Vector2(0f, sw + o));
             tri.AddRange(new[] { i, i + 2, i + 1, i, i + 3, i + 2 });
         }
         Face(Vector3.forward, Vector3.left, Vector3.up, s.x, s.y);
@@ -755,9 +757,13 @@ internal static class FacilityBuilder
         miniArea.gameObject.AddComponent<RectMask2D>();
 
         // settings panel
-        CanvasGroup settingsPanel = Panel(root.transform, "SettingsPanel", "SETTINGS", new Vector2(760f, 600f));
+        CanvasGroup settingsPanel = Panel(root.transform, "SettingsPanel", "SETTINGS", new Vector2(760f, 800f));
         var rows = EditorUi.CreateUiObject(settingsPanel.transform.GetChild(1), "Rows").GetComponent<RectTransform>();
-        EditorUi.Place(rows, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 190f), Vector2.zero);
+        EditorUi.Place(rows, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 290f), Vector2.zero);
+        // the settings' microphone playback and test sound (2D)
+        var hudAudio = root.AddComponent<AudioSource>();
+        hudAudio.playOnAwake = false;
+        hudAudio.spatialBlend = 0f;
 
         var hud = root.AddComponent<SecurityCameraHud>();
         EditorSerialized.SetReference(hud, SecurityCameraHud.SystemField, system);
@@ -779,6 +785,7 @@ internal static class FacilityBuilder
         EditorSerialized.SetReference(hud, SecurityCameraHud.MapSideField, side);
         EditorSerialized.SetReference(hud, SecurityCameraHud.SettingsPanelField, settingsPanel);
         EditorSerialized.SetReference(hud, SecurityCameraHud.SettingsRowsField, rows);
+        EditorSerialized.SetReference(hud, SecurityCameraHud.AudioField, hudAudio);
         // the panel titles (Panel: Frame/Title) follow the language too
         EditorSerialized.SetReference(hud, SecurityCameraHud.MapTitleField, map.transform.GetChild(1).Find("Title").GetComponent<TMP_Text>());
         EditorSerialized.SetReference(hud, SecurityCameraHud.SettingsTitleField, settingsPanel.transform.GetChild(1).Find("Title").GetComponent<TMP_Text>());

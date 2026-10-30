@@ -70,6 +70,8 @@ internal static class LocationRigBuilder
         public CommandTargets Targets;
         public PartnerVoice Voice;
         public Camera ViewCamera;     // the operator's view (sits on the active CCTV camera)
+        public SaveSystem SaveSystem; // her state (a flashback captures it)
+        public GameSession Session;   // carries it between scenes
         // Enemies placed.
         public readonly List<EnemyBrain> Enemies = new List<EnemyBrain>();
     }
@@ -296,6 +298,10 @@ internal static class LocationRigBuilder
             EditorSerialized.SetReference(saveSystem, SaveSystem.WeaponHolderField, holder);
             EditorSerialized.SetReference(saveSystem, SaveSystem.ItemDatabaseField, ItemBuilder.EnsureItemDatabase(ItemBuilder.AllItems()));
             EditorSerialized.SetReferenceArray(saveSystem, SaveSystem.PickupsField, content.Pickups);
+            // the doors: a save id each (unique in the scene), saved open / locked
+            for (int i = 0; i < level.Doors.Count; i++)
+                if (level.Doors[i] != null) EditorSerialized.SetString(level.Doors[i], Door.SaveIdField, $"door_{i:00}_{level.Doors[i].DisplayName}");
+            EditorSerialized.SetReferenceArray(saveSystem, SaveSystem.DoorsField, level.Doors);
             EditorSerialized.SetReference(saveSystem, SaveSystem.SessionField, session);   // her state between scenes (elevators)
             chipBank = systems.AddComponent<ChipBank>();   // the operator's chips and prize coins (saved, carried between scenes)
             EditorSerialized.SetReference(saveSystem, SaveSystem.ChipBankField, chipBank);
@@ -349,6 +355,7 @@ internal static class LocationRigBuilder
             EditorSerialized.SetReference(cameraSystem, SecurityCameraSystem.SettingsField, camSettings);
             EditorSerialized.SetReference(cameraSystem, SecurityCameraSystem.SaveScreenField, saveScreen);
             EditorSerialized.SetInt(cameraSystem, SecurityCameraSystem.StartCameraField, level.StartCamera);
+            if (saveSystem != null) EditorSerialized.SetReference(saveSystem, SaveSystem.CameraSystemField, cameraSystem);   // the camera he watched is saved
             volume = security.AddComponent<Volume>();
             volume.isGlobal = true;
             volume.sharedProfile = FacilityBuilder.EnsureFilterProfile();
@@ -592,6 +599,7 @@ internal static class LocationRigBuilder
             {
                 Scene = scene, Helena = Helena, Director = cutsceneDirector, CameraSystem = cameraSystem, Settings = camSettings,
                 Story = story, Targets = targets, Voice = voice, ViewCamera = viewCamera,
+                SaveSystem = saveSystem, Session = session,
             };
             located.Enemies.AddRange(enemies);
             content.Finish(located);

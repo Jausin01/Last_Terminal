@@ -150,7 +150,36 @@ internal static class HelenaCompareBuilder
                                     AnimationClip[] clips, AnimationClip[] rightClips, bool closeFingers)
     {
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        Camera cam = BuildStage(4.4f);
 
+        Animator oldA = Place(leftModel, "Helena " + leftLabel, -0.65f);
+        Animator newA = Place(rightModel, "Helena " + rightLabel, 0.65f);
+
+        // weapons: a display copy of each weapon prefab per model (only its Weapon component: no combat logic here)
+        var weaponRoot = new GameObject("Weapons").transform;
+        var display = new List<Weapon>();
+        foreach (Animator a in new[] { oldA, newA })
+            foreach (string w in ShownWeapons) display.Add(DisplayCopy(w, weaponRoot));
+        var weaponOfClip = new int[clips.Length];
+        var aimOfClip = new bool[clips.Length];
+        for (int i = 0; i < clips.Length; i++)
+        {
+            weaponOfClip[i] = WeaponFor(clips[i].name);
+            aimOfClip[i] = IsAim(clips[i].name);
+        }
+
+        var compare = new GameObject("Compare").AddComponent<ModelCompare>();
+        compare.EditorSet(new[] { oldA, newA }, new[] { leftLabel, rightLabel }, clips, cam,
+                          display.ToArray(), ShownWeapons.Length, weaponOfClip, aimOfClip, rightClips, closeFingers);
+
+        EditorAssets.EnsureFolder("Assets", "Scenes");
+        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), scenePath);
+    }
+
+    // The neutral test stage of the new (empty) scene: soft ambient, a floor, key + rim lights, the camera this far
+    // in front of the models (looking at their middle).
+    internal static Camera BuildStage(float distance)
+    {
         RenderSettings.ambientMode = AmbientMode.Trilight;
         RenderSettings.ambientSkyColor = new Color(0.42f, 0.44f, 0.48f);
         RenderSettings.ambientEquatorColor = new Color(0.28f, 0.28f, 0.29f);
@@ -178,31 +207,9 @@ internal static class HelenaCompareBuilder
         cam.fieldOfView = 38f;
         cam.clearFlags = CameraClearFlags.SolidColor;
         cam.backgroundColor = new Color(0.2f, 0.2f, 0.22f);
-        camGo.transform.position = new Vector3(0f, 1.25f, -4.4f);
+        camGo.transform.position = new Vector3(0f, 1.25f, -distance);
         camGo.transform.LookAt(new Vector3(0f, 0.95f, 0f));
-
-        Animator oldA = Place(leftModel, "Helena " + leftLabel, -0.65f);
-        Animator newA = Place(rightModel, "Helena " + rightLabel, 0.65f);
-
-        // weapons: a display copy of each weapon prefab per model (only its Weapon component: no combat logic here)
-        var weaponRoot = new GameObject("Weapons").transform;
-        var display = new List<Weapon>();
-        foreach (Animator a in new[] { oldA, newA })
-            foreach (string w in ShownWeapons) display.Add(DisplayCopy(w, weaponRoot));
-        var weaponOfClip = new int[clips.Length];
-        var aimOfClip = new bool[clips.Length];
-        for (int i = 0; i < clips.Length; i++)
-        {
-            weaponOfClip[i] = WeaponFor(clips[i].name);
-            aimOfClip[i] = IsAim(clips[i].name);
-        }
-
-        var compare = new GameObject("Compare").AddComponent<ModelCompare>();
-        compare.EditorSet(new[] { oldA, newA }, new[] { leftLabel, rightLabel }, clips, cam,
-                          display.ToArray(), ShownWeapons.Length, weaponOfClip, aimOfClip, rightClips, closeFingers);
-
-        EditorAssets.EnsureFolder("Assets", "Scenes");
-        EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), scenePath);
+        return cam;
     }
 
     // the weapon shown on a clip, from its name (index in ShownWeapons, -1 = none)
@@ -231,7 +238,7 @@ internal static class HelenaCompareBuilder
     }
 
     // An instance of a model placed at x in the scene.
-    private static Animator Place(GameObject model, string name, float x)
+    internal static Animator Place(GameObject model, string name, float x)
     {
         var go = (GameObject)PrefabUtility.InstantiatePrefab(model);
         go.name = name;

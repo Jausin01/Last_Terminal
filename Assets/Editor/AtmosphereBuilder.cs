@@ -29,6 +29,8 @@ internal static class AtmosphereBuilder
         public float LampScale;              // the rooms' light intensities x this
         public string[] FlickerRooms;        // the rooms whose lamps fail (display names)
         public string CeilingTexture;        // empty = the facility wall texture, tinted
+        public string FixtureModel;          // optional: a lamp housing model (origin: its top) around the glowing panel
+        public string[] OwnCeilingRooms;     // rooms that make their own ceiling and lamps (a double-height stairwell)
     }
 
     // The asylum look.
@@ -37,6 +39,8 @@ internal static class AtmosphereBuilder
         Fog = new Color(0.07f, 0.075f, 0.07f), FogDensity = 0.045f, Ambient = new Color(0.1f, 0.105f, 0.11f), LampScale = 6f,
         FlickerRooms = new[] { "Isolation Wing", "Service Hall", "Bathroom", "Service Corridor", "Observation" },
         CeilingTexture = "Assets/Art/Props/Asylum/T_AsyCeiling.png",
+        FixtureModel = "Assets/Art/Props/Asylum/SM_Asy_FluoLamp.fbx",
+        OwnCeilingRooms = new[] { "Stairwell" },
     };
 
     // The facility look.
@@ -63,9 +67,10 @@ internal static class AtmosphereBuilder
         ceilings.SetParent(root, false);
         float h = FacilityBuilder.WallHeight, t = FacilityBuilder.WallThickness;
         var flicker = new HashSet<string>(look.FlickerRooms ?? new string[0]);
+        var ownCeiling = new HashSet<string>(look.OwnCeilingRooms ?? new string[0]);
         foreach (Room room in rooms)
         {
-            if (room == null) continue;
+            if (room == null || ownCeiling.Contains(room.DisplayName)) continue;
             Rect r = room.FloorRect;
             FacilityBuilder.Block(ceilings, "Ceiling_" + room.DisplayName.Replace(" ", ""), new Vector3(r.center.x, h + 0.05f, r.center.y),
                                   new Vector3(r.width + t, 0.1f, r.height + t), ceiling, 2f);
@@ -107,6 +112,8 @@ internal static class AtmosphereBuilder
         float length = alongX ? r.width : r.height;
         int count = Mathf.Max(1, Mathf.RoundToInt(length / LampSpacing));
         Material glow = FixtureMaterial(lit, color);
+        GameObject housing = string.IsNullOrEmpty(look.FixtureModel) ? null : AssetDatabase.LoadAssetAtPath<GameObject>(look.FixtureModel);
+        Quaternion along = alongX ? Quaternion.identity : Quaternion.Euler(0f, 90f, 0f);
         for (int i = 0; i < count; i++)
         {
             float k = (i + 0.5f) / count;
@@ -138,6 +145,17 @@ internal static class AtmosphereBuilder
             panel.transform.position = new Vector3(at.x, FacilityBuilder.WallHeight - 0.03f, at.z);
             panel.transform.rotation = Quaternion.identity;
             panel.transform.localScale = new Vector3(0.6f, 0.05f, 0.25f);
+            if (housing != null)
+            {
+                // the housing hangs from the ceiling, the panel fills it (the long side along the room)
+                var h = (GameObject)PrefabUtility.InstantiatePrefab(housing, go.transform);
+                PrefabUtility.UnpackPrefabInstance(h, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+                h.name = "Housing";
+                h.transform.SetPositionAndRotation(new Vector3(at.x, FacilityBuilder.WallHeight, at.z), along);
+                foreach (MeshRenderer hr in h.GetComponentsInChildren<MeshRenderer>()) hr.shadowCastingMode = ShadowCastingMode.Off;
+                panel.transform.SetPositionAndRotation(new Vector3(at.x, FacilityBuilder.WallHeight - 0.07f, at.z), along);
+                panel.transform.localScale = new Vector3(1.2f, 0.02f, 0.28f);
+            }
             var renderer = panel.GetComponent<MeshRenderer>();
             renderer.sharedMaterial = glow;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
@@ -153,7 +171,7 @@ internal static class AtmosphereBuilder
     }
 
     // Glowing lamp fixture material (made once).
-    private static Material FixtureMaterial(Shader lit, Color color)
+    internal static Material FixtureMaterial(Shader lit, Color color)
     {
         string path = $"{MaterialFolder}/M_LampFixture_{ColorUtility.ToHtmlStringRGB(color)}.mat";
         Material m = EditorAssets.MakeMaterial(path, null, 0.3f, false, lit);

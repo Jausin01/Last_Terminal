@@ -41,6 +41,7 @@ public class SecurityCameraHud : MonoBehaviour
     public const string MapSideField = nameof(mapSide);
     public const string SettingsPanelField = nameof(settingsPanel);
     public const string SettingsRowsField = nameof(settingsRows);
+    public const string AudioField = nameof(audioSource);
     public const string HintField = nameof(hint);
     public const string MapTitleField = nameof(mapTitle);
     public const string SettingsTitleField = nameof(settingsTitle);
@@ -79,6 +80,8 @@ public class SecurityCameraHud : MonoBehaviour
     [SerializeField] private RectTransform mapSide;
     // Settings panel, its rows parent, and the window titles.
     [SerializeField] private CanvasGroup settingsPanel;
+    [Tooltip("2D source of the settings' microphone playback and test sound.")]
+    [SerializeField] private AudioSource audioSource;
     [SerializeField] private RectTransform settingsRows;
     [SerializeField] private TMP_Text mapTitle;
     [SerializeField] private TMP_Text settingsTitle;
@@ -130,6 +133,7 @@ public class SecurityCameraHud : MonoBehaviour
     internal RectTransform MapArea => mapArea;
     internal RectTransform MapSide => mapSide;
     internal RectTransform SettingsRows => settingsRows;
+    internal AudioSource Audio => audioSource;
     internal TMP_Text MapTitle => mapTitle;
     internal TMP_Text SettingsTitle => settingsTitle;
     internal string PlaceName => placeName;
@@ -195,6 +199,7 @@ public class SecurityCameraHud : MonoBehaviour
         system.ActiveCameraChanged -= OnCameraChanged;
         system.MapChanged -= map.OnMapChanged;
         system.SettingsToggled -= OnSettingsToggled;
+        settingsMenu.SetOpen(false);
         if (settings != null) { settings.Changed -= settingsMenu.Refresh; settings.Changed -= RefreshLanguage; }
         foreach (Door d in doors) if (d != null) d.Changed -= map.OnDoorChanged;
     }
@@ -270,6 +275,7 @@ public class SecurityCameraHud : MonoBehaviour
         }
 
         if (system.IsMapOpen) map.Tick();
+        if (system.IsSettingsOpen) settingsMenu.Tick();
     }
 
     // "SUBJECT IN VIEW" / her room / signal lost.
@@ -290,6 +296,10 @@ public class SecurityCameraHud : MonoBehaviour
         return null;
     }
 
-    // Settings opened / closed.
-    private void OnSettingsToggled(bool open) => HudUi.SetPanel(settingsPanel, open);
+    // Settings opened / closed (the microphone test runs while they are open).
+    private void OnSettingsToggled(bool open)
+    {
+        HudUi.SetPanel(settingsPanel, open);
+        settingsMenu.SetOpen(open);
+    }
 }

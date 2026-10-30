@@ -95,6 +95,16 @@ public class SlotMachine : ButtonPanel
             position[r] = UnityEngine.Random.Range(0, SymbolsPerReel);
             Show(r);
         }
+        MakeSounds();
+    }
+
+    // Clips made by code are lost when the sound output changes: they are made again then (GeneratedAudio).
+    private void OnEnable() => GeneratedAudio.Reset += MakeSounds;
+    private void OnDisable() => GeneratedAudio.Reset -= MakeSounds;
+
+    // The reel tick, the win jingle and the lose tone.
+    private void MakeSounds()
+    {
         tick = Tone(0.03f, 900f, false);
         win = Tone(0.6f, 660f, true);
         lose = Tone(0.25f, 220f, false);
